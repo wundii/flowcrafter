@@ -23,6 +23,10 @@ class Flow implements JsonSerializable
         private readonly string $hash,
         private array $messages = [],
     ) {
+        /**
+         * @todo marked as convert to
+         */
+
         if (!class_exists($source)) {
             throw new InvalidArgumentException(sprintf('FlowSource class "%s" does not exist.', $source));
         }
@@ -41,7 +45,7 @@ class Flow implements JsonSerializable
         ?string $hash = null,
         ?DateTimeImmutable $time = null,
     ): self {
-        if (!$time instanceof \DateTimeImmutable) {
+        if (!$time instanceof DateTimeImmutable) {
             $time = new DateTimeImmutable();
         }
 

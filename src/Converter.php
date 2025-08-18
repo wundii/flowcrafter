@@ -41,12 +41,12 @@ final class Converter
                     $stub = Assert::array($array, 'Each Message must be an array.');
 
                     return new Message(
+                        Assert::string($stub['flowHash'] ?? '', 'Each Message must have a string flowHash.'),
                         MessageTypeEnum::from(Assert::string($stub['messageType'] ?? '', 'Each Message must have a string messageType.')),
                         Assert::string($stub['source'] ?? '', 'Each Message must have a string source.'),
                         Assert::array($stub['data'] ?? [], 'Each Message must have an array of data.'),
                         Assert::datetimeImmutable($stub['time'] ?? '', 'Each Message must have a valid createdAt date string.'),
                         Assert::string($stub['hash'] ?? '', 'Each Message must have a string hash.'),
-                        Assert::string($stub['flowHash'] ?? '', 'Each Message must have a string flowHash.'),
                         Assert::string($stub['predecessorHash'] ?? null, 'Each Message must have a string predecessorHash.'),
                     );
                 },

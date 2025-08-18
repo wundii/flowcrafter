@@ -18,12 +18,12 @@ readonly class Message implements JsonSerializable
      * @param array<mixed> $data
      */
     public function __construct(
+        private string $flowHash,
         private MessageTypeEnum $messageTypeEnum,
         private string $source,
         private array $data,
         private DateTimeImmutable $time,
         private string $hash,
-        private string $flowHash,
         private ?string $predecessorHash = null,
     ) {
         if (!class_exists($source)) {
@@ -39,15 +39,15 @@ readonly class Message implements JsonSerializable
      * @param array<mixed> $data
      */
     public static function create(
-        MessageTypeEnum $messageTypeEnum,
         string $flowHash,
+        MessageTypeEnum $messageTypeEnum,
         ?string $predecessorHash,
         string $source,
         array $data,
         ?DateTimeImmutable $time = null,
         ?string $hash = null,
     ): self {
-        if (!$time instanceof \DateTimeImmutable) {
+        if (!$time instanceof DateTimeImmutable) {
             $time = new DateTimeImmutable();
         }
 
@@ -56,14 +56,19 @@ readonly class Message implements JsonSerializable
         }
 
         return new self(
+            flowHash: $flowHash,
             messageTypeEnum: $messageTypeEnum,
             source: $source,
             data: $data,
             time: $time,
             hash: $hash,
-            flowHash: $flowHash,
             predecessorHash: $predecessorHash,
         );
+    }
+
+    public function getFlowHash(): string
+    {
+        return $this->flowHash;
     }
 
     public function getMessageType(): MessageTypeEnum
@@ -94,11 +99,6 @@ readonly class Message implements JsonSerializable
         return $this->hash;
     }
 
-    public function getFlowHash(): string
-    {
-        return $this->flowHash;
-    }
-
     public function getPredecessorHash(): ?string
     {
         return $this->predecessorHash;
@@ -110,12 +110,12 @@ readonly class Message implements JsonSerializable
     public function jsonSerialize(): array
     {
         return [
+            'flowHash' => $this->flowHash,
             'messageType' => $this->messageTypeEnum->value,
             'source' => $this->source,
             'data' => $this->data,
             'time' => $this->time->format(DateTimeInterface::ATOM),
             'hash' => $this->hash,
-            'flowHash' => $this->flowHash,
             'predecessorHash' => $this->predecessorHash,
         ];
     }
