@@ -11,7 +11,8 @@
     }
   ],
   "require": {
-    "php": ">=8.2"
+    "php": ">=8.2",
+    "ramsey/uuid": "^4.9"
   },
   "require-dev": {
     "phpstan/phpstan": "^2.1",

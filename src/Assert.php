@@ -7,6 +7,7 @@ namespace Wundii\Flowcrafter;
 use DateTime;
 use DateTimeImmutable;
 use InvalidArgumentException;
+use Ramsey\Uuid\Uuid;
 
 final class Assert
 {
@@ -74,5 +75,12 @@ final class Assert
         }
 
         return $value;
+    }
+
+    public static function isHash(mixed $value): bool
+    {
+        $value = self::string($value, 'Expected a string value for hash validation.');
+
+        return Uuid::isValid($value);
     }
 }

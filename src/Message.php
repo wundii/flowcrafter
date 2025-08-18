@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
 use JsonSerializable;
+use Ramsey\Uuid\Uuid;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 
@@ -32,6 +33,37 @@ readonly class Message implements JsonSerializable
         if (!is_subclass_of($source, MessageInterface::class)) {
             throw new InvalidArgumentException(sprintf('MessageSource class "%s" does not implement FlowInterface.', $source));
         }
+    }
+
+    /**
+     * @param array<mixed> $data
+     */
+    public static function create(
+        MessageTypeEnum $messageTypeEnum,
+        string $flowHash,
+        ?string $predecessorHash,
+        string $source,
+        array $data,
+        ?DateTimeImmutable $time = null,
+        ?string $hash = null,
+    ): self {
+        if (!$time instanceof \DateTimeImmutable) {
+            $time = new DateTimeImmutable();
+        }
+
+        if ($hash === null) {
+            $hash = Uuid::uuid7()->toString();
+        }
+
+        return new self(
+            messageTypeEnum: $messageTypeEnum,
+            source: $source,
+            data: $data,
+            time: $time,
+            hash: $hash,
+            flowHash: $flowHash,
+            predecessorHash: $predecessorHash,
+        );
     }
 
     public function getMessageType(): MessageTypeEnum

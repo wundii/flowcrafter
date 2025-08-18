@@ -8,6 +8,7 @@ use DateTime;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Ramsey\Uuid\Uuid;
 use Wundii\Flowcrafter\Assert;
 
 final class AssertTest extends TestCase
@@ -95,5 +96,16 @@ final class AssertTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         Assert::datetimeImmutable('#');
+    }
+
+    public function testIsHashPasses(): void
+    {
+        $hash = Uuid::uuid7()->toString();
+        $this->assertTrue(Assert::isHash($hash));
+    }
+
+    public function testIsHashFails(): void
+    {
+        $this->assertFalse(Assert::isHash('not-a-valid-hash'));
     }
 }

@@ -34,8 +34,8 @@ final class Converter
 
         return new Flow(
             Assert::string($flow['source'] ?? '', 'FlowSource must be a string.'),
-            Assert::string($flow['hash'] ?? '', 'Hash must be a string.'),
             Assert::datetimeImmutable($flow['time'] ?? '', 'CreatedAt must be a valid date string.'),
+            Assert::string($flow['hash'] ?? '', 'Hash must be a string.'),
             array_map(
                 static function (mixed $array): Message {
                     $stub = Assert::array($array, 'Each Message must be an array.');

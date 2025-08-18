@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
 use JsonSerializable;
+use Ramsey\Uuid\Uuid;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 
@@ -18,8 +19,8 @@ class Flow implements JsonSerializable
      */
     public function __construct(
         private readonly string $source,
-        private readonly string $hash,
         private readonly DateTimeImmutable $time,
+        private readonly string $hash,
         private array $messages = [],
     ) {
         if (!class_exists($source)) {
@@ -30,9 +31,29 @@ class Flow implements JsonSerializable
             throw new InvalidArgumentException(sprintf('FlowSource class "%s" does not implement FlowInterface.', $source));
         }
 
-        if ($hash === '') {
-            throw new InvalidArgumentException('Hash cannot be empty.');
+        if (Assert::isHash($hash)) {
+            throw new InvalidArgumentException(sprintf('Hash "%s" is not a valid hash.', $hash));
         }
+    }
+
+    public static function create(
+        string $source,
+        ?string $hash = null,
+        ?DateTimeImmutable $time = null,
+    ): self {
+        if (!$time instanceof \DateTimeImmutable) {
+            $time = new DateTimeImmutable();
+        }
+
+        if ($hash === null) {
+            $hash = Uuid::uuid7()->toString();
+        }
+
+        return new self(
+            source: $source,
+            time: $time,
+            hash: $hash,
+        );
     }
 
     public function getSource(): string
