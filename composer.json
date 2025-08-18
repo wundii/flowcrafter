@@ -1,0 +1,54 @@
+{
+  "name": "wundii/flowcrafter",
+  "type": "library",
+  "description": "",
+  "keywords": ["workflow"],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Andreas Wunderwald",
+      "email": "wundii@gmail.com"
+    }
+  ],
+  "require": {
+    "php": ">=8.2"
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^11.5",
+    "rector/rector": "^2.1",
+    "symfony/var-dumper": "^6.4",
+    "symplify/easy-coding-standard": "^12.5",
+    "wundii/phplint": "^0.3"
+  },
+  "autoload": {
+    "psr-4": {
+      "Wundii\\Flowcrafter\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "analyze": [
+      "vendor/bin/rector process --dry-run --ansi",
+      "vendor/bin/ecs check",
+      "@stan"
+    ],
+    "format": [
+      "vendor/bin/rector process",
+      "vendor/bin/ecs check --fix"
+    ],
+    "phplint": "vendor/bin/phplint",
+    "stan": "vendor/bin/phpstan analyze",
+    "qa": [
+      "@analyze",
+      "@test"
+    ],
+    "test": "vendor/bin/phpunit"
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
