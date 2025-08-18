@@ -14,6 +14,8 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 
 class Flow implements JsonSerializable
 {
+    private string $runtimeHash;
+
     /**
      * @param Message[] $messages
      */
@@ -23,10 +25,6 @@ class Flow implements JsonSerializable
         private readonly string $hash,
         private array $messages = [],
     ) {
-        /**
-         * @todo marked as convert to
-         */
-
         if (!class_exists($source)) {
             throw new InvalidArgumentException(sprintf('FlowSource class "%s" does not exist.', $source));
         }
@@ -35,9 +33,11 @@ class Flow implements JsonSerializable
             throw new InvalidArgumentException(sprintf('FlowSource class "%s" does not implement FlowInterface.', $source));
         }
 
-        if (Assert::isHash($hash)) {
+        if (!Assert::isHash($hash)) {
             throw new InvalidArgumentException(sprintf('Hash "%s" is not a valid hash.', $hash));
         }
+
+        $this->runtimeHash = Uuid::uuid7($time)->toString();
     }
 
     public static function create(
@@ -45,18 +45,12 @@ class Flow implements JsonSerializable
         ?string $hash = null,
         ?DateTimeImmutable $time = null,
     ): self {
-        if (!$time instanceof DateTimeImmutable) {
-            $time = new DateTimeImmutable();
-        }
-
-        if ($hash === null) {
-            $hash = Uuid::uuid7()->toString();
-        }
+        $time = $time ?? new DateTimeImmutable();
 
         return new self(
             source: $source,
             time: $time,
-            hash: $hash,
+            hash: $hash ?? Uuid::uuid7($time)->toString(),
         );
     }
 
@@ -68,6 +62,11 @@ class Flow implements JsonSerializable
     public function getHash(): string
     {
         return $this->hash;
+    }
+
+    public function getRuntimeHash(): string
+    {
+        return $this->runtimeHash;
     }
 
     public function getTime(): DateTimeImmutable
@@ -124,6 +123,7 @@ class Flow implements JsonSerializable
         return [
             'source' => $this->source,
             'hash' => $this->hash,
+            'runtimeHash' => $this->runtimeHash,
             'time' => $this->time->format(DateTimeInterface::ATOM),
             'messages' => $this->messages,
         ];

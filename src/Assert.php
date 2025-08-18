@@ -6,8 +6,10 @@ namespace Wundii\Flowcrafter;
 
 use DateTime;
 use DateTimeImmutable;
+use Exception;
 use InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
+use Wundii\Flowcrafter\Interface\MessageInterface;
 
 final class Assert
 {
@@ -61,16 +63,29 @@ final class Assert
 
     public static function datetime(mixed $value, string $expectedMessage = 'Expected an datetime value.'): DateTime
     {
-        if (!$value instanceof DateTime) {
-            throw new InvalidArgumentException($expectedMessage);
-        }
+        $value = self::string($value);
 
-        return $value;
+        try {
+            return new DateTime($value);
+        } catch (Exception $exception) {
+            throw new InvalidArgumentException($expectedMessage, 0, $exception);
+        }
     }
 
     public static function datetimeImmutable(mixed $value, string $expectedMessage = 'Expected an datetime value.'): DateTimeImmutable
     {
-        if (!$value instanceof DateTimeImmutable) {
+        $value = self::string($value);
+
+        try {
+            return new DateTimeImmutable($value);
+        } catch (Exception $exception) {
+            throw new InvalidArgumentException($expectedMessage, 0, $exception);
+        }
+    }
+
+    public static function messageInterface(mixed $value, string $expectedMessage = 'Expected an MessageInterface value.'): MessageInterface
+    {
+        if (!$value instanceof MessageInterface) {
             throw new InvalidArgumentException($expectedMessage);
         }
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace tests;
+namespace Tests;
 
 use DateTime;
 use DateTimeImmutable;
@@ -10,6 +10,7 @@ use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Wundii\Flowcrafter\Assert;
+use Wundii\Flowcrafter\Interface\MessageInterface;
 
 final class AssertTest extends TestCase
 {
@@ -78,7 +79,7 @@ final class AssertTest extends TestCase
 
     public function testDatetimePasses(): void
     {
-        $this->assertEquals(new DateTime('2025-08-18 18:09:12'), Assert::datetime(new DateTime('2025-08-18 18:09:12')));
+        $this->assertEquals(new DateTime('2025-08-18 18:09:12'), Assert::datetime('2025-08-18 18:09:12'));
     }
 
     public function testDatetimeFails(): void
@@ -89,13 +90,25 @@ final class AssertTest extends TestCase
 
     public function testDatetimeImmutablePasses(): void
     {
-        $this->assertEquals(new DateTimeImmutable('2025-08-18 18:09:12'), Assert::datetimeImmutable(new DateTimeImmutable('2025-08-18 18:09:12')));
+        $this->assertEquals(new DateTimeImmutable('2025-08-18 18:09:12'), Assert::datetimeImmutable('2025-08-18 18:09:12'));
     }
 
     public function testDatetimeImmutableFails(): void
     {
         $this->expectException(InvalidArgumentException::class);
         Assert::datetimeImmutable('#');
+    }
+
+    public function testMessageInterfacePasses(): void
+    {
+        $messageStub = $this->createStub(MessageInterface::class);
+        $this->assertSame($messageStub, Assert::messageInterface($messageStub));
+    }
+
+    public function testMessageInterfaceFails(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Assert::messageInterface('not-an-object');
     }
 
     public function testIsHashPasses(): void

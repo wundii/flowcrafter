@@ -25,10 +25,6 @@ final class Converter
             throw new InvalidArgumentException('Invalid JSON provided.');
         }
 
-        /**
-         * @todo validations
-         */
-
         $array = json_decode($json, true);
         $flow = Assert::array($array, 'Decoded JSON is not an array.');
 
@@ -44,7 +40,7 @@ final class Converter
                         Assert::string($stub['flowHash'] ?? '', 'Each Message must have a string flowHash.'),
                         MessageTypeEnum::from(Assert::string($stub['messageType'] ?? '', 'Each Message must have a string messageType.')),
                         Assert::string($stub['source'] ?? '', 'Each Message must have a string source.'),
-                        Assert::array($stub['data'] ?? [], 'Each Message must have an array of data.'),
+                        Assert::messageInterface($stub['message'] ?? null, 'Each Message must have an MessageInterface message.'),
                         Assert::datetimeImmutable($stub['time'] ?? '', 'Each Message must have a valid createdAt date string.'),
                         Assert::string($stub['hash'] ?? '', 'Each Message must have a string hash.'),
                         Assert::string($stub['predecessorHash'] ?? null, 'Each Message must have a string predecessorHash.'),
