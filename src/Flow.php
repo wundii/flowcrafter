@@ -30,15 +30,32 @@ class Flow implements JsonSerializable
         private array $messages = [],
     ) {
         if (!class_exists($source)) {
-            throw new InvalidArgumentException(sprintf('FlowSource class "%s" does not exist.', $source));
+            throw new InvalidArgumentException(sprintf(
+                'FlowSource class "%s" does not exist.',
+                $source,
+            ));
         }
 
         if (!is_subclass_of($source, FlowInterface::class)) {
-            throw new InvalidArgumentException(sprintf('FlowSource class "%s" does not implement FlowInterface.', $source));
+            throw new InvalidArgumentException(sprintf(
+                'FlowSource class "%s" does not implement FlowInterface.',
+                $source,
+            ));
         }
 
         if (!Assert::isHash($hash)) {
-            throw new InvalidArgumentException(sprintf('Hash "%s" is not a valid hash.', $hash));
+            throw new InvalidArgumentException(sprintf(
+                'Hash "%s" is not a valid hash.',
+                $hash,
+            ));
+        }
+
+        if ($type !== $this->flowSchema->type()) {
+            throw new InvalidArgumentException(sprintf(
+                'Flow type "%s" does not match the schema type "%s".',
+                $type,
+                $this->flowSchema->type(),
+            ));
         }
 
         $this->runtimeHash = Uuid::uuid7($time)->toString();

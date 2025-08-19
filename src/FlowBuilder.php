@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
-use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 
 readonly class FlowBuilder
 {
     public function __construct(
-        private MessageInterface $message,
+        private string $type,
+        // private MessageInterface $message,
     ) {
     }
 
@@ -27,8 +27,8 @@ readonly class FlowBuilder
         return new ExceptionBuilder($stub, $exceptionClasses);
     }
 
-    public function getMessage(): MessageInterface
+    public function build(): FlowSchema
     {
-        return $this->message;
+        return new FlowSchema($this->type);
     }
 }
