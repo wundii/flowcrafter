@@ -14,6 +14,8 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 
 readonly class Message implements JsonSerializable
 {
+    private string $runtimeHash;
+
     public function __construct(
         private string $flowHash,
         private MessageTypeEnum $messageTypeEnum,
@@ -30,6 +32,8 @@ readonly class Message implements JsonSerializable
         if (!is_subclass_of($source, MessageInterface::class)) {
             throw new InvalidArgumentException(sprintf('Message source class "%s" does not implement FlowInterface.', $source));
         }
+
+        $this->runtimeHash = Uuid::uuid7($time)->toString();
     }
 
     public static function create(
@@ -100,6 +104,7 @@ readonly class Message implements JsonSerializable
             'message' => $this->message,
             'time' => $this->time->format(DateTimeInterface::ATOM),
             'hash' => $this->hash,
+            'runtimeHash' => $this->runtimeHash,
             'predecessorHash' => $this->predecessorHash,
         ];
     }
