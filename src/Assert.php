@@ -9,7 +9,6 @@ use DateTimeImmutable;
 use Exception;
 use InvalidArgumentException;
 use Ramsey\Uuid\Uuid;
-use Wundii\Flowcrafter\Interface\MessageInterface;
 
 final class Assert
 {
@@ -83,9 +82,32 @@ final class Assert
         }
     }
 
-    public static function messageInterface(mixed $value, string $expectedMessage = 'Expected an MessageInterface value.'): MessageInterface
+    /**
+     * @template T of object
+     * @param class-string<T> $object
+     * @return class-string<T>
+     */
+    public static function classString(mixed $value, string $object, string $expectedMessage = 'Expected an ClassString value.'): string
     {
-        if (!$value instanceof MessageInterface) {
+        if (!is_string($value)) {
+            throw new InvalidArgumentException($expectedMessage);
+        }
+
+        if ($value !== $object && !is_subclass_of($value, $object)) {
+            throw new InvalidArgumentException(sprintf('Expected a subclass string of "%s", got "%s".', $object, $value));
+        }
+
+        return $value;
+    }
+
+    /**
+     * @template T of object
+     * @param class-string<T> $object
+     * @return T
+     */
+    public static function object(mixed $value, string $object, string $expectedMessage = 'Expected an Object value.'): object
+    {
+        if (!$value instanceof $object) {
             throw new InvalidArgumentException($expectedMessage);
         }
 

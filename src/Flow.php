@@ -10,17 +10,21 @@ use InvalidArgumentException;
 use JsonSerializable;
 use Ramsey\Uuid\Uuid;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
-use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\FlowInterface;
 
 class Flow implements JsonSerializable
 {
     private string $runtimeHash;
 
     /**
+     * @param class-string $source
      * @param Message[] $messages
      */
     public function __construct(
         private readonly string $source,
+        private readonly string $subject,
+        private readonly string $type,
+        private readonly FlowSchema $flowSchema,
         private readonly DateTimeImmutable $time,
         private readonly string $hash,
         private array $messages = [],
@@ -29,7 +33,7 @@ class Flow implements JsonSerializable
             throw new InvalidArgumentException(sprintf('FlowSource class "%s" does not exist.', $source));
         }
 
-        if (!is_subclass_of($source, MessageInterface::class)) {
+        if (!is_subclass_of($source, FlowInterface::class)) {
             throw new InvalidArgumentException(sprintf('FlowSource class "%s" does not implement FlowInterface.', $source));
         }
 
@@ -40,8 +44,13 @@ class Flow implements JsonSerializable
         $this->runtimeHash = Uuid::uuid7($time)->toString();
     }
 
+    /**
+     * @param class-string $source
+     */
     public static function create(
         string $source,
+        string $subject,
+        string $type,
         ?string $hash = null,
         ?DateTimeImmutable $time = null,
     ): self {
@@ -49,6 +58,9 @@ class Flow implements JsonSerializable
 
         return new self(
             source: $source,
+            subject: $subject,
+            type: $type,
+            flowSchema: FlowSchema::create($source),
             time: $time,
             hash: $hash ?? Uuid::uuid7($time)->toString(),
         );
@@ -57,6 +69,21 @@ class Flow implements JsonSerializable
     public function getSource(): string
     {
         return $this->source;
+    }
+
+    public function getSubject(): string
+    {
+        return $this->subject;
+    }
+
+    public function getType(): string
+    {
+        return $this->type;
+    }
+
+    public function getFlowSchema(): FlowSchema
+    {
+        return $this->flowSchema;
     }
 
     public function getHash(): string
@@ -122,6 +149,8 @@ class Flow implements JsonSerializable
     {
         return [
             'source' => $this->source,
+            'subject' => $this->subject,
+            'type' => $this->type,
             'hash' => $this->hash,
             'runtimeHash' => $this->runtimeHash,
             'time' => $this->time->format(DateTimeInterface::ATOM),

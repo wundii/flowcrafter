@@ -7,6 +7,8 @@ namespace Wundii\Flowcrafter;
 use InvalidArgumentException;
 use RuntimeException;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
+use Wundii\Flowcrafter\Interface\FlowInterface;
+use Wundii\Flowcrafter\Interface\MessageInterface;
 
 if (PHP_VERSION_ID < 80300) {
     function json_validate(string $string): bool
@@ -29,20 +31,23 @@ final class Converter
         $flow = Assert::array($array, 'Decoded JSON is not an array.');
 
         return new Flow(
-            Assert::string($flow['source'] ?? '', 'FlowSource must be a string.'),
-            Assert::datetimeImmutable($flow['time'] ?? '', 'CreatedAt must be a valid date string.'),
-            Assert::string($flow['hash'] ?? '', 'Hash must be a string.'),
+            Assert::classString($flow['source'] ?? null, FlowInterface::class, 'FlowSource must be a string.'),
+            Assert::string($flow['subject'] ?? null, 'Subject must be a string.'),
+            Assert::string($flow['type'] ?? null, 'Type must be a string.'),
+            FlowSchema::create(Assert::classString($flow['source'] ?? null, FlowInterface::class)),
+            Assert::datetimeImmutable($flow['time'] ?? null, 'Time must be a valid date string.'),
+            Assert::string($flow['hash'] ?? null, 'Hash must be a string.'),
             array_map(
                 static function (mixed $array): Message {
                     $stub = Assert::array($array, 'Each Message must be an array.');
 
                     return new Message(
-                        Assert::string($stub['flowHash'] ?? '', 'Each Message must have a string flowHash.'),
-                        MessageTypeEnum::from(Assert::string($stub['messageType'] ?? '', 'Each Message must have a string messageType.')),
-                        Assert::string($stub['source'] ?? '', 'Each Message must have a string source.'),
-                        Assert::messageInterface($stub['message'] ?? null, 'Each Message must have an MessageInterface message.'),
-                        Assert::datetimeImmutable($stub['time'] ?? '', 'Each Message must have a valid createdAt date string.'),
-                        Assert::string($stub['hash'] ?? '', 'Each Message must have a string hash.'),
+                        Assert::string($stub['flowHash'] ?? null, 'Each Message must have a string flowHash.'),
+                        MessageTypeEnum::from(Assert::string($stub['messageType'] ?? null, 'Each Message must have a string messageType.')),
+                        Assert::classString($stub['source'] ?? null, MessageInterface::class, 'Each Message must have a string source.'),
+                        Assert::object($stub['message'] ?? null, MessageInterface::class, 'Each Message must have an MessageInterface message.'),
+                        Assert::datetimeImmutable($stub['time'] ?? null, 'Each Message must have a valid time date string.'),
+                        Assert::string($stub['hash'] ?? null, 'Each Message must have a string hash.'),
                         Assert::string($stub['predecessorHash'] ?? null, 'Each Message must have a string predecessorHash.'),
                     );
                 },

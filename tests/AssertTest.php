@@ -99,16 +99,28 @@ final class AssertTest extends TestCase
         Assert::datetimeImmutable('#');
     }
 
-    public function testMessageInterfacePasses(): void
+    public function testClassStringPasses(): void
     {
-        $messageStub = $this->createStub(MessageInterface::class);
-        $this->assertSame($messageStub, Assert::messageInterface($messageStub));
+        $this->assertSame(MessageInterface::class, Assert::classString(MessageInterface::class, MessageInterface::class));
     }
 
-    public function testMessageInterfaceFails(): void
+    public function testClassStringFails(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        Assert::messageInterface('not-an-object');
+        Assert::classString(1337, MessageInterface::class);
+        Assert::classString('not-an-object', MessageInterface::class);
+    }
+
+    public function testObjectPasses(): void
+    {
+        $messageStub = $this->createStub(MessageInterface::class);
+        $this->assertSame($messageStub, Assert::object($messageStub, MessageInterface::class));
+    }
+
+    public function testObjectFails(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Assert::object('not-an-object', MessageInterface::class);
     }
 
     public function testIsHashPasses(): void

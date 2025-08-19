@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\MockClass;
 
-use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\FlowSchema;
+use Wundii\Flowcrafter\Interface\FlowInterface;
 
-class WorkflowMock implements MessageInterface
+class WorkflowMock implements FlowInterface
 {
+    public static function schema(): FlowSchema
+    {
+        return new FlowSchema();
+    }
 }
