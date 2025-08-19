@@ -19,7 +19,6 @@ final class ConverterTest extends TestCase
     {
         $flow = Flow::create(
             WorkflowMock::class,
-            subject: '/workflow/42',
             type: 'flow.workflow.v1',
         );
 
@@ -27,7 +26,7 @@ final class ConverterTest extends TestCase
 
         $expectedJson = json_encode([
             'source' => WorkflowMock::class,
-            'subject' => '/workflow/42',
+            'subject' => null,
             'type' => 'flow.workflow.v1',
             'hash' => $flow->getHash(),
             'runtimeHash' => $flow->getRuntimeHash(),
@@ -44,7 +43,7 @@ final class ConverterTest extends TestCase
         $hash = Uuid::uuid7($datetime)->toString();
         $json = json_encode([
             'source' => WorkflowMock::class,
-            'subject' => '/workflow/42',
+            'subject' => '/workflow/1',
             'type' => 'flow.workflow.v1',
             'hash' => $hash,
             'time' => $datetime->format(DateTimeInterface::ATOM),
@@ -55,15 +54,17 @@ final class ConverterTest extends TestCase
 
         $expectedFlow = new Flow(
             source: WorkflowMock::class,
-            subject: '/workflow/42',
             type: 'flow.workflow.v1',
             flowSchema: FlowSchema::create(WorkflowMock::class),
             time: $flow->getTime(),
             hash: $hash,
+            subject: '/workflow/1',
             messages: [],
         );
 
         $this->assertSame($expectedFlow->getSource(), $flow->getSource());
+        $this->assertSame($expectedFlow->getSubject(), $flow->getSubject());
+        $this->assertSame($expectedFlow->getType(), $flow->getType());
         $this->assertEquals($expectedFlow->getTime(), $flow->getTime());
         $this->assertSame($expectedFlow->getHash(), $flow->getHash());
         $this->assertSame($expectedFlow->getMessages(), $flow->getMessages());

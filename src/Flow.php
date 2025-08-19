@@ -22,23 +22,23 @@ class Flow implements JsonSerializable
      */
     public function __construct(
         private readonly string $source,
-        private readonly string $subject,
         private readonly string $type,
         private readonly FlowSchema $flowSchema,
         private readonly DateTimeImmutable $time,
         private readonly string $hash,
+        private ?string $subject = null,
         private array $messages = [],
     ) {
         if (!class_exists($source)) {
             throw new InvalidArgumentException(sprintf(
-                'FlowSource class "%s" does not exist.',
+                'Flow source class "%s" does not exist.',
                 $source,
             ));
         }
 
         if (!is_subclass_of($source, FlowInterface::class)) {
             throw new InvalidArgumentException(sprintf(
-                'FlowSource class "%s" does not implement FlowInterface.',
+                'Flow source class "%s" does not implement FlowInterface.',
                 $source,
             ));
         }
@@ -66,7 +66,6 @@ class Flow implements JsonSerializable
      */
     public static function create(
         string $source,
-        string $subject,
         string $type,
         ?string $hash = null,
         ?DateTimeImmutable $time = null,
@@ -75,7 +74,6 @@ class Flow implements JsonSerializable
 
         return new self(
             source: $source,
-            subject: $subject,
             type: $type,
             flowSchema: FlowSchema::create($source),
             time: $time,
@@ -88,7 +86,7 @@ class Flow implements JsonSerializable
         return $this->source;
     }
 
-    public function getSubject(): string
+    public function getSubject(): ?string
     {
         return $this->subject;
     }
@@ -160,7 +158,7 @@ class Flow implements JsonSerializable
     }
 
     /**
-     * @return array<string, string|array<Message>>
+     * @return array<string, null|string|array<Message>>
      */
     public function jsonSerialize(): array
     {

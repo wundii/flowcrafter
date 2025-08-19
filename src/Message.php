@@ -24,11 +24,11 @@ readonly class Message implements JsonSerializable
         private ?string $predecessorHash = null,
     ) {
         if (!class_exists($source)) {
-            throw new InvalidArgumentException(sprintf('MessageSource class "%s" does not exist.', $source));
+            throw new InvalidArgumentException(sprintf('Message source class "%s" does not exist.', $source));
         }
 
         if (!is_subclass_of($source, MessageInterface::class)) {
-            throw new InvalidArgumentException(sprintf('MessageSource class "%s" does not implement FlowInterface.', $source));
+            throw new InvalidArgumentException(sprintf('Message source class "%s" does not implement FlowInterface.', $source));
         }
     }
 

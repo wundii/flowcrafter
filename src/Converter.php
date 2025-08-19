@@ -21,7 +21,7 @@ if (PHP_VERSION_ID < 80300) {
 
 final class Converter
 {
-    public static function JsonToFlow(string $json): Flow
+    public static function jsonToFlow(string $json): Flow
     {
         if (!json_validate($json)) {
             throw new InvalidArgumentException('Invalid JSON provided.');
@@ -32,11 +32,11 @@ final class Converter
 
         return new Flow(
             Assert::classString($flow['source'] ?? null, FlowInterface::class, 'FlowSource must be a string.'),
-            Assert::string($flow['subject'] ?? null, 'Subject must be a string.'),
             Assert::string($flow['type'] ?? null, 'Type must be a string.'),
             FlowSchema::create(Assert::classString($flow['source'] ?? null, FlowInterface::class)),
             Assert::datetimeImmutable($flow['time'] ?? null, 'Time must be a valid date string.'),
             Assert::string($flow['hash'] ?? null, 'Hash must be a string.'),
+            Assert::nullOrString($flow['subject'] ?? null, 'Subject must be null or string.'),
             array_map(
                 static function (mixed $array): Message {
                     $stub = Assert::array($array, 'Each Message must be an array.');
@@ -56,7 +56,7 @@ final class Converter
         );
     }
 
-    public static function FlowToJson(Flow $flow): string
+    public static function flowToJson(Flow $flow): string
     {
         $json = json_encode($flow);
         if ($json === false) {

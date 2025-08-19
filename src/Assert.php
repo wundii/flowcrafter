@@ -48,6 +48,15 @@ final class Assert
         return $value;
     }
 
+    public static function nullOrString(mixed $value, string $expectedMessage = 'Expected a null or string value.'): ?string
+    {
+        if (!is_string($value) && $value !== null) {
+            throw new InvalidArgumentException($expectedMessage);
+        }
+
+        return $value;
+    }
+
     /**
      * @return array<mixed>
      */
