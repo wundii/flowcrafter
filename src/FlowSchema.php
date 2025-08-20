@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter;
 
 use InvalidArgumentException;
+use JsonSerializable;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 
-class FlowSchema
+class FlowSchema implements JsonSerializable
 {
     public function __construct(
         private string $type,
@@ -33,5 +34,15 @@ class FlowSchema
     public function type(): string
     {
         return $this->type;
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'type' => $this->type,
+        ];
     }
 }

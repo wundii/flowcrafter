@@ -28,6 +28,9 @@ final class ConverterTest extends TestCase
             'source' => WorkflowMock::class,
             'subject' => null,
             'type' => 'flow.workflow.v1',
+            'flowSchema' => [
+                'type' => 'flow.workflow.v1',
+            ],
             'hash' => $flow->getHash(),
             'runtimeHash' => $flow->getRuntimeHash(),
             'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
