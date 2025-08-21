@@ -12,7 +12,7 @@ use Wundii\Flowcrafter\Interface\StubInterface;
 readonly class FlowSchema implements JsonSerializable
 {
     /**
-     * @param string[] $stubs
+     * @param class-string[] $stubs
      */
     public function __construct(
         private string $type,

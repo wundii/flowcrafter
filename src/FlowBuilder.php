@@ -13,33 +13,37 @@ use Wundii\Flowcrafter\Interface\StubInterface;
 class FlowBuilder
 {
     /**
-     * @var string[]
+     * @var class-string[]
      */
     private array $stubs = [];
 
     /**
-     * @var string[]
+     * @var class-string[]
      */
-    private array $messageNames = [];
+    private array $messages = [];
 
     public function __construct(
         private readonly string $type,
-        private readonly string $messageInitClass,
-        private readonly string $messageReturnClass,
+        private readonly string $messageInit,
+        private readonly string $messageReturn,
     ) {
         Assert::classString(
-            $this->messageInitClass,
+            $this->messageInit,
             MessageInitInterface::class,
             'Message must be an instance of MessageInitInterface'
         );
 
         Assert::classString(
-            $this->messageReturnClass,
+            $this->messageReturn,
             MessageReturnInterface::class,
             'Message must be an instance of MessageReturnInterface'
         );
     }
 
+    /**
+     * @param class-string $stub
+     * @param class-string ...$messages
+     */
     public function addStub(string $stub, string ...$messages): void
     {
         Assert::classString(
@@ -49,7 +53,7 @@ class FlowBuilder
         );
 
         foreach ($messages as $message) {
-            Assert::classString(
+            $this->messages[] = Assert::classString(
                 $message,
                 MessageInterface::class,
                 sprintf(
@@ -58,8 +62,6 @@ class FlowBuilder
                     $message,
                 ),
             );
-
-            $this->messageNames[] = $message;
         }
 
         $stubBuilder = new StubBuilder($stub, $messages);
@@ -67,27 +69,27 @@ class FlowBuilder
     }
 
     /**
-     * @param class-string[] $exceptionClasses
+     * @param class-string[] $exceptions
      */
-    public function exception(StubInterface $exceptionStub, array $exceptionClasses, StubInterface $stub): void
+    public function exception(StubInterface $exceptionStub, array $exceptions, StubInterface $stub): void
     {
-        $exceptionBuilder = new ExceptionBuilder($exceptionStub, $exceptionClasses);
+        $exceptionBuilder = new ExceptionBuilder($exceptionStub, $exceptions);
         $exceptionBuilder->execute($stub);
     }
 
     public function build(): FlowSchema
     {
-        if (!in_array($this->messageInitClass, $this->messageNames, true)) {
+        if (!in_array($this->messageInit, $this->messages, true)) {
             throw new InvalidArgumentException(sprintf(
                 'MessageInit "%s" is not added to the flow.',
-                $this->messageInitClass,
+                $this->messageInit,
             ));
         }
 
         /**
          * @todo es wird noch ein check für den MessageReturn benötigt
          */
-        if (!in_array($this->messageReturnClass, $this->messageNames, true)) {
+        if (!in_array($this->messageReturn, $this->messages, true)) {
             // throw new InvalidArgumentException(sprintf(
             //     'MessageReturn "%s" is not added to the flow.',
             //     $this->messageReturn,

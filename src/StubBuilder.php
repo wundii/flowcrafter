@@ -10,7 +10,8 @@ use Wundii\Flowcrafter\Interface\StubInterface;
 readonly class StubBuilder
 {
     /**
-     * @param string[] $messages
+     * @param class-string $stub
+     * @param class-string[] $messages
      */
     public function __construct(
         private string $stub,
@@ -35,13 +36,16 @@ readonly class StubBuilder
         }
     }
 
+    /**
+     * @return class-string
+     */
     public function getStub(): string
     {
         return $this->stub;
     }
 
     /**
-     * @return string[]
+     * @return class-string[]
      */
     public function getMessages(): array
     {
