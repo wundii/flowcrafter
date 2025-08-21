@@ -10,21 +10,38 @@ use Wundii\Flowcrafter\Interface\StubInterface;
 readonly class StubBuilder
 {
     /**
-     * @param MessageInterface[] $messages
+     * @param string[] $messages
      */
     public function __construct(
-        private StubInterface $stub,
+        private string $stub,
         private array $messages,
     ) {
+        Assert::classString(
+            $stub,
+            StubInterface::class,
+            'Stub must be an instance of StubInterface'
+        );
+
+        foreach ($messages as $message) {
+            Assert::classString(
+                $message,
+                MessageInterface::class,
+                sprintf(
+                    '%s: Message "%s" must be an instance of MessageInterface',
+                    $stub,
+                    $message,
+                ),
+            );
+        }
     }
 
-    public function getStub(): StubInterface
+    public function getStub(): string
     {
         return $this->stub;
     }
 
     /**
-     * @return MessageInterface[]
+     * @return string[]
      */
     public function getMessages(): array
     {

@@ -12,7 +12,16 @@ class WorkflowMock implements FlowInterface
 {
     public static function schema(): FlowSchema
     {
-        $flowBuilder = new FlowBuilder('flow.workflow.v1');
+        $flowBuilder = new FlowBuilder(
+            'flow.workflow.v1',
+            MessageInitMock::class,
+            MessageReturnMock::class,
+        );
+
+        $flowBuilder->addStub(
+            StubMock::class,
+            MessageInitMock::class,
+        );
 
         return $flowBuilder->build();
     }

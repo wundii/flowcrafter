@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
+use Tests\MockClass\StubMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Flow;
@@ -30,7 +31,9 @@ final class ConverterTest extends TestCase
             'type' => 'flow.workflow.v1',
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
-                'stubs' => [],
+                'stubs' => [
+                    StubMock::class,
+                ],
             ],
             'hash' => $flow->getHash(),
             'runtimeHash' => $flow->getRuntimeHash(),

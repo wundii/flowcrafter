@@ -8,5 +8,5 @@ interface StubInterface
 {
     public function __construct(MessageInitInterface|MessageStubInterface ...$messages);
 
-    public function process(): false|MessageReturnInterface;
+    public function process(): false|MessageStubInterface|MessageReturnInterface;
 }
