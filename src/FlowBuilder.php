@@ -4,31 +4,54 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use Wundii\Flowcrafter\Interface\MessageInitInterface;
+use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 
-readonly class FlowBuilder
+class FlowBuilder
 {
+    /**
+     * @var StubInterface[]
+     */
+    private array $stubs = [];
+
+    private ?MessageInitInterface $messageInit = null;
+
     public function __construct(
-        private string $type,
-        // private MessageInterface $message,
+        private readonly string $type,
     ) {
     }
 
-    public function addStub(StubInterface $stub): StubBuilder
+    public function addStub(StubInterface $stub, MessageInterface ...$messages): void
     {
-        return new StubBuilder();
+        $this->setMessageInit(...$messages);
+
+        $stubBuilder = new StubBuilder($stub, $messages);
+        $this->stubs[] = $stubBuilder->getStub();
     }
 
     /**
      * @param class-string[] $exceptionClasses
      */
-    public function exception(StubInterface $stub, array $exceptionClasses): ExceptionBuilder
+    public function exception(StubInterface $exceptionStub, array $exceptionClasses, StubInterface $stub): void
     {
-        return new ExceptionBuilder($stub, $exceptionClasses);
+        $exceptionBuilder = new ExceptionBuilder($exceptionStub, $exceptionClasses);
+        $exceptionBuilder->execute($stub);
     }
 
     public function build(): FlowSchema
     {
-        return new FlowSchema($this->type);
+        return new FlowSchema($this->type, $this->stubs);
+    }
+
+    private function setMessageInit(MessageInterface ...$messages): void
+    {
+        if ($this->messageInit instanceof MessageInitInterface) {
+            return;
+        }
+
+        $messageInit = array_filter($messages, fn (MessageInterface $message): bool => $message instanceof MessageInitInterface);
+
+        $this->messageInit = reset($messageInit) ?: null;
     }
 }

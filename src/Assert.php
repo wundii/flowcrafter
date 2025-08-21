@@ -12,8 +12,10 @@ use Ramsey\Uuid\Uuid;
 
 final class Assert
 {
-    public static function bool(mixed $value, string $expectedMessage = 'Expected a bool value.'): bool
-    {
+    public static function bool(
+        mixed $value,
+        string $expectedMessage = 'Expected a bool value.',
+    ): bool {
         if (!is_bool($value)) {
             throw new InvalidArgumentException($expectedMessage);
         }
@@ -21,8 +23,10 @@ final class Assert
         return $value;
     }
 
-    public static function int(mixed $value, string $expectedMessage = 'Expected a int value.'): int
-    {
+    public static function int(
+        mixed $value,
+        string $expectedMessage = 'Expected a int value.',
+    ): int {
         if (!is_int($value)) {
             throw new InvalidArgumentException($expectedMessage);
         }
@@ -30,8 +34,10 @@ final class Assert
         return $value;
     }
 
-    public static function float(mixed $value, string $expectedMessage = 'Expected a float value.'): float
-    {
+    public static function float(
+        mixed $value,
+        string $expectedMessage = 'Expected a float value.',
+    ): float {
         if (!is_float($value)) {
             throw new InvalidArgumentException($expectedMessage);
         }
@@ -39,8 +45,10 @@ final class Assert
         return $value;
     }
 
-    public static function string(mixed $value, string $expectedMessage = 'Expected a string value.'): string
-    {
+    public static function string(
+        mixed $value,
+        string $expectedMessage = 'Expected a string value.',
+    ): string {
         if (!is_string($value)) {
             throw new InvalidArgumentException($expectedMessage);
         }
@@ -48,8 +56,10 @@ final class Assert
         return $value;
     }
 
-    public static function nullOrString(mixed $value, string $expectedMessage = 'Expected a null or string value.'): ?string
-    {
+    public static function nullOrString(
+        mixed $value,
+        string $expectedMessage = 'Expected a null or string value.',
+    ): ?string {
         if (!is_string($value) && $value !== null) {
             throw new InvalidArgumentException($expectedMessage);
         }
@@ -60,8 +70,10 @@ final class Assert
     /**
      * @return array<mixed>
      */
-    public static function array(mixed $value, string $expectedMessage = 'Expected an array value.'): array
-    {
+    public static function array(
+        mixed $value,
+        string $expectedMessage = 'Expected an array value.',
+    ): array {
         if (!is_array($value)) {
             throw new InvalidArgumentException($expectedMessage);
         }
@@ -69,8 +81,10 @@ final class Assert
         return $value;
     }
 
-    public static function datetime(mixed $value, string $expectedMessage = 'Expected an datetime value.'): DateTime
-    {
+    public static function datetime(
+        mixed $value,
+        string $expectedMessage = 'Expected an datetime value.',
+    ): DateTime {
         $value = self::string($value);
 
         try {
@@ -80,8 +94,10 @@ final class Assert
         }
     }
 
-    public static function datetimeImmutable(mixed $value, string $expectedMessage = 'Expected an datetime value.'): DateTimeImmutable
-    {
+    public static function datetimeImmutable(
+        mixed $value,
+        string $expectedMessage = 'Expected an datetime value.',
+    ): DateTimeImmutable {
         $value = self::string($value);
 
         try {
@@ -96,8 +112,11 @@ final class Assert
      * @param class-string<T> $object
      * @return class-string<T>
      */
-    public static function classString(mixed $value, string $object, string $expectedMessage = 'Expected an ClassString value.'): string
-    {
+    public static function classString(
+        mixed $value,
+        string $object,
+        string $expectedMessage = 'Expected an ClassString value.',
+    ): string {
         if (!is_string($value)) {
             throw new InvalidArgumentException($expectedMessage);
         }
@@ -114,8 +133,11 @@ final class Assert
      * @param class-string<T> $object
      * @return T
      */
-    public static function object(mixed $value, string $object, string $expectedMessage = 'Expected an Object value.'): object
-    {
+    public static function object(
+        mixed $value,
+        string $object,
+        string $expectedMessage = 'Expected an Object value.',
+    ): object {
         if (!$value instanceof $object) {
             throw new InvalidArgumentException($expectedMessage);
         }

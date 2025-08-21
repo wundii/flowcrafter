@@ -7,45 +7,27 @@ namespace Wundii\Flowcrafter;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 
-class StubBuilder
+readonly class StubBuilder
 {
     /**
-     * @var StubInterface[]
+     * @param MessageInterface[] $messages
      */
-    private array $stubs = [];
-
-    public function match(MessageInterface $message, StubInterface $stub): self
-    {
-        return $this;
+    public function __construct(
+        private StubInterface $stub,
+        private array $messages,
+    ) {
     }
 
-    public function matchFail(MessageInterface $message, StubInterface $stub): self
+    public function getStub(): StubInterface
     {
-        return $this;
-    }
-
-    public function addStub(StubInterface $stub): self
-    {
-        $this->stubs[] = $stub;
-
-        return $this;
-    }
-
-    public function noFail(): self
-    {
-        return $this;
-    }
-
-    public function noMatch(): self
-    {
-        return $this;
+        return $this->stub;
     }
 
     /**
-     * @return StubInterface[]
+     * @return MessageInterface[]
      */
-    public function getStubs(): array
+    public function getMessages(): array
     {
-        return $this->stubs;
+        return $this->messages;
     }
 }

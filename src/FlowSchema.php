@@ -7,11 +7,16 @@ namespace Wundii\Flowcrafter;
 use InvalidArgumentException;
 use JsonSerializable;
 use Wundii\Flowcrafter\Interface\FlowInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
-class FlowSchema implements JsonSerializable
+readonly class FlowSchema implements JsonSerializable
 {
+    /**
+     * @param StubInterface[] $stubs
+     */
     public function __construct(
         private string $type,
+        private array $stubs,
     ) {
     }
 
@@ -43,6 +48,7 @@ class FlowSchema implements JsonSerializable
     {
         return [
             'type' => $this->type,
+            'stubs' => $this->stubs,
         ];
     }
 }

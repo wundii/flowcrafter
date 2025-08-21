@@ -10,7 +10,7 @@ use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Wundii\Flowcrafter\Assert;
-use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\MessageInitInterface;
 
 final class AssertTest extends TestCase
 {
@@ -101,26 +101,26 @@ final class AssertTest extends TestCase
 
     public function testClassStringPasses(): void
     {
-        $this->assertSame(MessageInterface::class, Assert::classString(MessageInterface::class, MessageInterface::class));
+        $this->assertSame(MessageInitInterface::class, Assert::classString(MessageInitInterface::class, MessageInitInterface::class));
     }
 
     public function testClassStringFails(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        Assert::classString(1337, MessageInterface::class);
-        Assert::classString('not-an-object', MessageInterface::class);
+        Assert::classString(1337, MessageInitInterface::class);
+        Assert::classString('not-an-object', MessageInitInterface::class);
     }
 
     public function testObjectPasses(): void
     {
-        $messageStub = $this->createStub(MessageInterface::class);
-        $this->assertSame($messageStub, Assert::object($messageStub, MessageInterface::class));
+        $messageStub = $this->createStub(MessageInitInterface::class);
+        $this->assertSame($messageStub, Assert::object($messageStub, MessageInitInterface::class));
     }
 
     public function testObjectFails(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        Assert::object('not-an-object', MessageInterface::class);
+        Assert::object('not-an-object', MessageInitInterface::class);
     }
 
     public function testIsHashPasses(): void

@@ -30,6 +30,7 @@ final class ConverterTest extends TestCase
             'type' => 'flow.workflow.v1',
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
+                'stubs' => [],
             ],
             'hash' => $flow->getHash(),
             'runtimeHash' => $flow->getRuntimeHash(),
@@ -68,6 +69,7 @@ final class ConverterTest extends TestCase
         $this->assertSame($expectedFlow->getSource(), $flow->getSource());
         $this->assertSame($expectedFlow->getSubject(), $flow->getSubject());
         $this->assertSame($expectedFlow->getType(), $flow->getType());
+        $this->assertEquals($expectedFlow->getFlowSchema(), $flow->getFlowSchema());
         $this->assertEquals($expectedFlow->getTime(), $flow->getTime());
         $this->assertSame($expectedFlow->getHash(), $flow->getHash());
         $this->assertSame($expectedFlow->getMessages(), $flow->getMessages());

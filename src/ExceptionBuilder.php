@@ -6,7 +6,7 @@ namespace Wundii\Flowcrafter;
 
 use Wundii\Flowcrafter\Interface\StubInterface;
 
-class ExceptionBuilder
+readonly class ExceptionBuilder
 {
     /**
      * @param class-string[] $exceptionClasses
@@ -28,5 +28,9 @@ class ExceptionBuilder
     public function getExceptionClasses(): array
     {
         return $this->exceptionClasses;
+    }
+
+    public function execute(StubInterface $stub): void
+    {
     }
 }
