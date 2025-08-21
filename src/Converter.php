@@ -31,8 +31,8 @@ final class Converter
         $flow = Assert::array($array, 'Decoded JSON is not an array.');
 
         return new Flow(
-            Assert::classString($flow['source'] ?? null, FlowInterface::class, 'FlowSource must be a string.'),
             Assert::string($flow['type'] ?? null, 'Type must be a string.'),
+            Assert::classString($flow['source'] ?? null, FlowInterface::class, 'FlowSource must be a string.'),
             FlowSchema::create(Assert::classString($flow['source'] ?? null, FlowInterface::class)),
             Assert::datetimeImmutable($flow['time'] ?? null, 'Time must be a valid date string.'),
             Assert::string($flow['hash'] ?? null, 'Hash must be a string.'),

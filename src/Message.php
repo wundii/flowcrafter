@@ -8,7 +8,6 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
 use JsonSerializable;
-use Ramsey\Uuid\Uuid;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 

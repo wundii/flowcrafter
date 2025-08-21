@@ -8,7 +8,6 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
 use JsonSerializable;
-use Ramsey\Uuid\Uuid;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 
@@ -21,8 +20,8 @@ class Flow implements JsonSerializable
      * @param Message[] $messages
      */
     public function __construct(
-        private readonly string $source,
         private readonly string $type,
+        private readonly string $source,
         private readonly FlowSchema $flowSchema,
         private readonly DateTimeImmutable $time,
         private readonly string $hash,
@@ -65,16 +64,16 @@ class Flow implements JsonSerializable
      * @param class-string $source
      */
     public static function create(
-        string $source,
         string $type,
+        string $source,
         ?string $hash = null,
         ?DateTimeImmutable $time = null,
     ): self {
         $time = $time ?? new DateTimeImmutable();
 
         return new self(
-            source: $source,
             type: $type,
+            source: $source,
             flowSchema: FlowSchema::create($source),
             time: $time,
             hash: $hash ?? Uuid::uuid7($time)->toString(),

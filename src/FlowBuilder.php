@@ -13,7 +13,7 @@ use Wundii\Flowcrafter\Interface\StubInterface;
 class FlowBuilder
 {
     /**
-     * @var class-string[]
+     * @var Stub[]
      */
     private array $stubs = [];
 
@@ -64,17 +64,10 @@ class FlowBuilder
             );
         }
 
-        $stubBuilder = new StubBuilder($stub, $messages);
-        $this->stubs[] = $stubBuilder->getStub();
-    }
-
-    /**
-     * @param class-string[] $exceptions
-     */
-    public function exception(StubInterface $exceptionStub, array $exceptions, StubInterface $stub): void
-    {
-        $exceptionBuilder = new ExceptionBuilder($exceptionStub, $exceptions);
-        $exceptionBuilder->execute($stub);
+        $this->stubs[] = Stub::create(
+            source: $stub,
+            messages: $messages,
+        );
     }
 
     public function build(): FlowSchema

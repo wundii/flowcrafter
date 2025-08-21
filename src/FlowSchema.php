@@ -7,24 +7,16 @@ namespace Wundii\Flowcrafter;
 use InvalidArgumentException;
 use JsonSerializable;
 use Wundii\Flowcrafter\Interface\FlowInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
 
 readonly class FlowSchema implements JsonSerializable
 {
     /**
-     * @param class-string[] $stubs
+     * @param Stub[] $stubs
      */
     public function __construct(
         private string $type,
         private array $stubs,
     ) {
-        foreach ($stubs as $stub) {
-            Assert::classString(
-                $stub,
-                StubInterface::class,
-                'Stub must be an instance of StubInterface'
-            );
-        }
     }
 
     /**

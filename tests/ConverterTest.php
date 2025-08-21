@@ -7,20 +7,36 @@ namespace Tests;
 use DateTimeImmutable;
 use DateTimeInterface;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
+use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\StubMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowSchema;
+use Wundii\Flowcrafter\Stub;
+use Wundii\Flowcrafter\Uuid;
 
 final class ConverterTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Uuid::reset();
+    }
+
     public function testFlowToJsonWithoutMessages(): void
     {
+        Uuid::appendUuidStock([
+            '0198ce36-3a94-7125-9ac7-88902e8ff000',
+            '0198ce36-3a94-7125-9ac7-88902e8ff001',
+            '0198ce36-3a94-7125-9ac7-88902e8ff002',
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', #expectedJson::Stub::create
+        ]);
+
         $flow = Flow::create(
-            WorkflowMock::class,
             type: 'flow.workflow.v1',
+            source: WorkflowMock::class,
         );
 
         $json = Converter::flowToJson($flow);
@@ -32,7 +48,7 @@ final class ConverterTest extends TestCase
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
                 'stubs' => [
-                    StubMock::class,
+                    Stub::create(StubMock::class, [MessageInitMock::class]),
                 ],
             ],
             'hash' => $flow->getHash(),
@@ -46,6 +62,13 @@ final class ConverterTest extends TestCase
 
     public function testJsonToFlowWithoutMessages(): void
     {
+        Uuid::appendUuidStock([
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', #testJsonToFlowWithoutMessages::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff001', #$expectedFlow::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff002', #$expectedFlow::stub::runtimeHash
+            '0198ce36-3a94-7125-9ac7-88902e8ff001', #$expectedFlow::flowSchema::stubs::stub::hash
+        ]);
+
         $datetime = new DateTimeImmutable();
         $hash = Uuid::uuid7($datetime)->toString();
         $json = json_encode([
@@ -60,8 +83,8 @@ final class ConverterTest extends TestCase
         $flow = Converter::jsonToFlow($json);
 
         $expectedFlow = new Flow(
-            source: WorkflowMock::class,
             type: 'flow.workflow.v1',
+            source: WorkflowMock::class,
             flowSchema: FlowSchema::create(WorkflowMock::class),
             time: $flow->getTime(),
             hash: $hash,
