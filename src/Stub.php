@@ -4,19 +4,26 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use InvalidArgumentException;
 use JsonSerializable;
+use Wundii\Flowcrafter\Enum\MessageEnum;
+use Wundii\Flowcrafter\Interface\MessageDataInterface;
+use Wundii\Flowcrafter\Interface\MessageInitInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 
-readonly class Stub implements JsonSerializable
+class Stub implements JsonSerializable
 {
+    private MessageEnum $messageEnum;
+
     /**
      * @param class-string[] $messages
      */
     public function __construct(
-        private string $source,
-        private array $messages,
-        private string $hash,
+        private readonly string $source,
+        private readonly array $messages,
+        private readonly string $hash,
     ) {
         Assert::classString(
             $source,
@@ -34,6 +41,14 @@ readonly class Stub implements JsonSerializable
                     $message,
                 ),
             );
+
+            $interfaces = class_implements($message);
+            $this->messageEnum = match (true) {
+                in_array(MessageInitInterface::class, $interfaces, true) => MessageEnum::INIT,
+                in_array(MessageDataInterface::class, $interfaces, true) => MessageEnum::DATA,
+                in_array(MessageReturnInterface::class, $interfaces, true) => MessageEnum::RETURN,
+                default => throw new InvalidArgumentException(sprintf('Message "%s" does not implement any known message interface.', $message)),
+            };
         }
     }
 
@@ -70,6 +85,11 @@ readonly class Stub implements JsonSerializable
         return $this->hash;
     }
 
+    public function getMessageEnum(): MessageEnum
+    {
+        return $this->messageEnum;
+    }
+
     /**
      * @return array<string, string|mixed>
      */
@@ -77,6 +97,7 @@ readonly class Stub implements JsonSerializable
     {
         return [
             'source' => $this->source,
+            'messageEnum' => $this->messageEnum->value,
             'messages' => $this->messages,
             'hash' => $this->hash,
         ];

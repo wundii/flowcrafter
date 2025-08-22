@@ -51,6 +51,7 @@ final class ConverterTest extends TestCase
                     Stub::create(StubMock::class, [MessageInitMock::class]),
                 ],
             ],
+            'flowHash' => '7441a6e9a652b36ba1b2bb1fe16b95cd',
             'hash' => $flow->getHash(),
             'runtimeHash' => $flow->getRuntimeHash(),
             'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
@@ -102,6 +103,7 @@ final class ConverterTest extends TestCase
         $this->assertSame($expectedFlow->getSubject(), $flow->getSubject());
         $this->assertSame($expectedFlow->getType(), $flow->getType());
         $this->assertEquals($expectedFlow->getFlowSchema(), $flow->getFlowSchema());
+        $this->assertSame($expectedFlow->getFlowHash(), $flow->getFlowHash());
         $this->assertEquals($expectedFlow->getTime(), $flow->getTime());
         $this->assertSame($expectedFlow->getHash(), $flow->getHash());
         $this->assertSame($expectedFlow->getMessages(), $flow->getMessages());

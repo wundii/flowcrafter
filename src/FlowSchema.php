@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter;
 
 use JsonSerializable;
+use RuntimeException;
+use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 
 readonly class FlowSchema implements JsonSerializable
@@ -35,6 +37,26 @@ readonly class FlowSchema implements JsonSerializable
     public function type(): string
     {
         return $this->type;
+    }
+
+    public function initStub(): Stub
+    {
+        $stubs = array_filter(
+            $this->stubs,
+            static fn (Stub $stub): bool => $stub->getMessageEnum() === MessageEnum::INIT,
+        );
+
+        return reset($stubs) ?: throw new RuntimeException('No INIT stub found in the schema.');
+    }
+
+    public function getHash(): string
+    {
+        $json = json_encode($this->jsonSerialize());
+        if ($json === false) {
+            throw new RuntimeException('Failed to encode flow schema to JSON.');
+        }
+
+        return md5($json);
     }
 
     /**
