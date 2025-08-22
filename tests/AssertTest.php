@@ -8,9 +8,9 @@ use DateTime;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Interface\MessageInitInterface;
+use Wundii\Flowcrafter\Uuid;
 
 final class AssertTest extends TestCase
 {

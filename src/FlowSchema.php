@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
-use InvalidArgumentException;
 use JsonSerializable;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 
@@ -24,13 +23,11 @@ readonly class FlowSchema implements JsonSerializable
      */
     public static function create(string $class): self
     {
-        if (!class_exists($class)) {
-            throw new InvalidArgumentException(sprintf('Class "%s" does not exist.', $class));
-        }
-
-        if (!is_subclass_of($class, FlowInterface::class)) {
-            throw new InvalidArgumentException(sprintf('Class "%s" does not implement FlowInterface.', $class));
-        }
+        Assert::classString(
+            $class,
+            FlowInterface::class,
+            sprintf('Class "%s" does not implement FlowInterface.', $class),
+        );
 
         return $class::schema();
     }

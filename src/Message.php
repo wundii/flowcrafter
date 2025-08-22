@@ -6,7 +6,6 @@ namespace Wundii\Flowcrafter;
 
 use DateTimeImmutable;
 use DateTimeInterface;
-use InvalidArgumentException;
 use JsonSerializable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -24,13 +23,11 @@ readonly class Message implements JsonSerializable
         private string $hash,
         private ?string $predecessorHash = null,
     ) {
-        if (!class_exists($source)) {
-            throw new InvalidArgumentException(sprintf('Message source class "%s" does not exist.', $source));
-        }
-
-        if (!is_subclass_of($source, MessageInterface::class)) {
-            throw new InvalidArgumentException(sprintf('Message source class "%s" does not implement FlowInterface.', $source));
-        }
+        Assert::classString(
+            $source,
+            MessageInterface::class,
+            sprintf('Message source class "%s" does not implement FlowInterface.', $source)
+        );
 
         $this->runtimeHash = Uuid::uuid7($time)->toString();
     }

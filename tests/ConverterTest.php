@@ -28,10 +28,10 @@ final class ConverterTest extends TestCase
     public function testFlowToJsonWithoutMessages(): void
     {
         Uuid::appendUuidStock([
-            '0198ce36-3a94-7125-9ac7-88902e8ff000',
-            '0198ce36-3a94-7125-9ac7-88902e8ff001',
-            '0198ce36-3a94-7125-9ac7-88902e8ff002',
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #expectedJson::Stub::create
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$json::flowSchema::stubs::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff001', #$json::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff002', #$json::runtimeHash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$expectedJson::flowSchema::stubs::stub::hash
         ]);
 
         $flow = Flow::create(
@@ -57,15 +57,18 @@ final class ConverterTest extends TestCase
             'messages' => [],
         ]);
 
+        // debugging
+        // dd($json, $expectedJson);
+
         $this->assertSame($expectedJson, $json);
     }
 
     public function testJsonToFlowWithoutMessages(): void
     {
         Uuid::appendUuidStock([
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #testJsonToFlowWithoutMessages::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff001', #$expectedFlow::stub::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff002', #$expectedFlow::stub::runtimeHash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$flow::hash + $expectedFlow::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff001', #$flow::flowSchema::stubs::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff002', #$flow::runtimeHash
             '0198ce36-3a94-7125-9ac7-88902e8ff001', #$expectedFlow::flowSchema::stubs::stub::hash
         ]);
 
@@ -91,6 +94,9 @@ final class ConverterTest extends TestCase
             subject: '/workflow/1',
             messages: [],
         );
+
+        // debugging
+        // dd($flow, $expectedFlow);
 
         $this->assertSame($expectedFlow->getSource(), $flow->getSource());
         $this->assertSame($expectedFlow->getSubject(), $flow->getSubject());
