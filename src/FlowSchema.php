@@ -21,7 +21,7 @@ readonly class FlowSchema implements JsonSerializable
     }
 
     /**
-     * @param class-string $class
+     * @param class-string<FlowInterface> $class
      */
     public static function create(string $class): self
     {

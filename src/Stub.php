@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use Exception;
 use InvalidArgumentException;
 use JsonSerializable;
+use ReflectionClass;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
 use Wundii\Flowcrafter\Interface\MessageInitInterface;
@@ -18,12 +20,12 @@ class Stub implements JsonSerializable
     private MessageEnum $messageEnum;
 
     /**
-     * @param class-string[] $messages
+     * @param class-string<StubInterface> $source
+     * @param class-string<MessageInterface>[] $messages
      */
     public function __construct(
         private readonly string $source,
         private readonly array $messages,
-        private readonly string $hash,
     ) {
         Assert::classString(
             $source,
@@ -53,17 +55,16 @@ class Stub implements JsonSerializable
     }
 
     /**
-     * @param class-string[] $messages
+     * @param class-string<StubInterface> $source
+     * @param class-string<MessageInterface>[] $messages
      */
     public static function create(
         string $source,
         array $messages,
-        ?string $hash = null,
     ): self {
         return new self(
             source: $source,
             messages: $messages,
-            hash: $hash ?? Uuid::uuid7()->toString(),
         );
     }
 
@@ -73,21 +74,31 @@ class Stub implements JsonSerializable
     }
 
     /**
-     * @return class-string[]
+     * @return class-string<MessageInterface>[]
      */
     public function getMessages(): array
     {
         return $this->messages;
     }
 
-    public function getHash(): string
-    {
-        return $this->hash;
-    }
-
     public function getMessageEnum(): MessageEnum
     {
         return $this->messageEnum;
+    }
+
+    /**
+     * @return class-string<MessageDataInterface|MessageReturnInterface>[]
+     */
+    public function getReturnTypes(): array
+    {
+        try {
+            $reflectionClass = new ReflectionClass($this->source);
+            $instance = $reflectionClass->newInstanceWithoutConstructor();
+        } catch (Exception) {
+            return [];
+        }
+
+        return $instance->returnTypes();
     }
 
     /**
@@ -99,7 +110,7 @@ class Stub implements JsonSerializable
             'source' => $this->source,
             'messageEnum' => $this->messageEnum->value,
             'messages' => $this->messages,
-            'hash' => $this->hash,
+            'returnTypes' => $this->getReturnTypes(),
         ];
     }
 }

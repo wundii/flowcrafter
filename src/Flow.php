@@ -16,7 +16,7 @@ class Flow implements JsonSerializable
     private string $runtimeHash;
 
     /**
-     * @param class-string $source
+     * @param class-string<FlowInterface> $source
      * @param Message[] $messages
      */
     public function __construct(
@@ -28,19 +28,11 @@ class Flow implements JsonSerializable
         private ?string $subject = null,
         private array $messages = [],
     ) {
-        if (!class_exists($source)) {
-            throw new InvalidArgumentException(sprintf(
-                'Flow source class "%s" does not exist.',
-                $source,
-            ));
-        }
-
-        if (!is_subclass_of($source, FlowInterface::class)) {
-            throw new InvalidArgumentException(sprintf(
-                'Flow source class "%s" does not implement FlowInterface.',
-                $source,
-            ));
-        }
+        Assert::classString(
+            $source,
+            FlowInterface::class,
+            sprintf('Flow source class "%s" does not implement FlowInterface.', $source),
+        );
 
         if (!Assert::isHash($hash)) {
             throw new InvalidArgumentException(sprintf(
@@ -61,7 +53,7 @@ class Flow implements JsonSerializable
     }
 
     /**
-     * @param class-string $source
+     * @param class-string<FlowInterface> $source
      */
     public static function create(
         string $type,
@@ -80,6 +72,9 @@ class Flow implements JsonSerializable
         );
     }
 
+    /**
+     * @return class-string<FlowInterface>
+     */
     public function getSource(): string
     {
         return $this->source;

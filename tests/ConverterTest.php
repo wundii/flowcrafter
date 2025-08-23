@@ -51,7 +51,7 @@ final class ConverterTest extends TestCase
                     Stub::create(StubMock::class, [MessageInitMock::class]),
                 ],
             ],
-            'flowHash' => '7441a6e9a652b36ba1b2bb1fe16b95cd',
+            'flowHash' => '60d61b3722fb9702c63ed70b802d08d6',
             'hash' => $flow->getHash(),
             'runtimeHash' => $flow->getRuntimeHash(),
             'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
