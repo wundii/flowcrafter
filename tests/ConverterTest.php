@@ -114,7 +114,7 @@ final class ConverterTest extends TestCase
         $this->assertSame($expectedFlow->getMessages(), $flow->getMessages());
     }
 
-    public function testFlowToDiagramWithoutMessages(): void
+    public function testFlowToDiagram(): void
     {
         $flow = Flow::create(
             type: 'flow.workflow.v1',
@@ -124,7 +124,7 @@ final class ConverterTest extends TestCase
         $file = Converter::flowToDiagram(__DIR__, $flow);
 
         $this->assertFileExists($file);
-        $this->assertStringEqualsFile(__DIR__ . '/Files/flow_to_diagram_without_messages.mmd', file_get_contents($file));
+        $this->assertStringEqualsFile(__DIR__ . '/Files/flow_to_diagram.mmd', file_get_contents($file));
 
         unlink($file);
         $this->assertFileDoesNotExist($file);
