@@ -135,6 +135,10 @@ class Flow implements JsonSerializable
             return null;
         }
 
+        if (count($messages) > 1) {
+            throw new InvalidArgumentException('Multiple FINISH messages found in the flow.');
+        }
+
         return current($messages)->getTime();
     }
 

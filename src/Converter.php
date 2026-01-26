@@ -9,6 +9,7 @@ use RuntimeException;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 
 if (PHP_VERSION_ID < 80300) {
     function json_validate(string $string): bool
@@ -64,5 +65,54 @@ final class Converter
         }
 
         return $json;
+    }
+
+    public static function flowToDiagram(string $path, Flow $flow): string
+    {
+        if (!is_dir(dirname($path))) {
+            throw new InvalidArgumentException(sprintf(
+                'Directory "%s" does not exist.',
+                dirname($path),
+            ));
+        }
+
+        $flowSchema = $flow->getFlowSchema();
+        $initStub = $flowSchema->initStub();
+
+        $output = sprintf(
+            "---\ntitle: %s\ntheme: neo\n---\nstateDiagram-v2\n[*]-->%s\n",
+            $flow->getType(),
+            $initStub->getSource(),
+        );
+
+        foreach ($flowSchema->stubs() as $stub) {
+            foreach ($stub->getReturnTypes() as $messageClass) {
+                foreach ($flowSchema->stubByMessageClass($messageClass) as $nextStub) {
+                    $output .= sprintf(
+                        "%s-->%s\n",
+                        $stub->getSource(),
+                        $nextStub->getSource(),
+                    );
+                }
+
+                if (is_subclass_of($messageClass, MessageReturnInterface::class)) {
+                    $output .= sprintf(
+                        "%s-->[*]\n",
+                        $stub->getSource(),
+                    );
+                }
+            }
+        }
+
+        $filename = $path . $flow->getType() . '.mmd';
+
+        if (!file_put_contents($filename, $output)) {
+            throw new RuntimeException(sprintf(
+                'Failed to write diagram to file "%s".',
+                $filename,
+            ));
+        }
+
+        return $filename;
     }
 }

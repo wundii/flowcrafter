@@ -8,6 +8,7 @@ use JsonSerializable;
 use RuntimeException;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
+use Wundii\Flowcrafter\Interface\MessageInterface;
 
 readonly class FlowSchema implements JsonSerializable
 {
@@ -47,6 +48,33 @@ readonly class FlowSchema implements JsonSerializable
         );
 
         return reset($stubs) ?: throw new RuntimeException('No INIT stub found in the schema.');
+    }
+
+    /**
+     * @return Stub[]
+     */
+    public function stubs(): array
+    {
+        return $this->stubs;
+    }
+
+    /**
+     * @return Stub[]
+     */
+    public function stubByMessageClass(string $messageClass): array
+    {
+        Assert::classString(
+            $messageClass,
+            MessageInterface::class,
+            sprintf('Class "%s" does not implement MessageInterface.', $messageClass),
+        );
+
+        $stubs = array_filter(
+            $this->stubs,
+            static fn (Stub $stub): bool => in_array($messageClass, $stub->getMessages(), true)
+        );
+
+        return array_values($stubs);
     }
 
     public function getHash(): string

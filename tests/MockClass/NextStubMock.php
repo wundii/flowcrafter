@@ -8,7 +8,7 @@ use Wundii\Flowcrafter\AbstractStub;
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 
-class StubMock extends AbstractStub
+class NextStubMock extends AbstractStub
 {
     /**
      * @return class-string[]
@@ -16,12 +16,12 @@ class StubMock extends AbstractStub
     public function returnTypes(): array
     {
         return [
-            MessageDataMock::class,
+            MessageReturnMock::class,
         ];
     }
 
     public function process(): false|MessageDataInterface|MessageReturnInterface
     {
-        return new MessageDataMock();
+        return new MessageReturnMock();
     }
 }

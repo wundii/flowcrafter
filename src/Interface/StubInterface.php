@@ -8,7 +8,7 @@ interface StubInterface
 {
     public function __construct(string $type, MessageInitInterface|MessageDataInterface ...$messages);
 
-    public function process(): false|MessageDataInterface|MessageReturnInterface;
+    public function process(): bool|MessageDataInterface|MessageReturnInterface;
 
     /**
      * @return class-string<MessageDataInterface|MessageReturnInterface>[]
