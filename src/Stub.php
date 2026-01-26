@@ -10,7 +10,6 @@ use JsonSerializable;
 use ReflectionClass;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
-use Wundii\Flowcrafter\Interface\MessageInitInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
@@ -46,9 +45,9 @@ class Stub implements JsonSerializable
 
             $interfaces = class_implements($message);
             $this->messageEnum = match (true) {
-                in_array(MessageInitInterface::class, $interfaces, true) => MessageEnum::INIT,
-                in_array(MessageDataInterface::class, $interfaces, true) => MessageEnum::DATA,
-                in_array(MessageReturnInterface::class, $interfaces, true) => MessageEnum::RETURN,
+                in_array(MessageEnum::INIT->interface(), $interfaces, true) => MessageEnum::INIT,
+                in_array(MessageEnum::DATA->interface(), $interfaces, true) => MessageEnum::DATA,
+                in_array(MessageEnum::RETURN->interface(), $interfaces, true) => MessageEnum::RETURN,
                 default => throw new InvalidArgumentException(sprintf('Message "%s" does not implement any known message interface.', $message)),
             };
         }
@@ -76,8 +75,19 @@ class Stub implements JsonSerializable
     /**
      * @return class-string<MessageInterface>[]
      */
-    public function getMessages(): array
+    public function getMessages(?MessageEnum $messageEnum = null): array
     {
+        if ($messageEnum instanceof MessageEnum) {
+            return array_filter(
+                $this->messages,
+                fn (string $message): bool => match ($messageEnum) {
+                    MessageEnum::INIT => is_subclass_of($message, MessageEnum::INIT->interface()),
+                    MessageEnum::DATA => is_subclass_of($message, MessageEnum::DATA->interface()),
+                    MessageEnum::RETURN => is_subclass_of($message, MessageEnum::RETURN->interface()),
+                },
+            );
+        }
+
         return $this->messages;
     }
 

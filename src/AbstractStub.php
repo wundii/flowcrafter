@@ -14,7 +14,7 @@ abstract class AbstractStub implements StubInterface
     /**
      * @var array<MessageInitInterface|MessageDataInterface>
      */
-    private array $messages = [];
+    private array $messages;
 
     public function __construct(
         private string $type,

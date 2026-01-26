@@ -58,6 +58,7 @@ class Flow implements JsonSerializable
     public static function create(
         string $type,
         string $source,
+        ?string $subject = null,
         ?string $hash = null,
         ?DateTimeImmutable $time = null,
     ): self {
@@ -69,6 +70,7 @@ class Flow implements JsonSerializable
             flowSchema: FlowSchema::create($source),
             time: $time,
             hash: $hash ?? Uuid::uuid7($time)->toString(),
+            subject: $subject,
         );
     }
 

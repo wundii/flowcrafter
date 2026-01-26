@@ -6,10 +6,10 @@ namespace Wundii\Flowcrafter;
 
 use InvalidArgumentException;
 use RuntimeException;
+use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
-use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 
 if (PHP_VERSION_ID < 80300) {
     function json_validate(string $string): bool
@@ -78,27 +78,35 @@ final class Converter
 
         $flowSchema = $flow->getFlowSchema();
         $initStub = $flowSchema->initStub();
+        $subject = $flow->getSubject();
+        $title = $flow->getType();
+        if ($subject) {
+            $title .= sprintf(' - %s', $subject);
+        }
 
         $output = sprintf(
-            "---\ntitle: %s\ntheme: neo\n---\nstateDiagram-v2\n[*]-->%s\n",
-            $flow->getType(),
+            "---\ntitle: %s\ntheme: neo\n---\nstateDiagram-v2\n[*]-->%s: %s\n",
+            $title,
             $initStub->getSource(),
+            $initStub->getMessages(MessageEnum::INIT)[0],
         );
 
         foreach ($flowSchema->stubs() as $stub) {
             foreach ($stub->getReturnTypes() as $messageClass) {
                 foreach ($flowSchema->stubByMessageClass($messageClass) as $nextStub) {
                     $output .= sprintf(
-                        "%s-->%s\n",
+                        "%s-->%s: %s\n",
                         $stub->getSource(),
                         $nextStub->getSource(),
+                        $messageClass,
                     );
                 }
 
-                if (is_subclass_of($messageClass, MessageReturnInterface::class)) {
+                if (is_subclass_of($messageClass, MessageEnum::RETURN->interface())) {
                     $output .= sprintf(
-                        "%s-->[*]\n",
+                        "%s-->[*]: %s\n",
                         $stub->getSource(),
+                        $messageClass,
                     );
                 }
             }

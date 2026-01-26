@@ -119,6 +119,7 @@ final class ConverterTest extends TestCase
         $flow = Flow::create(
             type: 'flow.workflow.v1',
             source: WorkflowMock::class,
+            subject: '/workflow/1',
         );
 
         $file = Converter::flowToDiagram(__DIR__, $flow);

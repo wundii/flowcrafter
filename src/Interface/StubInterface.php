@@ -14,4 +14,6 @@ interface StubInterface
      * @return class-string<MessageDataInterface|MessageReturnInterface>[]
      */
     public function returnTypes(): array;
+
+    public function getInitMessage(): ?MessageInitInterface;
 }

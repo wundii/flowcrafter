@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter;
 
 use InvalidArgumentException;
+use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Interface\MessageInitInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
@@ -33,13 +34,13 @@ class FlowBuilder
     ) {
         Assert::classString(
             $this->messageInit,
-            MessageInitInterface::class,
+            MessageEnum::INIT->interface(),
             'Message must be an instance of MessageInitInterface'
         );
 
         Assert::classString(
             $this->messageReturn,
-            MessageReturnInterface::class,
+            MessageEnum::RETURN->interface(),
             'Message must be an instance of MessageReturnInterface'
         );
     }
