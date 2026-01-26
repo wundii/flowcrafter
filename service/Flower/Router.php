@@ -51,7 +51,7 @@ class Router
         $this->handlerCollection[$path] = $handler;
     }
 
-    public function getRouteCollection(): RouteCollection
+    public function routeCollection(): RouteCollection
     {
         return $this->routeCollection;
     }
@@ -59,7 +59,7 @@ class Router
     /**
      * @return array<string, callable(Request): Response|callable(): Response>
      */
-    public function getHandlerCollection(): array
+    public function handlerCollection(): array
     {
         return $this->handlerCollection;
     }

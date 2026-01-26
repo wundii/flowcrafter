@@ -43,17 +43,16 @@ class Flower
         $requestContext = new RequestContext();
         $requestContext->fromRequest($request);
 
-        $urlMatcher = new UrlMatcher($router->getRouteCollection(), $requestContext);
+        $urlMatcher = new UrlMatcher($router->routeCollection(), $requestContext);
         try {
             $parameters = $urlMatcher->match($request->getPathInfo());
+            $handlers = $router->handlerCollection();
 
-            foreach ($router->getHandlerCollection() as $path => $handler) {
-                if ($parameters['_route'] === $path) {
-                    $response = self::acceptsRequestHandler($handler)
-                        ? $handler($request)
-                        : $handler();
-                    break;
-                }
+            $handler = $handlers[$parameters['_route']] ?? null;
+            if ($handler instanceof Closure) {
+                $response = self::acceptsRequestHandler($handler)
+                    ? $handler($request)
+                    : $handler();
             }
 
             if (!$response instanceof Response) {
