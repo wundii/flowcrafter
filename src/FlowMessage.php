@@ -98,6 +98,7 @@ readonly class FlowMessage implements JsonSerializable
     public function jsonSerialize(): array
     {
         return [
+            'flowHash' => $this->flowHash,
             'flowRuntimeHash' => $this->flowRuntimeHash,
             'messageType' => $this->messageTypeEnum->value,
             'source' => $this->source,
