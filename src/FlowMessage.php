@@ -6,21 +6,22 @@ namespace Wundii\Flowcrafter;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use InvalidArgumentException;
 use JsonSerializable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 
-readonly class FlowMessage implements JsonSerializable
+class FlowMessage implements JsonSerializable
 {
     public function __construct(
-        private string $flowHash,
-        private string $flowRuntimeHash,
+        private readonly string $flowHash,
+        private readonly string $flowRuntimeHash,
         private MessageTypeEnum $messageTypeEnum,
-        private string $source,
-        private MessageInterface $message,
-        private DateTimeImmutable $time,
-        private string $hash,
-        private ?string $predecessorHash = null,
+        private readonly string $source,
+        private readonly MessageInterface $message,
+        private readonly DateTimeImmutable $time,
+        private readonly string $hash,
+        private readonly ?string $predecessorHash = null,
     ) {
         Assert::classString(
             $source,
@@ -50,6 +51,15 @@ readonly class FlowMessage implements JsonSerializable
             hash: $hash ?? Uuid::uuid7($time)->toString(),
             predecessorHash: $predecessorHash,
         );
+    }
+
+    public function setFinish(): void
+    {
+        if ($this->messageTypeEnum === MessageTypeEnum::FINISH) {
+            throw new InvalidArgumentException('FlowMessage is already marked as FINISH.');
+        }
+
+        $this->messageTypeEnum = MessageTypeEnum::FINISH;
     }
 
     public function getFlowHash(): string

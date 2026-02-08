@@ -10,6 +10,7 @@ use InvalidArgumentException;
 use JsonSerializable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
+use Wundii\Flowcrafter\Interface\MessageInterface;
 
 class Flow implements JsonSerializable
 {
@@ -155,6 +156,22 @@ class Flow implements JsonSerializable
     public function addMessage(FlowMessage $flowMessage): void
     {
         $this->flowMessages[] = $flowMessage;
+    }
+
+    /**
+     * @param class-string<MessageInterface> $message
+     */
+    public function hasMessage(string $message): bool
+    {
+        Assert::classString($message, MessageInterface::class);
+
+        foreach ($this->flowMessages as $flowMessage) {
+            if ($flowMessage->getMessage() instanceof $message) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function getSchemaHash(): string

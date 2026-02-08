@@ -22,6 +22,6 @@ class NextStubMock extends AbstractStub
 
     public function process(): false|MessageDataInterface|MessageReturnInterface
     {
-        return new MessageReturnMock();
+        return new MessageReturnMock('End of flow');
     }
 }

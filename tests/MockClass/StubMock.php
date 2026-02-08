@@ -22,6 +22,6 @@ class StubMock extends AbstractStub
 
     public function process(): false|MessageDataInterface|MessageReturnInterface
     {
-        return new MessageDataMock();
+        return new MessageDataMock('stub data');
     }
 }
