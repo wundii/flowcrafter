@@ -32,18 +32,19 @@ final class Converter
         $flow = Assert::array($array, 'Decoded JSON is not an array.');
 
         return new Flow(
-            Assert::string($flow['type'] ?? null, 'Type must be a string.'),
-            Assert::classString($flow['source'] ?? null, FlowInterface::class, 'FlowSource must be a string.'),
-            FlowSchema::create(Assert::classString($flow['source'] ?? null, FlowInterface::class)),
+            Assert::string($flow['flowType'] ?? null, 'Type must be a string.'),
+            Assert::classString($flow['flowSource'] ?? null, FlowInterface::class, 'FlowSource must be a string.'),
+            FlowSchema::create(Assert::classString($flow['flowSource'] ?? null, FlowInterface::class)),
             Assert::datetimeImmutable($flow['time'] ?? null, 'Time must be a valid date string.'),
-            Assert::string($flow['hash'] ?? null, 'Hash must be a string.'),
-            Assert::nullOrString($flow['subject'] ?? null, 'Subject must be null or string.'),
+            Assert::string($flow['flowHash'] ?? null, 'Hash must be a string.'),
+            Assert::nullOrString($flow['flowSubject'] ?? null, 'Subject must be null or string.'),
             array_map(
-                static function (mixed $array): Message {
+                static function (mixed $array): FlowMessage {
                     $stub = Assert::array($array, 'Each Message must be an array.');
 
-                    return new Message(
+                    return new FlowMessage(
                         Assert::string($stub['flowHash'] ?? null, 'Each Message must have a string flowHash.'),
+                        Assert::string($stub['flowRuntimeHash'] ?? null, 'Each Message must have a string flowRuntimeHash.'),
                         MessageTypeEnum::from(Assert::string($stub['messageType'] ?? null, 'Each Message must have a string messageType.')),
                         Assert::classString($stub['source'] ?? null, MessageInterface::class, 'Each Message must have a string source.'),
                         Assert::object($stub['message'] ?? null, MessageInterface::class, 'Each Message must have an MessageInterface message.'),
@@ -52,7 +53,7 @@ final class Converter
                         Assert::string($stub['predecessorHash'] ?? null, 'Each Message must have a string predecessorHash.'),
                     );
                 },
-                Assert::array($flow['messages'] ?? [], 'Messages must be an array.'),
+                Assert::array($flow['flowMessages'] ?? [], 'Messages must be an array.'),
             ),
         );
     }
@@ -76,7 +77,7 @@ final class Converter
             ));
         }
 
-        $flowSchema = $flow->getFlowSchema();
+        $flowSchema = $flow->getSchema();
         $initStub = $flowSchema->initStub();
         $subject = $flow->getSubject();
         $title = $flow->getType();

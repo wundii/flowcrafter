@@ -10,12 +10,11 @@ use JsonSerializable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 
-readonly class Message implements JsonSerializable
+readonly class FlowMessage implements JsonSerializable
 {
-    private string $runtimeHash;
-
     public function __construct(
         private string $flowHash,
+        private string $flowRuntimeHash,
         private MessageTypeEnum $messageTypeEnum,
         private string $source,
         private MessageInterface $message,
@@ -28,12 +27,11 @@ readonly class Message implements JsonSerializable
             MessageInterface::class,
             sprintf('Message source class "%s" does not implement FlowInterface.', $source)
         );
-
-        $this->runtimeHash = Uuid::uuid7($time)->toString();
     }
 
     public static function create(
         string $flowHash,
+        string $flowRuntimeHash,
         MessageTypeEnum $messageTypeEnum,
         ?string $predecessorHash,
         MessageInterface $message,
@@ -44,6 +42,7 @@ readonly class Message implements JsonSerializable
 
         return new self(
             flowHash: $flowHash,
+            flowRuntimeHash: $flowRuntimeHash,
             messageTypeEnum: $messageTypeEnum,
             source: get_class($message),
             message: $message,
@@ -56,6 +55,11 @@ readonly class Message implements JsonSerializable
     public function getFlowHash(): string
     {
         return $this->flowHash;
+    }
+
+    public function getFlowRuntimeHash(): string
+    {
+        return $this->flowRuntimeHash;
     }
 
     public function getMessageType(): MessageTypeEnum
@@ -94,13 +98,12 @@ readonly class Message implements JsonSerializable
     public function jsonSerialize(): array
     {
         return [
-            'flowHash' => $this->flowHash,
+            'flowRuntimeHash' => $this->flowRuntimeHash,
             'messageType' => $this->messageTypeEnum->value,
             'source' => $this->source,
             'message' => $this->message,
             'time' => $this->time->format(DateTimeInterface::ATOM),
             'hash' => $this->hash,
-            'runtimeHash' => $this->runtimeHash,
             'predecessorHash' => $this->predecessorHash,
         ];
     }

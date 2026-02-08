@@ -29,6 +29,11 @@ class Uuid
         $this->uuid = $this->uuidFactory->uuid7();
     }
 
+    public function __toString(): string
+    {
+        return $this->toString();
+    }
+
     public static function create(): self
     {
         if (!self::$instance instanceof self) {

@@ -13,64 +13,64 @@ use Wundii\Flowcrafter\Interface\FlowInterface;
 
 class Flow implements JsonSerializable
 {
-    private string $runtimeHash;
+    private string $flowRuntimeHash;
 
     /**
-     * @param class-string<FlowInterface> $source
-     * @param Message[] $messages
+     * @param class-string<FlowInterface> $flowSource
+     * @param FlowMessage[] $flowMessages
      */
     public function __construct(
-        private readonly string $type,
-        private readonly string $source,
+        private readonly string $flowType,
+        private readonly string $flowSource,
         private readonly FlowSchema $flowSchema,
         private readonly DateTimeImmutable $time,
-        private readonly string $hash,
-        private ?string $subject = null,
-        private array $messages = [],
+        private readonly string $flowHash,
+        private readonly ?string $flowSubject = null,
+        private array $flowMessages = [],
     ) {
         Assert::classString(
-            $source,
+            $flowSource,
             FlowInterface::class,
-            sprintf('Flow source class "%s" does not implement FlowInterface.', $source),
+            sprintf('Flow source class "%s" does not implement FlowInterface.', $flowSource),
         );
 
-        if (!Assert::isHash($hash)) {
+        if (!Assert::isHash($flowHash)) {
             throw new InvalidArgumentException(sprintf(
                 'Hash "%s" is not a valid hash.',
-                $hash,
+                $flowHash,
             ));
         }
 
-        if ($type !== $this->flowSchema->type()) {
+        if ($flowType !== $this->flowSchema->type()) {
             throw new InvalidArgumentException(sprintf(
                 'Flow type "%s" does not match the schema type "%s".',
-                $type,
+                $flowType,
                 $this->flowSchema->type(),
             ));
         }
 
-        $this->runtimeHash = Uuid::uuid7($time)->toString();
+        $this->flowRuntimeHash = Uuid::uuid7($time)->toString();
     }
 
     /**
-     * @param class-string<FlowInterface> $source
+     * @param class-string<FlowInterface> $flowSource
      */
     public static function create(
-        string $type,
-        string $source,
-        ?string $subject = null,
-        ?string $hash = null,
+        string $flowType,
+        string $flowSource,
+        ?string $flowSubject = null,
+        ?string $flowHash = null,
         ?DateTimeImmutable $time = null,
     ): self {
         $time = $time ?? new DateTimeImmutable();
 
         return new self(
-            type: $type,
-            source: $source,
-            flowSchema: FlowSchema::create($source),
+            flowType: $flowType,
+            flowSource: $flowSource,
+            flowSchema: FlowSchema::create($flowSource),
             time: $time,
-            hash: $hash ?? Uuid::uuid7($time)->toString(),
-            subject: $subject,
+            flowHash: $flowHash ?? Uuid::uuid7($time)->toString(),
+            flowSubject: $flowSubject,
         );
     }
 
@@ -79,32 +79,32 @@ class Flow implements JsonSerializable
      */
     public function getSource(): string
     {
-        return $this->source;
+        return $this->flowSource;
     }
 
     public function getSubject(): ?string
     {
-        return $this->subject;
+        return $this->flowSubject;
     }
 
     public function getType(): string
     {
-        return $this->type;
+        return $this->flowType;
     }
 
-    public function getFlowSchema(): FlowSchema
+    public function getSchema(): FlowSchema
     {
         return $this->flowSchema;
     }
 
     public function getHash(): string
     {
-        return $this->hash;
+        return $this->flowHash;
     }
 
     public function getRuntimeHash(): string
     {
-        return $this->runtimeHash;
+        return $this->flowRuntimeHash;
     }
 
     public function getTime(): DateTimeImmutable
@@ -115,8 +115,8 @@ class Flow implements JsonSerializable
     public function getLatestMessageTime(): ?DateTimeImmutable
     {
         $messageDates = array_map(
-            static fn (Message $message): DateTimeImmutable => $message->getTime(),
-            $this->messages,
+            static fn (FlowMessage $flowMessage): DateTimeImmutable => $flowMessage->getTime(),
+            $this->flowMessages,
         );
 
         if ($messageDates === []) {
@@ -129,8 +129,8 @@ class Flow implements JsonSerializable
     public function getFinishTime(): ?DateTimeImmutable
     {
         $messages = array_filter(
-            $this->messages,
-            static fn (Message $message): bool => $message->getMessageType() === MessageTypeEnum::FINISH,
+            $this->flowMessages,
+            static fn (FlowMessage $flowMessage): bool => $flowMessage->getMessageType() === MessageTypeEnum::FINISH,
         );
 
         if ($messages === []) {
@@ -145,38 +145,38 @@ class Flow implements JsonSerializable
     }
 
     /**
-     * @return Message[]
+     * @return FlowMessage[]
      */
-    public function getMessages(): array
+    public function getFlowMessages(): array
     {
-        return $this->messages;
+        return $this->flowMessages;
     }
 
-    public function addMessage(Message $message): void
+    public function addMessage(FlowMessage $flowMessage): void
     {
-        $this->messages[] = $message;
+        $this->flowMessages[] = $flowMessage;
     }
 
-    public function getFlowHash(): string
+    public function getSchemaHash(): string
     {
         return $this->flowSchema->getHash();
     }
 
     /**
-     * @return array<string, null|string|array<Message>|FlowSchema>
+     * @return array<string, null|string|array<FlowMessage>|FlowSchema>
      */
     public function jsonSerialize(): array
     {
         return [
-            'source' => $this->source,
-            'subject' => $this->subject,
-            'type' => $this->type,
+            'flowSource' => $this->flowSource,
+            'flowSubject' => $this->flowSubject,
+            'flowType' => $this->flowType,
             'flowSchema' => $this->flowSchema,
-            'flowHash' => $this->flowSchema->getHash(),
-            'hash' => $this->hash,
-            'runtimeHash' => $this->runtimeHash,
+            'flowSchemaHash' => $this->flowSchema->getHash(),
+            'flowHash' => $this->flowHash,
+            'flowRuntimeHash' => $this->flowRuntimeHash,
             'time' => $this->time->format(DateTimeInterface::ATOM),
-            'messages' => $this->messages,
+            'flowMessages' => $this->flowMessages,
         ];
     }
 }

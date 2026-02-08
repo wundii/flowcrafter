@@ -38,16 +38,16 @@ final class ConverterTest extends TestCase
         ]);
 
         $flow = Flow::create(
-            type: 'flow.workflow.v1',
-            source: WorkflowMock::class,
+            flowType: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
         );
 
         $json = Converter::flowToJson($flow);
 
         $expectedJson = json_encode([
-            'source' => WorkflowMock::class,
-            'subject' => null,
-            'type' => 'flow.workflow.v1',
+            'flowSource' => WorkflowMock::class,
+            'flowSubject' => null,
+            'flowType' => 'flow.workflow.v1',
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
                 'stubs' => [
@@ -56,11 +56,11 @@ final class ConverterTest extends TestCase
                     Stub::create(OtherStubMock::class, [MessageDataMock::class]),
                 ],
             ],
-            'flowHash' => 'f192418aa23af4751f0681cfab18aa8a',
-            'hash' => $flow->getHash(),
-            'runtimeHash' => $flow->getRuntimeHash(),
+            'flowSchemaHash' => 'f192418aa23af4751f0681cfab18aa8a',
+            'flowHash' => $flow->getHash(),
+            'flowRuntimeHash' => $flow->getRuntimeHash(),
             'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
-            'messages' => [],
+            'flowMessages' => [],
         ]);
 
         // debugging
@@ -81,24 +81,24 @@ final class ConverterTest extends TestCase
         $datetime = new DateTimeImmutable();
         $hash = Uuid::uuid7($datetime)->toString();
         $json = json_encode([
-            'source' => WorkflowMock::class,
-            'subject' => '/workflow/1',
-            'type' => 'flow.workflow.v1',
-            'hash' => $hash,
+            'flowSource' => WorkflowMock::class,
+            'flowSubject' => '/workflow/1',
+            'flowType' => 'flow.workflow.v1',
+            'flowHash' => $hash,
             'time' => $datetime->format(DateTimeInterface::ATOM),
-            'messages' => [],
+            'flowMessages' => [],
         ]);
 
         $flow = Converter::jsonToFlow($json);
 
         $expectedFlow = new Flow(
-            type: 'flow.workflow.v1',
-            source: WorkflowMock::class,
+            flowType: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
             flowSchema: FlowSchema::create(WorkflowMock::class),
             time: $flow->getTime(),
-            hash: $hash,
-            subject: '/workflow/1',
-            messages: [],
+            flowHash: $hash,
+            flowSubject: '/workflow/1',
+            flowMessages: [],
         );
 
         // debugging
@@ -107,19 +107,19 @@ final class ConverterTest extends TestCase
         $this->assertSame($expectedFlow->getSource(), $flow->getSource());
         $this->assertSame($expectedFlow->getSubject(), $flow->getSubject());
         $this->assertSame($expectedFlow->getType(), $flow->getType());
-        $this->assertEquals($expectedFlow->getFlowSchema(), $flow->getFlowSchema());
-        $this->assertSame($expectedFlow->getFlowHash(), $flow->getFlowHash());
+        $this->assertEquals($expectedFlow->getSchema(), $flow->getSchema());
+        $this->assertSame($expectedFlow->getHash(), $flow->getHash());
         $this->assertEquals($expectedFlow->getTime(), $flow->getTime());
         $this->assertSame($expectedFlow->getHash(), $flow->getHash());
-        $this->assertSame($expectedFlow->getMessages(), $flow->getMessages());
+        $this->assertSame($expectedFlow->getFlowMessages(), $flow->getFlowMessages());
     }
 
     public function testFlowToDiagram(): void
     {
         $flow = Flow::create(
-            type: 'flow.workflow.v1',
-            source: WorkflowMock::class,
-            subject: '/workflow/1',
+            flowType: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowSubject: '/workflow/1',
         );
 
         $file = Converter::flowToDiagram(__DIR__, $flow);
