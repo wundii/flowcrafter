@@ -85,16 +85,24 @@ class FlowRunner
 
             $this->flow->addMessage($flowMessage);
 
-            $messages = $this->flow->executableMessages($stubSource);
-            if ($messages === []) {
+            $flowMessages = $this->flow->executableMessages($stubSource);
+            if ($flowMessages === []) {
                 continue;
             }
+
+            $messages = array_map(
+                static fn (FlowMessage $flowMessage): MessageInterface => $flowMessage->getMessage(),
+                $flowMessages,
+            );
 
             $executed[] = $stubKey;
             $stubInstance = new $stubSource($stub->getMessageEnum()->value, reset($messages));
             $processResult = $stubInstance->process();
 
-            $flowMessage->setFinish();
+            array_map(
+                static fn (FlowMessage $flowMessage) => $flowMessage->setFinish(),
+                $flowMessages,
+            );
 
             if (is_object($processResult) && !$processResult instanceof MessageReturnInterface) {
                 $this->executeStubsRecursive($processResult, $map, $executed, $flowMessage->getHash());

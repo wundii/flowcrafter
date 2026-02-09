@@ -177,7 +177,7 @@ class Flow implements JsonSerializable
 
     /**
      * @param class-string<StubInterface> $stubSource
-     * @return array<MessageInterface>
+     * @return FlowMessage[]
      */
     public function executableMessages(string $stubSource): array
     {
@@ -207,10 +207,7 @@ class Flow implements JsonSerializable
             $flowMessage->setProcess();
         }
 
-        return array_map(
-            static fn (FlowMessage $flowMessage): MessageInterface => $flowMessage->getMessage(),
-            $flowMessages,
-        );
+        return $flowMessages;
     }
 
     public function getSchemaHash(): string
