@@ -33,6 +33,12 @@ class WorkflowMock implements FlowInterface
             MessageDataMock::class,
         );
 
+        $flowBuilder->addStub(
+            PostStubMock::class,
+            MessageDataMock::class,
+            MessageDataSecondMock::class,
+        );
+
         return $flowBuilder->build();
     }
 }

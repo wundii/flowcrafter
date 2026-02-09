@@ -9,6 +9,7 @@ use RuntimeException;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
 readonly class FlowSchema implements JsonSerializable
 {
@@ -75,6 +76,26 @@ readonly class FlowSchema implements JsonSerializable
         );
 
         return array_values($stubs);
+    }
+
+    /**
+     * @param class-string<StubInterface> $stubSource
+     */
+    public function stubBySource(string $stubSource): Stub
+    {
+        Assert::classString(
+            $stubSource,
+            StubInterface::class,
+            sprintf('Class "%s" does not implement StubInterface.', $stubSource),
+        );
+
+        foreach ($this->stubs as $stub) {
+            if ($stub->getSource() === $stubSource) {
+                return $stub;
+            }
+        }
+
+        throw new RuntimeException(sprintf('No stub found with source "%s".', $stubSource));
     }
 
     /**

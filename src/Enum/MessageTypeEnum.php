@@ -6,11 +6,7 @@ namespace Wundii\Flowcrafter\Enum;
 
 enum MessageTypeEnum: string
 {
+    case WAIT = 'wait';
     case PROCESS = 'process';
     case FINISH = 'finish';
-
-    public function isProcess(): bool
-    {
-        return $this === self::PROCESS;
-    }
 }

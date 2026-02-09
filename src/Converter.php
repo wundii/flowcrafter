@@ -10,6 +10,7 @@ use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
 if (PHP_VERSION_ID < 80300) {
     function json_validate(string $string): bool
@@ -45,8 +46,9 @@ final class Converter
                     return new FlowMessage(
                         Assert::string($stub['flowHash'] ?? null, 'Each Message must have a string flowHash.'),
                         Assert::string($stub['flowRuntimeHash'] ?? null, 'Each Message must have a string flowRuntimeHash.'),
+                        Assert::classString($stub['subSource'] ?? null, StubInterface::class, 'Each Message must have a string SubInterface.'),
                         MessageTypeEnum::from(Assert::string($stub['messageType'] ?? null, 'Each Message must have a string messageType.')),
-                        Assert::classString($stub['source'] ?? null, MessageInterface::class, 'Each Message must have a string source.'),
+                        Assert::classString($stub['messageSource'] ?? null, MessageInterface::class, 'Each Message must have a string source.'),
                         Assert::object($stub['message'] ?? null, MessageInterface::class, 'Each Message must have an MessageInterface message.'),
                         Assert::datetimeImmutable($stub['time'] ?? null, 'Each Message must have a valid time date string.'),
                         Assert::string($stub['hash'] ?? null, 'Each Message must have a string hash.'),

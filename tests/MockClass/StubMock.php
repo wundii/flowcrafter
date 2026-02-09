@@ -6,7 +6,6 @@ namespace Tests\MockClass;
 
 use Wundii\Flowcrafter\AbstractStub;
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
-use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 
 class StubMock extends AbstractStub
 {
@@ -20,7 +19,7 @@ class StubMock extends AbstractStub
         ];
     }
 
-    public function process(): false|MessageDataInterface|MessageReturnInterface
+    public function process(): MessageDataInterface
     {
         return new MessageDataMock('stub data');
     }

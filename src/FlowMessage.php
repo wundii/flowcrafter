@@ -10,29 +10,44 @@ use InvalidArgumentException;
 use JsonSerializable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
 class FlowMessage implements JsonSerializable
 {
+    /**
+     * @param class-string<StubInterface> $stubSource
+     * @param class-string<MessageInterface> $messageSource
+     */
     public function __construct(
         private readonly string $flowHash,
         private readonly string $flowRuntimeHash,
+        private readonly string $stubSource,
         private MessageTypeEnum $messageTypeEnum,
-        private readonly string $source,
+        private readonly string $messageSource,
         private readonly MessageInterface $message,
         private readonly DateTimeImmutable $time,
         private readonly string $hash,
         private readonly ?string $predecessorHash = null,
     ) {
         Assert::classString(
-            $source,
+            $stubSource,
+            StubInterface::class,
+            sprintf('Message source class "%s" does not implement StubInterface.', $stubSource)
+        );
+        Assert::classString(
+            $messageSource,
             MessageInterface::class,
-            sprintf('Message source class "%s" does not implement FlowInterface.', $source)
+            sprintf('Message source class "%s" does not implement MessageInterface.', $messageSource)
         );
     }
 
+    /**
+     * @param class-string<StubInterface> $stubSource
+     */
     public static function create(
         string $flowHash,
         string $flowRuntimeHash,
+        string $stubSource,
         MessageTypeEnum $messageTypeEnum,
         ?string $predecessorHash,
         MessageInterface $message,
@@ -44,13 +59,23 @@ class FlowMessage implements JsonSerializable
         return new self(
             flowHash: $flowHash,
             flowRuntimeHash: $flowRuntimeHash,
+            stubSource: $stubSource,
             messageTypeEnum: $messageTypeEnum,
-            source: get_class($message),
+            messageSource: get_class($message),
             message: $message,
             time: $time,
             hash: $hash ?? Uuid::uuid7($time)->toString(),
             predecessorHash: $predecessorHash,
         );
+    }
+
+    public function setProcess(): void
+    {
+        if ($this->messageTypeEnum === MessageTypeEnum::PROCESS) {
+            throw new InvalidArgumentException('FlowMessage is already marked as PROCESS.');
+        }
+
+        $this->messageTypeEnum = MessageTypeEnum::PROCESS;
     }
 
     public function setFinish(): void
@@ -72,14 +97,19 @@ class FlowMessage implements JsonSerializable
         return $this->flowRuntimeHash;
     }
 
+    public function getStubSource(): string
+    {
+        return $this->stubSource;
+    }
+
     public function getMessageType(): MessageTypeEnum
     {
         return $this->messageTypeEnum;
     }
 
-    public function getSource(): string
+    public function getMessageSource(): string
     {
-        return $this->source;
+        return $this->messageSource;
     }
 
     public function getMessage(): MessageInterface
@@ -110,8 +140,9 @@ class FlowMessage implements JsonSerializable
         return [
             'flowHash' => $this->flowHash,
             'flowRuntimeHash' => $this->flowRuntimeHash,
+            'stubSource' => $this->stubSource,
             'messageType' => $this->messageTypeEnum->value,
-            'source' => $this->source,
+            'messageSource' => $this->messageSource,
             'message' => $this->message,
             'time' => $this->time->format(DateTimeInterface::ATOM),
             'hash' => $this->hash,

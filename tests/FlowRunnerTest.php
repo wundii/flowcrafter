@@ -20,7 +20,7 @@ final class FlowRunnerTest extends TestCase
         );
         $result = $flowRunner->run(new MessageInitMock('test data'));
 
-        $this->assertCount(3, $flowRunner->getFlowMessages());
+        $this->assertCount(5, $flowRunner->getFlowMessages());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
         $this->assertSame('End of flow', $result->getData());
     }

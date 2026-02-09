@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\MockClass;
 
 use Wundii\Flowcrafter\AbstractStub;
+use Wundii\Flowcrafter\Interface\MessageDataInterface;
 
 class OtherStubMock extends AbstractStub
 {
@@ -13,11 +14,13 @@ class OtherStubMock extends AbstractStub
      */
     public function returnTypes(): array
     {
-        return [];
+        return [
+            MessageDataSecondMock::class,
+        ];
     }
 
-    public function process(): bool
+    public function process(): MessageDataInterface
     {
-        return true;
+        return new MessageDataSecondMock('End of flow');
     }
 }

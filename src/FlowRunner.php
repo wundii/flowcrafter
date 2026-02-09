@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
-use RuntimeException;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
 
 class FlowRunner
 {
@@ -79,20 +77,21 @@ class FlowRunner
             $flowMessage = FlowMessage::create(
                 flowHash: $this->flow->getHash(),
                 flowRuntimeHash: $this->flow->getRuntimeHash(),
-                messageTypeEnum: MessageTypeEnum::PROCESS,
+                stubSource: $stubSource,
+                messageTypeEnum: MessageTypeEnum::WAIT,
                 predecessorHash: $flowMessageHash,
                 message: $message,
             );
 
             $this->flow->addMessage($flowMessage);
 
-            $executed[] = $stubKey;
-            $stubInstance = new $stubSource($stub->getMessageEnum()->value, $message);
-
-            if (!$stubInstance instanceof StubInterface) {
-                throw new RuntimeException(sprintf('Stub "%s" must implement StubInterface.', $stubSource));
+            $messages = $this->flow->executableMessages($stubSource);
+            if ($messages === []) {
+                continue;
             }
 
+            $executed[] = $stubKey;
+            $stubInstance = new $stubSource($stub->getMessageEnum()->value, reset($messages));
             $processResult = $stubInstance->process();
 
             $flowMessage->setFinish();

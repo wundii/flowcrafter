@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\MockClass;
 
 use Wundii\Flowcrafter\AbstractStub;
-use Wundii\Flowcrafter\Interface\MessageDataInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 
 class NextStubMock extends AbstractStub
@@ -20,7 +19,7 @@ class NextStubMock extends AbstractStub
         ];
     }
 
-    public function process(): false|MessageDataInterface|MessageReturnInterface
+    public function process(): MessageReturnInterface
     {
         return new MessageReturnMock('End of flow');
     }

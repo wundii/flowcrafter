@@ -11,6 +11,7 @@ use JsonSerializable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
 class Flow implements JsonSerializable
 {
@@ -172,6 +173,44 @@ class Flow implements JsonSerializable
         }
 
         return false;
+    }
+
+    /**
+     * @param class-string<StubInterface> $stubSource
+     * @return array<MessageInterface>
+     */
+    public function executableMessages(string $stubSource): array
+    {
+        Assert::classString($stubSource, StubInterface::class);
+
+        $flowMessages = array_filter(
+            $this->flowMessages,
+            static fn (FlowMessage $flowMessage): bool => $flowMessage->getStubSource() === $stubSource
+                && $flowMessage->getMessageType() === MessageTypeEnum::WAIT,
+        );
+
+        $stub = $this->flowSchema->stubBySource($stubSource);
+        $stubMessageClasses = $stub->getMessages();
+        $flowMessageClasses = array_map(
+            static fn (FlowMessage $flowMessage): string => $flowMessage->getMessageSource(),
+            $flowMessages,
+        );
+
+        sort($stubMessageClasses);
+        sort($flowMessageClasses);
+
+        if ($stubMessageClasses !== $flowMessageClasses) {
+            return [];
+        }
+
+        foreach ($flowMessages as $flowMessage) {
+            $flowMessage->setProcess();
+        }
+
+        return array_map(
+            static fn (FlowMessage $flowMessage): MessageInterface => $flowMessage->getMessage(),
+            $flowMessages,
+        );
     }
 
     public function getSchemaHash(): string

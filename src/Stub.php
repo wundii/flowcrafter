@@ -67,6 +67,9 @@ class Stub implements JsonSerializable
         );
     }
 
+    /**
+     * @return class-string<StubInterface>
+     */
     public function getSource(): string
     {
         return $this->source;

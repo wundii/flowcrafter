@@ -8,9 +8,11 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use PHPUnit\Framework\TestCase;
 use Tests\MockClass\MessageDataMock;
+use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\NextStubMock;
 use Tests\MockClass\OtherStubMock;
+use Tests\MockClass\PostStubMock;
 use Tests\MockClass\StubMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Converter;
@@ -54,9 +56,10 @@ final class ConverterTest extends TestCase
                     Stub::create(StubMock::class, [MessageInitMock::class]),
                     Stub::create(NextStubMock::class, [MessageDataMock::class]),
                     Stub::create(OtherStubMock::class, [MessageDataMock::class]),
+                    Stub::create(PostStubMock::class, [MessageDataMock::class, MessageDataSecondMock::class]),
                 ],
             ],
-            'flowSchemaHash' => 'f192418aa23af4751f0681cfab18aa8a',
+            'flowSchemaHash' => '70bc15c492ee6a58bf9707792754d776',
             'flowHash' => $flow->getHash(),
             'flowRuntimeHash' => $flow->getRuntimeHash(),
             'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
