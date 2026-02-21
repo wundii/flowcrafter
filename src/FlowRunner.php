@@ -8,10 +8,21 @@ use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\StorageInterface;
 
 class FlowRunner
 {
     private Flow $flow;
+
+    /**
+     * @var string[]
+     */
+    private array $executedStubKey;
+
+    /**
+     * @var array<string, Stub[]>
+     */
+    private array $messageToStubsMap;
 
     private bool|MessageReturnInterface $messageReturn = false;
 
@@ -21,6 +32,7 @@ class FlowRunner
     public function __construct(
         string $type,
         string $flowSource,
+        private readonly ?StorageInterface $storage = null,
     ) {
         Assert::classString(
             $flowSource,
@@ -34,43 +46,40 @@ class FlowRunner
         );
     }
 
-    /**
-     * @return FlowMessage[]
-     */
-    public function getFlowMessages(): array
+    public function getFlow(): Flow
     {
-        return $this->flow->getFlowMessages();
+        return $this->flow;
     }
 
     public function run(
         MessageInterface $message,
     ): bool|MessageReturnInterface {
         $flowSchema = $this->flow->getSchema();
-        $messageToStubsMap = $flowSchema->getMessageToSubsMap();
 
-        $executed = [];
-        $this->executeStubsRecursive($message, $messageToStubsMap, $executed);
+        $this->storage?->initialize();
+        $this->storage?->registeredFlowSchema($flowSchema);
+        $this->storage?->writeFlow($this->flow);
+        $this->executedStubKey = [];
+        $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
+
+        $this->executeStubsRecursive($message);
 
         return $this->messageReturn ?? false;
     }
 
-    /**
-     * @param array<string, Stub[]> $map
-     * @param string[] $executed
-     */
-    private function executeStubsRecursive(MessageInterface $message, array $map, array &$executed, ?string $flowMessageHash = null): void
+    private function executeStubsRecursive(MessageInterface $message, ?string $flowMessageHash = null): void
     {
         $messageClass = get_class($message);
 
-        if (!isset($map[$messageClass])) {
+        if (!isset($this->messageToStubsMap[$messageClass])) {
             return;
         }
 
-        foreach ($map[$messageClass] as $stub) {
+        foreach ($this->messageToStubsMap[$messageClass] as $stub) {
             $stubSource = $stub->getSource();
 
             $stubKey = $stubSource . ':' . $messageClass;
-            if (in_array($stubKey, $executed, true)) {
+            if (in_array($stubKey, $this->executedStubKey, true)) {
                 continue;
             }
 
@@ -95,17 +104,17 @@ class FlowRunner
                 $flowMessages,
             );
 
-            $executed[] = $stubKey;
+            $this->executedStubKey[] = $stubKey;
             $stubInstance = new $stubSource($stub->getMessageEnum()->value, reset($messages));
             $processResult = $stubInstance->process();
 
-            array_map(
-                static fn (FlowMessage $flowMessage) => $flowMessage->setFinish(),
-                $flowMessages,
-            );
+            foreach ($flowMessages as $flowMessage) {
+                $flowMessage->setFinish();
+                $this->storage?->writeFlowMessage($flowMessage);
+            }
 
             if (is_object($processResult) && !$processResult instanceof MessageReturnInterface) {
-                $this->executeStubsRecursive($processResult, $map, $executed, $flowMessage->getHash());
+                $this->executeStubsRecursive($processResult, $flowMessage->getHash());
                 continue;
             }
 
