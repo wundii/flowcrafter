@@ -32,6 +32,8 @@ class FlowRunner
     public function __construct(
         string $type,
         string $flowSource,
+        ?string $flowSubject = null,
+        ?string $flowHash = null,
         private readonly ?StorageInterface $storage = null,
     ) {
         Assert::classString(
@@ -43,6 +45,8 @@ class FlowRunner
         $this->flow = Flow::create(
             $type,
             $flowSource,
+            $flowSubject,
+            $flowHash,
         );
     }
 

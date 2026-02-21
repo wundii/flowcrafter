@@ -23,9 +23,9 @@ final class FlowRunnerTest extends TestCase
             $this->container->getApiToken(),
         );
         $flowRunner = new FlowRunner(
-            'flow.workflow.v1',
-            WorkflowMock::class,
-            $eventSourcingDB,
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $eventSourcingDB,
         );
         $result = $flowRunner->run(new MessageInitMock('test data'));
 
