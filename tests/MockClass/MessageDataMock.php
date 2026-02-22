@@ -17,4 +17,14 @@ readonly class MessageDataMock implements MessageDataInterface
     {
         return $this->data;
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'data' => $this->data,
+        ];
+    }
 }

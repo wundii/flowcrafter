@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use DateTime;
+use DateTimeInterface;
 use InvalidArgumentException;
 use RuntimeException;
+use Wundii\DataMapper\DataConfig;
+use Wundii\DataMapper\DataMapper;
+use Wundii\DataMapper\Enum\ApproachEnum;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
@@ -23,14 +28,27 @@ if (PHP_VERSION_ID < 80300) {
 
 final class Converter
 {
-    public static function jsonToFlow(string $json): Flow
-    {
+    /**
+     * @param array<class-string, class-string> $messageClassMap
+     */
+    public static function jsonToFlow(
+        string $json,
+        array $messageClassMap = [
+            DateTimeInterface::class => DateTime::class,
+        ],
+    ): Flow {
         if (!json_validate($json)) {
             throw new InvalidArgumentException('Invalid JSON provided.');
         }
 
         $array = json_decode($json, true);
         $flow = Assert::array($array, 'Decoded JSON is not an array.');
+
+        $dataConfig = new DataConfig(
+            approachEnum: ApproachEnum::CONSTRUCTOR,
+            classMap: $messageClassMap,
+        );
+        $dataMapper = new DataMapper($dataConfig);
 
         return new Flow(
             Assert::string($flow['flowType'] ?? null, 'Type must be a string.'),
@@ -40,19 +58,24 @@ final class Converter
             Assert::string($flow['flowHash'] ?? null, 'Hash must be a string.'),
             Assert::nullOrString($flow['flowSubject'] ?? null, 'Subject must be null or string.'),
             array_map(
-                static function (mixed $array): FlowMessage {
+                static function (mixed $array) use ($dataMapper): FlowMessage {
                     $stub = Assert::array($array, 'Each Message must be an array.');
+
+                    $messageData = Assert::array($stub['message'] ?? [], 'Each Message must be an array.');
+                    $messageSource = Assert::classString($stub['messageSource'] ?? null, MessageInterface::class, 'Each Message must have a string source.');
+
+                    $message = $dataMapper->array($messageData, $messageSource);
 
                     return new FlowMessage(
                         Assert::string($stub['flowHash'] ?? null, 'Each Message must have a string flowHash.'),
                         Assert::string($stub['flowRuntimeHash'] ?? null, 'Each Message must have a string flowRuntimeHash.'),
                         Assert::classString($stub['subSource'] ?? null, StubInterface::class, 'Each Message must have a string SubInterface.'),
                         MessageTypeEnum::from(Assert::string($stub['messageType'] ?? null, 'Each Message must have a string messageType.')),
-                        Assert::classString($stub['messageSource'] ?? null, MessageInterface::class, 'Each Message must have a string source.'),
-                        Assert::object($stub['message'] ?? null, MessageInterface::class, 'Each Message must have an MessageInterface message.'),
+                        $messageSource,
+                        Assert::object($message, MessageInterface::class, 'Each Message must have an MessageInterface message.'),
                         Assert::datetimeImmutable($stub['time'] ?? null, 'Each Message must have a valid time date string.'),
                         Assert::string($stub['hash'] ?? null, 'Each Message must have a string hash.'),
-                        Assert::string($stub['predecessorHash'] ?? null, 'Each Message must have a string predecessorHash.'),
+                        Assert::nullOrString($stub['predecessorHash'] ?? null, 'Each Message must have a string predecessorHash.'),
                     );
                 },
                 Assert::array($flow['flowMessages'] ?? [], 'Messages must be an array.'),
