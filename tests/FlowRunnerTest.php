@@ -5,36 +5,54 @@ declare(strict_types=1);
 namespace Tests;
 
 use PHPUnit\Framework\TestCase;
+use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\WorkflowMock;
-use Tests\Trait\EsdbClientTestTrait;
+use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
-use Wundii\Flowcrafter\Storage\EventSourcingDB;
 
 final class FlowRunnerTest extends TestCase
 {
-    use EsdbClientTestTrait;
-
     public function testRunReturnsMessageReturnInterface(): void
     {
-        $eventSourcingDB = new EventSourcingDB(
-            $this->container->getBaseUrl(),
-            $this->container->getApiToken(),
-        );
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $eventSourcingDB,
         );
         $result = $flowRunner->run(new MessageInitMock('test data'));
 
-        // $eventTypesQl = 'FROM e IN events WHERE e.data.hash == "019c7c29-289a-70eb-b81b-123456789abc" PROJECT INTO e';
-        // $eventTypesQl = 'FROM e IN events PROJECT INTO e';
-        // $eventTypes = $this->client->runEventQlQuery($eventTypesQl);
-        // dump(iterator_to_array($eventTypes));
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
 
-        $this->assertCount(5, $flowRunner->getFlow()->getFlowMessages());
+        $this->assertCount(5, $flow->getFlowMessages());
+        $this->assertInstanceOf(MessageReturnInterface::class, $result);
+        $this->assertSame('End of flow', $result->getData());
+    }
+
+    public function testRestartingAnWorkflow(): void
+    {
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+        );
+        $result = $flowRunner->run(new MessageInitMock('test data'));
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+
+        $this->assertCount(5, $flow->getFlowMessages());
+        $this->assertInstanceOf(MessageReturnInterface::class, $result);
+        $this->assertSame('End of flow', $result->getData());
+
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+        );
+        $this->assertInstanceOf(Flow::class, $flow);
+        $result = $flowRunner->run(new MessageDataMock('test data round two'), $flow->getHash());
+
+        $this->assertCount(4, $flowRunner->getFlow()->getFlowMessages());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
         $this->assertSame('End of flow', $result->getData());
     }

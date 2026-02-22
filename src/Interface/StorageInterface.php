@@ -10,9 +10,11 @@ use Wundii\Flowcrafter\FlowSchema;
 
 interface StorageInterface
 {
-    public function initialize(): void;
+    public function initializeDatabase(): void;
 
     public function registeredFlowSchema(FlowSchema $flowSchema): void;
+
+    public function registeredFlow(Flow $flow): void;
 
     public function writeFlow(Flow $flow): void;
 

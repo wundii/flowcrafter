@@ -6,6 +6,7 @@ namespace Wundii\Flowcrafter\Storage;
 
 use Thenativeweb\Eventsourcingdb\Client;
 use Thenativeweb\Eventsourcingdb\EventCandidate;
+use Thenativeweb\Eventsourcingdb\IsEventQlQueryTrue;
 use Thenativeweb\Eventsourcingdb\IsSubjectPopulated;
 use Thenativeweb\Eventsourcingdb\IsSubjectPristine;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
@@ -30,14 +31,14 @@ class EventSourcingDB implements StorageInterface
         );
     }
 
-    public function initialize(): void
+    public function initializeDatabase(): void
     {
         $eventTypesQl = 'FROM e IN eventtypes PROJECT INTO e';
         $eventTypes = $this->client->runEventQlQuery($eventTypesQl);
         $eventTypes = iterator_to_array($eventTypes);
 
-        if (!in_array('io.flowcrafter.flow.v1', $eventTypes, true)) {
-            $eventSchema = 'io.flowcrafter.flow.v1';
+        if (!in_array('flowcrafter.flow.v1', $eventTypes, true)) {
+            $eventSchema = 'flowcrafter.flow.v1';
             $registerEventSchema = [
                 'type' => 'object',
                 'properties' => [
@@ -59,9 +60,6 @@ class EventSourcingDB implements StorageInterface
                     'flowHash' => [
                         'type' => 'string',
                     ],
-                    'flowRuntimeHash' => [
-                        'type' => 'string',
-                    ],
                     'time' => [
                         'type' => 'string',
                     ],
@@ -72,6 +70,31 @@ class EventSourcingDB implements StorageInterface
                     'flowType',
                     'flowSchemaHash',
                     'flowHash',
+                    'time',
+                ],
+                'additionalProperties' => false,
+            ];
+
+            $this->client->registerEventSchema($eventSchema, $registerEventSchema);
+        }
+
+        if (!in_array('flowcrafter.flow.run.v1', $eventTypes, true)) {
+            $eventSchema = 'flowcrafter.flow.run.v1';
+            $registerEventSchema = [
+                'type' => 'object',
+                'properties' => [
+                    'flowHash' => [
+                        'type' => 'string',
+                    ],
+                    'flowRuntimeHash' => [
+                        'type' => 'string',
+                    ],
+                    'time' => [
+                        'type' => 'string',
+                    ],
+                ],
+                'required' => [
+                    'flowHash',
                     'flowRuntimeHash',
                     'time',
                 ],
@@ -81,8 +104,8 @@ class EventSourcingDB implements StorageInterface
             $this->client->registerEventSchema($eventSchema, $registerEventSchema);
         }
 
-        if (!in_array('io.flowcrafter.flow.schema.v1', $eventTypes, true)) {
-            $eventSchema = 'io.flowcrafter.flow.schema.v1';
+        if (!in_array('flowcrafter.flow.schema.v1', $eventTypes, true)) {
+            $eventSchema = 'flowcrafter.flow.schema.v1';
             $registerEventSchema = [
                 'type' => 'object',
                 'properties' => [
@@ -123,8 +146,8 @@ class EventSourcingDB implements StorageInterface
             $this->client->registerEventSchema($eventSchema, $registerEventSchema);
         }
 
-        if (!in_array('io.flowcrafter.flow.message.v1', $eventTypes, true)) {
-            $eventSchema = 'io.flowcrafter.flow.message.v1';
+        if (!in_array('flowcrafter.flow.message.v1', $eventTypes, true)) {
+            $eventSchema = 'flowcrafter.flow.message.v1';
             $registerEventSchema = [
                 'type' => 'object',
                 'properties' => [
@@ -185,7 +208,7 @@ class EventSourcingDB implements StorageInterface
         $eventCandidate = new EventCandidate(
             source: self::SOURCE,
             subject: $subject,
-            type: 'io.flowcrafter.flow.schema.v1',
+            type: 'flowcrafter.flow.schema.v1',
             data: $flowSchema->jsonSerialize(),
         );
 
@@ -199,17 +222,23 @@ class EventSourcingDB implements StorageInterface
         );
     }
 
-    public function writeFlow(Flow $flow): void
+    public function registeredFlow(Flow $flow): void
     {
+        $subject = '/flow/' . $flow->getHash();
+
+        $readEventsOptions = new ReadEventsOptions(false);
+        if (iterator_to_array($this->client->readEvents($subject, $readEventsOptions)) !== []) {
+            return;
+        }
+
         $data = $flow->jsonSerialize();
         unset($data['flowMessages']);
 
-        $subject = '/flow/' . $flow->getHash();
         $subjectSchema = '/flow/schema/' . $flow->getSchema()->getHash();
         $eventCandidate = new EventCandidate(
             source: self::SOURCE,
             subject: $subject,
-            type: 'io.flowcrafter.flow.v1',
+            type: 'flowcrafter.flow.v1',
             data: $data,
         );
 
@@ -224,6 +253,31 @@ class EventSourcingDB implements StorageInterface
         );
     }
 
+    public function writeFlow(Flow $flow): void
+    {
+        $subject = '/flow/' . $flow->getHash();
+        $eventCandidate = new EventCandidate(
+            source: self::SOURCE,
+            subject: $subject,
+            type: 'flowcrafter.flow.run.v1',
+            data: [
+                'flowHash' => $flow->getHash(),
+                'flowRuntimeHash' => $flow->getRuntimeHash(),
+                'time' => $flow->getTime()->format(DATE_ATOM),
+            ],
+        );
+
+        $this->client->writeEvents(
+            [
+                $eventCandidate,
+            ],
+            [
+                new IsSubjectPopulated($subject),
+                new IsEventQlQueryTrue('FROM e IN events WHERE e.subject == "' . $subject . '" AND e.type == "flowcrafter.flow.v1" PROJECT INTO COUNT() == 1'),
+            ]
+        );
+    }
+
     public function writeFlowMessage(FlowMessage $flowMessage): void
     {
         $subject = '/flow/message/' . $flowMessage->getHash();
@@ -231,7 +285,7 @@ class EventSourcingDB implements StorageInterface
         $eventCandidate = new EventCandidate(
             source: self::SOURCE,
             subject: $subject,
-            type: 'io.flowcrafter.flow.message.v1',
+            type: 'flowcrafter.flow.message.v1',
             data: $flowMessage->jsonSerialize(),
         );
 

@@ -16,7 +16,8 @@
     "symfony/console": "^6.4 | ^7.0 | ^8.0",
     "symfony/http-foundation": "^6.4 | ^7.0 | ^8.0",
     "symfony/routing": "^6.4 | ^7.0 | ^8.0",
-    "thenativeweb/eventsourcingdb": "^1.0"
+    "testcontainers/testcontainers": "^1.0.4",
+    "thenativeweb/eventsourcingdb": "^1.4.0"
   },
   "require-dev": {
     "phpstan/phpstan": "^2.1",
@@ -57,5 +58,10 @@
     "test": "vendor/bin/phpunit"
   },
   "minimum-stability": "stable",
-  "prefer-stable": true
+  "prefer-stable": true,
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": false
+    }
+  }
 }

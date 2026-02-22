@@ -12,7 +12,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 
 class FlowRunner
 {
-    private Flow $flow;
+    private ?Flow $flow = null;
 
     /**
      * @var string[]
@@ -30,10 +30,9 @@ class FlowRunner
      * @param class-string<FlowInterface> $flowSource
      */
     public function __construct(
-        string $type,
-        string $flowSource,
-        ?string $flowSubject = null,
-        ?string $flowHash = null,
+        private readonly string $type,
+        private readonly string $flowSource,
+        private readonly ?string $flowSubject = null,
         private readonly ?StorageInterface $storage = null,
     ) {
         Assert::classString(
@@ -41,28 +40,30 @@ class FlowRunner
             FlowInterface::class,
             'The flow must be a class implementing FlowInterface'
         );
-
-        $this->flow = Flow::create(
-            $type,
-            $flowSource,
-            $flowSubject,
-            $flowHash,
-        );
     }
 
-    public function getFlow(): Flow
+    public function getFlow(): ?Flow
     {
         return $this->flow;
     }
 
     public function run(
         MessageInterface $message,
+        ?string $flowHash = null,
     ): bool|MessageReturnInterface {
+        $this->flow = Flow::create(
+            $this->type,
+            $this->flowSource,
+            $this->flowSubject,
+            $flowHash,
+        );
+
         $flowSchema = $this->flow->getSchema();
 
-        $this->storage?->initialize();
+        $this->storage?->initializeDatabase();
         $this->storage?->registeredFlowSchema($flowSchema);
-        $this->storage?->writeFlow($this->flow);
+        $this->storage?->registeredFlow($this->flow);
+        $this->storage?->writeFlow($this->flow); #start to run the flow
         $this->executedStubKey = [];
         $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
 
@@ -73,6 +74,11 @@ class FlowRunner
 
     private function executeStubsRecursive(MessageInterface $message, ?string $flowMessageHash = null): void
     {
+        $flow = $this->flow;
+        if (!$flow instanceof Flow) {
+            return;
+        }
+
         $messageClass = get_class($message);
 
         if (!isset($this->messageToStubsMap[$messageClass])) {
@@ -88,17 +94,17 @@ class FlowRunner
             }
 
             $flowMessage = FlowMessage::create(
-                flowHash: $this->flow->getHash(),
-                flowRuntimeHash: $this->flow->getRuntimeHash(),
+                flowHash: $flow->getHash(),
+                flowRuntimeHash: $flow->getRuntimeHash(),
                 stubSource: $stubSource,
                 messageTypeEnum: MessageTypeEnum::WAIT,
                 predecessorHash: $flowMessageHash,
                 message: $message,
             );
 
-            $this->flow->addMessage($flowMessage);
+            $flow->addMessage($flowMessage);
 
-            $flowMessages = $this->flow->executableMessages($stubSource);
+            $flowMessages = $flow->executableMessages($stubSource);
             if ($flowMessages === []) {
                 continue;
             }

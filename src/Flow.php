@@ -210,11 +210,6 @@ class Flow implements JsonSerializable
         return $flowMessages;
     }
 
-    public function getSchemaHash(): string
-    {
-        return $this->flowSchema->getHash();
-    }
-
     /**
      * @return array<string, null|string|array<FlowMessage>|FlowSchema>
      */
@@ -227,7 +222,6 @@ class Flow implements JsonSerializable
             'flowSchema' => $this->flowSchema,
             'flowSchemaHash' => $this->flowSchema->getHash(),
             'flowHash' => $this->flowHash,
-            'flowRuntimeHash' => $this->flowRuntimeHash,
             'time' => $this->time->format(DateTimeInterface::ATOM),
             'flowMessages' => $this->flowMessages,
         ];

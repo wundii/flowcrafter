@@ -61,13 +61,9 @@ final class ConverterTest extends TestCase
             ],
             'flowSchemaHash' => '70bc15c492ee6a58bf9707792754d776',
             'flowHash' => $flow->getHash(),
-            'flowRuntimeHash' => $flow->getRuntimeHash(),
             'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
             'flowMessages' => [],
         ]);
-
-        // debugging
-        // dd($json, $expectedJson);
 
         $this->assertSame($expectedJson, $json);
     }
@@ -103,9 +99,6 @@ final class ConverterTest extends TestCase
             flowSubject: '/workflow/1',
             flowMessages: [],
         );
-
-        // debugging
-        // dd($flow, $expectedFlow);
 
         $this->assertSame($expectedFlow->getSource(), $flow->getSource());
         $this->assertSame($expectedFlow->getSubject(), $flow->getSubject());
