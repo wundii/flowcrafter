@@ -79,7 +79,7 @@ class Redis implements StorageInterface
             '$.flowHash',
             'AS',
             'flowHash',
-            'TEXT',
+            'TAG',
             '$.flowSchemaHash',
             'AS',
             'flowSchemaHash',
@@ -98,11 +98,11 @@ class Redis implements StorageInterface
             '$.flowHash',
             'AS',
             'flowHash',
-            'TEXT',
+            'TAG',
             '$.flowRuntimeHash',
             'AS',
             'flowRuntimeHash',
-            'TEXT',
+            'TAG',
         );
 
         $this->client->rawCommand(
@@ -117,11 +117,11 @@ class Redis implements StorageInterface
             '$.flowHash',
             'AS',
             'flowHash',
-            'TEXT',
+            'TAG',
             '$.flowRuntimeHash',
             'AS',
             'flowRuntimeHash',
-            'TEXT',
+            'TAG',
             '$.stubSource',
             'AS',
             'stubSource',
@@ -137,11 +137,11 @@ class Redis implements StorageInterface
             '$.hash',
             'AS',
             'hash',
-            'TEXT',
+            'TAG',
             '$.predecessorHash',
             'AS',
             'predecessorHash',
-            'TEXT'
+            'TAG'
         );
     }
 
@@ -193,8 +193,10 @@ class Redis implements StorageInterface
      */
     public function getFlowMessagesByFlowHash(string $flowHash): array
     {
-        $flowHash = str_replace('-', ' ', $flowHash);
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:(' . $flowHash . ')', 'RETURN', '1', '$');
+        //tag = @key:{' . $value . '} replace('-', '\-')
+        //text = @key:(' . $value . ') replace('-', ' ')
+        $flowHash = str_replace('-', '\-', $flowHash);
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
         if ($result === false || !is_array($result)) {
             return [];
         }
