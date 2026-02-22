@@ -1,0 +1,42 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Trait;
+
+use Redis;
+use Testcontainers\Container\GenericContainer;
+use Testcontainers\Container\StartedGenericContainer;
+
+trait RedisClientTestTrait
+{
+    private StartedGenericContainer $container;
+
+    private Redis $client;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $port = 6379;
+        $this->container = $this->startContainer($port);
+        $host = $this->container->getHost();
+        $port = $this->container->getMappedPort($port);
+
+        $this->client = new Redis();
+        $this->client->connect($host, $port);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->container->stop();
+        parent::tearDown();
+    }
+
+    protected function startContainer(int $port): StartedGenericContainer
+    {
+        return (new GenericContainer('redis:latest'))
+            ->withExposedPorts($port)
+            ->start();
+    }
+}

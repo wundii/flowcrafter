@@ -4,6 +4,189 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Storage;
 
-class Redis
+use Redis as Client;
+use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowMessage;
+use Wundii\Flowcrafter\FlowSchema;
+use Wundii\Flowcrafter\Interface\StorageInterface;
+
+class Redis implements StorageInterface
 {
+    private const PREFIX_SCHEMA = 'flow:schema:';
+
+    private const PREFIX_FLOW = 'flow:';
+
+    private const PREFIX_MESSAGE = 'flow:message:';
+
+    private const INDEX_SCHEMA = 'idx:flow:schema';
+
+    private const INDEX_FLOW = 'idx:flow';
+
+    private const INDEX_MESSAGE = 'idx:flow:message';
+
+    private Client $client;
+
+    public function __construct(string $host, int $port)
+    {
+        // https://medium.com/datadenys/full-text-search-in-redis-using-redisearch-31df0deb4f3e
+
+        $this->client = new Client();
+        $this->client->connect($host, $port);
+    }
+
+    public function initializeDatabase(): void
+    {
+        // FlowSchema Index
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_SCHEMA,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_SCHEMA,
+            'SCHEMA',
+            '$.type',
+            'AS',
+            'type',
+            'TEXT',
+            '$.stubs[*].source',
+            'AS',
+            'stubSource',
+            'TEXT'
+        );
+        // Flow Index
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_FLOW,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_FLOW,
+            'SCHEMA',
+            '$.flowType',
+            'AS',
+            'flowType',
+            'TEXT',
+            '$.flowSource',
+            'AS',
+            'flowSource',
+            'TEXT',
+            '$.flowHash',
+            'AS',
+            'flowHash',
+            'TAG',
+            '$.flowSchemaHash',
+            'AS',
+            'flowSchemaHash',
+            'TAG'
+        );
+        // FlowMessage Index
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_MESSAGE,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_MESSAGE,
+            'SCHEMA',
+            '$.flowHash',
+            'AS',
+            'flowHash',
+            'TAG',
+            '$.flowRuntimeHash',
+            'AS',
+            'flowRuntimeHash',
+            'TAG',
+            '$.stubSource',
+            'AS',
+            'stubSource',
+            'TEXT',
+            '$.messageType',
+            'AS',
+            'messageType',
+            'TEXT',
+            '$.messageSource',
+            'AS',
+            'messageSource',
+            'TEXT',
+            '$.hash',
+            'AS',
+            'hash',
+            'TAG',
+            '$.predecessorHash',
+            'AS',
+            'predecessorHash',
+            'TAG'
+        );
+    }
+
+    public function registeredFlowSchema(FlowSchema $flowSchema): void
+    {
+        $key = self::PREFIX_SCHEMA . $flowSchema->getHash();
+        if ($this->client->exists($key)) {
+            return;
+        }
+
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($flowSchema));
+    }
+
+    public function registeredFlow(Flow $flow): void
+    {
+        $key = self::PREFIX_FLOW . $flow->getHash();
+        if ($this->client->exists($key)) {
+            return;
+        }
+
+        $data = $flow->jsonSerialize();
+        unset($data['flowMessages']);
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
+    }
+
+    public function writeFlow(Flow $flow): void
+    {
+        $key = self::PREFIX_FLOW . $flow->getHash() . ':run:' . $flow->getRuntimeHash();
+        $data = [
+            'flowHash' => $flow->getHash(),
+            'flowRuntimeHash' => $flow->getRuntimeHash(),
+            'time' => $flow->getTime()->format(DATE_ATOM),
+        ];
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
+    }
+
+    public function writeFlowMessage(FlowMessage $flowMessage): void
+    {
+        $key = self::PREFIX_MESSAGE . $flowMessage->getHash();
+        if ($this->client->exists($key)) {
+            return;
+        }
+
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($flowMessage));
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    public function getFlowMessagesByFlowHash(string $flowHash): array
+    {
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:(' . $flowHash . ')', 'RETURN', '1', '$');
+        // $result = $this->redis->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '*', 'RETURN', '1', '$');
+        if ($result === false || !is_array($result)) {
+            return [];
+        }
+
+        $messages = [];
+        $counter = count($result);
+        // FT.SEARCH gibt: [count, key1, ["$", json1], key2, ["$", json2], ...]
+        for ($i = 1; $i < $counter; $i += 2) {
+            $json = $result[$i + 1][1] ?? null;
+            if ($json) {
+                $messages[] = json_decode($json, true);
+            }
+        }
+
+        return $messages;
+    }
 }
