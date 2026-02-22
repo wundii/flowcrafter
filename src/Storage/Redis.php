@@ -14,13 +14,17 @@ class Redis implements StorageInterface
 {
     private const PREFIX_SCHEMA = 'flow:schema:';
 
-    private const PREFIX_FLOW = 'flow:';
+    private const PREFIX_FLOW = 'flow:instance:';
+
+    private const PREFIX_FLOW_RUN = 'flow:run:';
 
     private const PREFIX_MESSAGE = 'flow:message:';
 
     private const INDEX_SCHEMA = 'idx:flow:schema';
 
     private const INDEX_FLOW = 'idx:flow';
+
+    private const INDEX_FLOW_RUN = 'idx:flow:run';
 
     private const INDEX_MESSAGE = 'idx:flow:message';
 
@@ -36,7 +40,6 @@ class Redis implements StorageInterface
 
     public function initializeDatabase(): void
     {
-        // FlowSchema Index
         $this->client->rawCommand(
             'FT.CREATE',
             self::INDEX_SCHEMA,
@@ -55,7 +58,7 @@ class Redis implements StorageInterface
             'stubSource',
             'TEXT'
         );
-        // Flow Index
+
         $this->client->rawCommand(
             'FT.CREATE',
             self::INDEX_FLOW,
@@ -76,13 +79,32 @@ class Redis implements StorageInterface
             '$.flowHash',
             'AS',
             'flowHash',
-            'TAG',
+            'TEXT',
             '$.flowSchemaHash',
             'AS',
             'flowSchemaHash',
-            'TAG'
+            'TEXT'
         );
-        // FlowMessage Index
+
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_FLOW_RUN,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_FLOW_RUN,
+            'SCHEMA',
+            '$.flowHash',
+            'AS',
+            'flowHash',
+            'TEXT',
+            '$.flowRuntimeHash',
+            'AS',
+            'flowRuntimeHash',
+            'TEXT',
+        );
+
         $this->client->rawCommand(
             'FT.CREATE',
             self::INDEX_MESSAGE,
@@ -95,11 +117,11 @@ class Redis implements StorageInterface
             '$.flowHash',
             'AS',
             'flowHash',
-            'TAG',
+            'TEXT',
             '$.flowRuntimeHash',
             'AS',
             'flowRuntimeHash',
-            'TAG',
+            'TEXT',
             '$.stubSource',
             'AS',
             'stubSource',
@@ -115,11 +137,11 @@ class Redis implements StorageInterface
             '$.hash',
             'AS',
             'hash',
-            'TAG',
+            'TEXT',
             '$.predecessorHash',
             'AS',
             'predecessorHash',
-            'TAG'
+            'TEXT'
         );
     }
 
@@ -147,7 +169,7 @@ class Redis implements StorageInterface
 
     public function writeFlow(Flow $flow): void
     {
-        $key = self::PREFIX_FLOW . $flow->getHash() . ':run:' . $flow->getRuntimeHash();
+        $key = self::PREFIX_FLOW_RUN . $flow->getRuntimeHash();
         $data = [
             'flowHash' => $flow->getHash(),
             'flowRuntimeHash' => $flow->getRuntimeHash(),
@@ -171,18 +193,17 @@ class Redis implements StorageInterface
      */
     public function getFlowMessagesByFlowHash(string $flowHash): array
     {
+        $flowHash = str_replace('-', ' ', $flowHash);
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:(' . $flowHash . ')', 'RETURN', '1', '$');
-        // $result = $this->redis->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '*', 'RETURN', '1', '$');
         if ($result === false || !is_array($result)) {
             return [];
         }
 
         $messages = [];
         $counter = count($result);
-        // FT.SEARCH gibt: [count, key1, ["$", json1], key2, ["$", json2], ...]
         for ($i = 1; $i < $counter; $i += 2) {
             $json = $result[$i + 1][1] ?? null;
-            if ($json) {
+            if ($json !== null) {
                 $messages[] = json_decode($json, true);
             }
         }

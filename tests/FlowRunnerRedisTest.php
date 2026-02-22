@@ -33,24 +33,20 @@ final class FlowRunnerRedisTest extends TestCase
 
         $this->assertCount(5, $flowRunner->getFlow()->getFlowMessages());
 
-        // $keys = $this->client->keys('flow:message:*');
-        // dump($keys);
-        // dump($flowRunner->getFlow()->getHash(), $redis->getFlowMessagesByFlowHash($flowRunner->getFlow()->getHash()));
+        $events = $this->client->keys('flow:*');
+        $this->assertCount(8, $events);
 
-        // $events = $this->client->readEvents('/', new ReadEventsOptions(true));
-        // $this->assertCount(8, iterator_to_array($events));
-        //
-        // $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.schema.v1" PROJECT INTO e');
-        // $this->assertCount(1, iterator_to_array($flowSchemaEvent));
-        //
-        // $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.v1" PROJECT INTO e');
-        // $this->assertCount(1, iterator_to_array($flowSchemaEvent));
-        //
-        // $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.run.v1" PROJECT INTO e');
-        // $this->assertCount(1, iterator_to_array($flowSchemaEvent));
-        //
-        // $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.message.v1" PROJECT INTO e');
-        // $this->assertCount(5, iterator_to_array($flowSchemaEvent));
+        $flowSchemaEvent = $this->client->keys('flow:schema:*');
+        $this->assertCount(1, iterator_to_array($flowSchemaEvent));
+
+        $flowSchemaEvent = $this->client->keys('flow:instance:*');
+        $this->assertCount(1, iterator_to_array($flowSchemaEvent));
+
+        $flowSchemaEvent = $this->client->keys('flow:run:*');
+        $this->assertCount(1, iterator_to_array($flowSchemaEvent));
+
+        $flowSchemaEvent = $this->client->keys('flow:message:*');
+        $this->assertCount(5, iterator_to_array($flowSchemaEvent));
     }
 
     // public function testRestartingAnWorkflow(): void
