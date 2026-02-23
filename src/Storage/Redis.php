@@ -9,6 +9,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\ObserveItem;
 
 class Redis implements StorageInterface
 {
@@ -32,8 +33,6 @@ class Redis implements StorageInterface
 
     public function __construct(string $host, int $port)
     {
-        // https://medium.com/datadenys/full-text-search-in-redis-using-redisearch-31df0deb4f3e
-
         $this->client = new Client();
         $this->client->connect($host, $port);
     }
@@ -167,13 +166,14 @@ class Redis implements StorageInterface
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
 
-    public function writeFlow(Flow $flow): void
+    public function writeFlow(Flow $flow, ?int $queueId = null): void
     {
         $key = self::PREFIX_FLOW_RUN . $flow->getRuntimeHash();
         $data = [
             'flowHash' => $flow->getHash(),
             'flowRuntimeHash' => $flow->getRuntimeHash(),
             'time' => $flow->getTime()->format(DATE_ATOM),
+            'queueId' => $queueId,
         ];
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
@@ -211,5 +211,14 @@ class Redis implements StorageInterface
         }
 
         return $messages;
+    }
+
+    /**
+     * @return iterable<ObserveItem>
+     */
+    public function observeQueue(): iterable
+    {
+        /** @phpstan-ignore argument.type */
+        yield new ObserveItem(1, '', '', '', '', []);
     }
 }

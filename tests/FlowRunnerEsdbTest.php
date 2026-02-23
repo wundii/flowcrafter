@@ -34,17 +34,17 @@ final class FlowRunnerEsdbTest extends TestCase
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
         $this->assertCount(8, iterator_to_array($events));
 
-        $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.schema.v1" PROJECT INTO e');
-        $this->assertCount(1, iterator_to_array($flowSchemaEvent));
+        $flowSchemaEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.schema.v1" PROJECT INTO e');
+        $this->assertCount(1, iterator_to_array($flowSchemaEvents));
 
-        $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.v1" PROJECT INTO e');
-        $this->assertCount(1, iterator_to_array($flowSchemaEvent));
+        $flowInstanceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.instance.v1" PROJECT INTO e');
+        $this->assertCount(1, iterator_to_array($flowInstanceEvents));
 
-        $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.run.v1" PROJECT INTO e');
-        $this->assertCount(1, iterator_to_array($flowSchemaEvent));
+        $flowRunEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.run.v1" PROJECT INTO e');
+        $this->assertCount(1, iterator_to_array($flowRunEvents));
 
-        $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.message.v1" PROJECT INTO e');
-        $this->assertCount(5, iterator_to_array($flowSchemaEvent));
+        $flowMessageEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.message.v1" PROJECT INTO e');
+        $this->assertCount(5, iterator_to_array($flowMessageEvents));
     }
 
     // public function testRestartingAnWorkflow(): void
@@ -80,16 +80,16 @@ final class FlowRunnerEsdbTest extends TestCase
     //     $events = $this->client->readEvents('/', new ReadEventsOptions(true));
     //     $this->assertCount(13, iterator_to_array($events));
     //
-    //     $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.schema.v1" PROJECT INTO e');
-    //     $this->assertCount(1, iterator_to_array($flowSchemaEvent));
+    //     $flowSchemaEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.schema.v1" PROJECT INTO e');
+    //     $this->assertCount(1, iterator_to_array($flowSchemaEvents));
     //
-    //     $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.v1" PROJECT INTO e');
-    //     $this->assertCount(1, iterator_to_array($flowSchemaEvent));
+    //     $flowInstanceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.instance.v1" PROJECT INTO e');
+    //     $this->assertCount(1, iterator_to_array($flowInstanceEvents));
     //
-    //     $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.run.v1" PROJECT INTO e');
-    //     $this->assertCount(2, iterator_to_array($flowSchemaEvent));
+    //     $flowRunEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.run.v1" PROJECT INTO e');
+    //     $this->assertCount(2, iterator_to_array($flowRunEvents));
     //
-    //     $flowSchemaEvent = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.message.v1" PROJECT INTO e');
-    //     $this->assertCount(9, iterator_to_array($flowSchemaEvent));
+    //     $flowMessageEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.message.v1" PROJECT INTO e');
+    //     $this->assertCount(9, iterator_to_array($flowMessageEvents));
     // }
 }

@@ -50,6 +50,7 @@ class FlowRunner
     public function run(
         MessageInterface $message,
         ?string $flowHash = null,
+        ?int $queueId = null,
     ): bool|MessageReturnInterface {
         $this->flow = Flow::create(
             $this->type,
@@ -63,7 +64,7 @@ class FlowRunner
         $this->storage?->initializeDatabase();
         $this->storage?->registeredFlowSchema($flowSchema);
         $this->storage?->registeredFlow($this->flow);
-        $this->storage?->writeFlow($this->flow); #start to run the flow
+        $this->storage?->writeFlow($this->flow, $queueId); #start to run the flow
         $this->executedStubKey = [];
         $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
 

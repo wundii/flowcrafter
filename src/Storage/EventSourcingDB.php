@@ -14,6 +14,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\ObserveItem;
 
 class EventSourcingDB implements StorageInterface
 {
@@ -37,8 +38,8 @@ class EventSourcingDB implements StorageInterface
         $eventTypes = $this->client->runEventQlQuery($eventTypesQl);
         $eventTypes = iterator_to_array($eventTypes);
 
-        if (!in_array('flowcrafter.flow.v1', $eventTypes, true)) {
-            $eventSchema = 'flowcrafter.flow.v1';
+        if (!in_array('flowcrafter.flow.instance.v1', $eventTypes, true)) {
+            $eventType = 'flowcrafter.flow.instance.v1';
             $registerEventSchema = [
                 'type' => 'object',
                 'properties' => [
@@ -75,11 +76,11 @@ class EventSourcingDB implements StorageInterface
                 'additionalProperties' => false,
             ];
 
-            $this->client->registerEventSchema($eventSchema, $registerEventSchema);
+            $this->client->registerEventSchema($eventType, $registerEventSchema);
         }
 
         if (!in_array('flowcrafter.flow.run.v1', $eventTypes, true)) {
-            $eventSchema = 'flowcrafter.flow.run.v1';
+            $eventType = 'flowcrafter.flow.run.v1';
             $registerEventSchema = [
                 'type' => 'object',
                 'properties' => [
@@ -92,6 +93,9 @@ class EventSourcingDB implements StorageInterface
                     'time' => [
                         'type' => 'string',
                     ],
+                    'queueId' => [
+                        'type' => ['null', 'integer'],
+                    ],
                 ],
                 'required' => [
                     'flowHash',
@@ -101,11 +105,11 @@ class EventSourcingDB implements StorageInterface
                 'additionalProperties' => false,
             ];
 
-            $this->client->registerEventSchema($eventSchema, $registerEventSchema);
+            $this->client->registerEventSchema($eventType, $registerEventSchema);
         }
 
         if (!in_array('flowcrafter.flow.schema.v1', $eventTypes, true)) {
-            $eventSchema = 'flowcrafter.flow.schema.v1';
+            $eventType = 'flowcrafter.flow.schema.v1';
             $registerEventSchema = [
                 'type' => 'object',
                 'properties' => [
@@ -143,11 +147,11 @@ class EventSourcingDB implements StorageInterface
                 'additionalProperties' => false,
             ];
 
-            $this->client->registerEventSchema($eventSchema, $registerEventSchema);
+            $this->client->registerEventSchema($eventType, $registerEventSchema);
         }
 
         if (!in_array('flowcrafter.flow.message.v1', $eventTypes, true)) {
-            $eventSchema = 'flowcrafter.flow.message.v1';
+            $eventType = 'flowcrafter.flow.message.v1';
             $registerEventSchema = [
                 'type' => 'object',
                 'properties' => [
@@ -192,7 +196,7 @@ class EventSourcingDB implements StorageInterface
                 'additionalProperties' => false,
             ];
 
-            $this->client->registerEventSchema($eventSchema, $registerEventSchema);
+            $this->client->registerEventSchema($eventType, $registerEventSchema);
         }
     }
 
@@ -238,7 +242,7 @@ class EventSourcingDB implements StorageInterface
         $eventCandidate = new EventCandidate(
             source: self::SOURCE,
             subject: $subject,
-            type: 'flowcrafter.flow.v1',
+            type: 'flowcrafter.flow.instance.v1',
             data: $data,
         );
 
@@ -253,7 +257,7 @@ class EventSourcingDB implements StorageInterface
         );
     }
 
-    public function writeFlow(Flow $flow): void
+    public function writeFlow(Flow $flow, ?int $queueId = null): void
     {
         $subject = '/flow/' . $flow->getHash();
         $eventCandidate = new EventCandidate(
@@ -264,6 +268,7 @@ class EventSourcingDB implements StorageInterface
                 'flowHash' => $flow->getHash(),
                 'flowRuntimeHash' => $flow->getRuntimeHash(),
                 'time' => $flow->getTime()->format(DATE_ATOM),
+                'queueId' => $queueId,
             ],
         );
 
@@ -273,7 +278,7 @@ class EventSourcingDB implements StorageInterface
             ],
             [
                 new IsSubjectPopulated($subject),
-                new IsEventQlQueryTrue('FROM e IN events WHERE e.subject == "' . $subject . '" AND e.type == "flowcrafter.flow.v1" PROJECT INTO COUNT() == 1'),
+                new IsEventQlQueryTrue('FROM e IN events WHERE e.subject == "' . $subject . '" AND e.type == "flowcrafter.flow.instance.v1" PROJECT INTO COUNT() == 1'),
             ]
         );
     }
@@ -298,5 +303,14 @@ class EventSourcingDB implements StorageInterface
                 new IsSubjectPopulated($subjectFlow),
             ]
         );
+    }
+
+    /**
+     * @return iterable<ObserveItem>
+     */
+    public function observeQueue(): iterable
+    {
+        /** @phpstan-ignore argument.type */
+        yield new ObserveItem(1, '', '', '', '', []);
     }
 }
