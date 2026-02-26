@@ -13,16 +13,16 @@ final readonly class ObserveItem
      * @param array<mixed> $message
      */
     public function __construct(
-        private int $queueId,
+        private string $queueId,
         private string $type,
         private string $flowSource,
-        private string $flowSHash,
+        private ?string $flowHash,
         private string $messageSource,
         private array $message,
     ) {
     }
 
-    public function getQueueId(): int
+    public function getQueueId(): string
     {
         return $this->queueId;
     }
@@ -40,9 +40,9 @@ final readonly class ObserveItem
         return $this->flowSource;
     }
 
-    public function getFlowSHash(): string
+    public function getFlowHash(): ?string
     {
-        return $this->flowSHash;
+        return $this->flowHash;
     }
 
     public function getMessageSource(): string

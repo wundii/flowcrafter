@@ -17,12 +17,12 @@ interface StorageInterface
 
     public function registeredFlow(Flow $flow): void;
 
-    public function writeFlow(Flow $flow, ?int $queueId = null): void;
+    public function writeFlow(Flow $flow, ?string $queueId = null): void;
 
     public function writeFlowMessage(FlowMessage $flowMessage): void;
 
     /**
      * @return iterable<ObserveItem>
      */
-    public function observeQueue(): iterable;
+    public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable;
 }

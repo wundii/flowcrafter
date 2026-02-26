@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use DateTime;
+use DateTimeInterface;
+use RuntimeException;
 use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
 use Wundii\DataMapper\Enum\ApproachEnum;
@@ -21,7 +24,10 @@ readonly class FlowObserver
      * @param array<class-string, class-string> $messageClassMap
      */
     public function run(
-        array $messageClassMap = [],
+        array $messageClassMap = [
+            DateTimeInterface::class => DateTime::class,
+        ],
+        float $maxExecutionTimeInSeconds = 0.0,
     ): void {
         $this->storage->initializeDatabase();
 
@@ -30,13 +36,14 @@ readonly class FlowObserver
             classMap: $messageClassMap,
         );
         $dataMapper = new DataMapper($dataConfig);
+        $startExecutionTime = microtime(true);
 
-        foreach ($this->storage->observeQueue() as $observeItem) {
+        foreach ($this->storage->observeQueue($maxExecutionTimeInSeconds) as $observeItem) {
             $messageSource = Assert::classString($observeItem->getMessageSource(), MessageInterface::class, 'Each Message must have a string source.');
 
             $message = $dataMapper->array($observeItem->getMessage(), $messageSource);
             if (!$message instanceof MessageInterface) {
-                throw new \RuntimeException('Mapped message does not implement MessageInterface.');
+                throw new RuntimeException('Mapped message does not implement MessageInterface.');
             }
 
             $flowRunner = new FlowRunner(
@@ -47,9 +54,16 @@ readonly class FlowObserver
 
             $flowRunner->run(
                 message: $message,
-                flowHash: $observeItem->getFlowSHash(),
+                flowHash: $observeItem->getFlowHash(),
                 queueId: $observeItem->getQueueId(),
             );
+
+            if ($maxExecutionTimeInSeconds > 0.0) {
+                $elapsedTime = microtime(true) - $startExecutionTime;
+                if ($elapsedTime >= $maxExecutionTimeInSeconds) {
+                    break;
+                }
+            }
         }
     }
 }

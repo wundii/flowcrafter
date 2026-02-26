@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Storage;
 
+use RuntimeException;
+use Thenativeweb\Eventsourcingdb\Bound;
+use Thenativeweb\Eventsourcingdb\BoundType;
 use Thenativeweb\Eventsourcingdb\Client;
 use Thenativeweb\Eventsourcingdb\EventCandidate;
 use Thenativeweb\Eventsourcingdb\IsEventQlQueryTrue;
 use Thenativeweb\Eventsourcingdb\IsSubjectPopulated;
 use Thenativeweb\Eventsourcingdb\IsSubjectPristine;
+use Thenativeweb\Eventsourcingdb\ObserveEventsOptions;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowMessage;
@@ -19,6 +23,8 @@ use Wundii\Flowcrafter\ObserveItem;
 class EventSourcingDB implements StorageInterface
 {
     public const SOURCE = 'https://flowcrafter';
+
+    public const QUEUE_SUBJECT = '/flow/queue';
 
     private Client $client;
 
@@ -94,7 +100,7 @@ class EventSourcingDB implements StorageInterface
                         'type' => 'string',
                     ],
                     'queueId' => [
-                        'type' => ['null', 'integer'],
+                        'type' => ['null', 'string'],
                     ],
                 ],
                 'required' => [
@@ -191,7 +197,40 @@ class EventSourcingDB implements StorageInterface
                     'messageSource',
                     'time',
                     'hash',
-                    'predecessorHash',
+                ],
+                'additionalProperties' => false,
+            ];
+
+            $this->client->registerEventSchema($eventType, $registerEventSchema);
+        }
+
+        if (!in_array('flowcrafter.flow.queue.v1', $eventTypes, true)) {
+            $eventType = 'flowcrafter.flow.queue.v1';
+            $registerEventSchema = [
+                'type' => 'object',
+                'properties' => [
+                    'type' => [
+                        'type' => 'string',
+                    ],
+                    'flowSource' => [
+                        'type' => 'string',
+                    ],
+                    'flowHash' => [
+                        'type' => 'string',
+                    ],
+                    'messageSource' => [
+                        'type' => 'string',
+                    ],
+                    'message' => [
+                        'type' => ['array', 'object'],
+                    ],
+                ],
+                'required' => [
+                    'type',
+                    'flowSource',
+                    'flowHash',
+                    'messageSource',
+                    'message',
                 ],
                 'additionalProperties' => false,
             ];
@@ -257,7 +296,7 @@ class EventSourcingDB implements StorageInterface
         );
     }
 
-    public function writeFlow(Flow $flow, ?int $queueId = null): void
+    public function writeFlow(Flow $flow, ?string $queueId = null): void
     {
         $subject = '/flow/' . $flow->getHash();
         $eventCandidate = new EventCandidate(
@@ -308,9 +347,37 @@ class EventSourcingDB implements StorageInterface
     /**
      * @return iterable<ObserveItem>
      */
-    public function observeQueue(): iterable
+    public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable
     {
-        /** @phpstan-ignore argument.type */
-        yield new ObserveItem(1, '', '', '', '', []);
+        $this->client->abortIn($maxExecutionTimeInSeconds);
+
+        $query = 'FROM e IN events WHERE e.subject == "' . self::QUEUE_SUBJECT . '" AND e.data.queueId != null ORDER BY e.id DESC PROJECT INTO e.data.queueId';
+
+        $lastFlowRunWithQueueId = $this->client->runEventQlQuery($query);
+        $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
+        $lastQueueId = $lastFlowRunEvent[0] ?? '0';
+
+        if (!is_string($lastQueueId)) {
+            throw new RuntimeException('Expected last queueId to be a string, got ' . gettype($lastQueueId));
+        }
+
+        $observeEventsOptions = new ObserveEventsOptions(
+            recursive: true,
+            lowerBound: new Bound(
+                id: $lastQueueId,
+                type: $lastQueueId === '0' ? BoundType::INCLUSIVE : BoundType::EXCLUSIVE,
+            ),
+        );
+
+        foreach ($this->client->observeEvents('/flow/queue', $observeEventsOptions) as $event) {
+            yield new ObserveItem(
+                queueId: $event->id,
+                type: $event->data['type'] ?? '',
+                flowSource: $event->data['flowSource'] ?? '',
+                flowHash: $event->data['flowHash'] ?? null,
+                messageSource: $event->data['messageSource'] ?? '',
+                message: $event->data['message'] ?? [],
+            );
+        }
     }
 }

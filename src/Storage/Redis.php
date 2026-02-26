@@ -166,7 +166,7 @@ class Redis implements StorageInterface
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
 
-    public function writeFlow(Flow $flow, ?int $queueId = null): void
+    public function writeFlow(Flow $flow, ?string $queueId = null): void
     {
         $key = self::PREFIX_FLOW_RUN . $flow->getRuntimeHash();
         $data = [
@@ -216,9 +216,9 @@ class Redis implements StorageInterface
     /**
      * @return iterable<ObserveItem>
      */
-    public function observeQueue(): iterable
+    public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable
     {
         /** @phpstan-ignore argument.type */
-        yield new ObserveItem(1, '', '', '', '', []);
+        yield new ObserveItem('1', '', '', '', '', []);
     }
 }

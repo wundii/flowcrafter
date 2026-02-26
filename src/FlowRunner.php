@@ -50,7 +50,7 @@ class FlowRunner
     public function run(
         MessageInterface $message,
         ?string $flowHash = null,
-        ?int $queueId = null,
+        ?string $queueId = null,
     ): bool|MessageReturnInterface {
         $this->flow = Flow::create(
             $this->type,
