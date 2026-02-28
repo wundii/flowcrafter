@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Storage;
 
+use DateTimeImmutable;
 use Redis as Client;
 use RuntimeException;
 use Wundii\Flowcrafter\Assert;
@@ -14,6 +15,7 @@ use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\Uuid;
 
 class Redis implements StorageInterface
 {
@@ -283,7 +285,7 @@ class Redis implements StorageInterface
             }
 
             yield new ObserveItem(
-                queueId: '1',
+                queueId: Uuid::uuid7(new DateTimeImmutable())->toString(),
                 /** @phpstan-ignore-next-line */
                 type: $payload['type'] ?? '',
                 flowSource: $payload['flowSource'] ?? '',
