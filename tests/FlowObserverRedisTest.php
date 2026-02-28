@@ -43,8 +43,7 @@ final class FlowObserverRedisTest extends TestCase
             $this->container->getMappedPort(6379),
         );
 
-        $flowObserver = new FlowObserver($redis);
-        $flowObserver->addItem(
+        $redis->addObserveItem(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowHash: null,
@@ -53,6 +52,8 @@ final class FlowObserverRedisTest extends TestCase
                 'data' => 'test data',
             ]
         );
+
+        $flowObserver = new FlowObserver($redis);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->keys('flow:*');

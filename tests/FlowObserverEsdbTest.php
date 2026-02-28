@@ -36,8 +36,7 @@ final class FlowObserverEsdbTest extends TestCase
             $this->container->getBaseUrl(),
             $this->container->getApiToken(),
         );
-        $flowObserver = new FlowObserver($eventSourcingDB);
-        $flowObserver->addItem(
+        $eventSourcingDB->addObserveItem(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowHash: null,
@@ -46,6 +45,8 @@ final class FlowObserverEsdbTest extends TestCase
                 'data' => 'test data',
             ]
         );
+
+        $flowObserver = new FlowObserver($eventSourcingDB);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));

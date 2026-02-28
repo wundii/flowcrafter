@@ -21,16 +21,6 @@ readonly class FlowObserver
     }
 
     /**
-     * @param class-string $flowSource
-     * @param class-string $messageSource
-     * @param array<mixed> $message
-     */
-    public function addItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void
-    {
-        $this->storage->addObserveItem($type, $flowSource, $flowHash, $messageSource, $message);
-    }
-
-    /**
      * @param array<class-string, class-string> $messageClassMap
      */
     public function run(
