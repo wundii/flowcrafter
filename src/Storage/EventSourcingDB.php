@@ -14,9 +14,12 @@ use Thenativeweb\Eventsourcingdb\IsSubjectPopulated;
 use Thenativeweb\Eventsourcingdb\IsSubjectPristine;
 use Thenativeweb\Eventsourcingdb\ObserveEventsOptions;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
+use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
+use Wundii\Flowcrafter\Interface\FlowInterface;
+use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\ObserveItem;
 
@@ -342,6 +345,32 @@ class EventSourcingDB implements StorageInterface
                 new IsSubjectPopulated($subjectFlow),
             ]
         );
+    }
+
+    /**
+     * @param class-string $flowSource
+     * @param class-string $messageSource
+     * @param array<mixed> $message
+     */
+    public function addObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void
+    {
+        Assert::classString($flowSource, FlowInterface::class);
+        Assert::classString($messageSource, MessageInterface::class);
+
+        $this->client->writeEvents([
+            new EventCandidate(
+                source: self::SOURCE,
+                subject: self::QUEUE_SUBJECT,
+                type: 'flowcrafter.flow.queue.v1',
+                data: [
+                    'type' => $type,
+                    'flowSource' => $flowSource,
+                    'flowHash' => $flowHash,
+                    'messageSource' => $messageSource,
+                    'message' => $message,
+                ],
+            ),
+        ]);
     }
 
     /**

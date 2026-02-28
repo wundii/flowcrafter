@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Storage;
 
 use Redis as Client;
+use RuntimeException;
+use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
+use Wundii\Flowcrafter\Interface\FlowInterface;
+use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\ObserveItem;
 
@@ -37,111 +41,129 @@ class Redis implements StorageInterface
         $this->client->connect($host, $port);
     }
 
+    public function existIndex(string $indexName): bool
+    {
+        try {
+            $this->client->rawCommand('FT.INFO', $indexName);
+            return true;
+        } catch (\RedisException) {
+            return false;
+        }
+    }
+
     public function initializeDatabase(): void
     {
-        $this->client->rawCommand(
-            'FT.CREATE',
-            self::INDEX_SCHEMA,
-            'ON',
-            'JSON',
-            'PREFIX',
-            '1',
-            self::PREFIX_SCHEMA,
-            'SCHEMA',
-            '$.type',
-            'AS',
-            'type',
-            'TEXT',
-            '$.stubs[*].source',
-            'AS',
-            'stubSource',
-            'TEXT'
-        );
+        if (!$this->existIndex(self::INDEX_SCHEMA)) {
+            $this->client->rawCommand(
+                'FT.CREATE',
+                self::INDEX_SCHEMA,
+                'ON',
+                'JSON',
+                'PREFIX',
+                '1',
+                self::PREFIX_SCHEMA,
+                'SCHEMA',
+                '$.type',
+                'AS',
+                'type',
+                'TEXT',
+                '$.stubs[*].source',
+                'AS',
+                'stubSource',
+                'TEXT'
+            );
+        }
 
-        $this->client->rawCommand(
-            'FT.CREATE',
-            self::INDEX_FLOW,
-            'ON',
-            'JSON',
-            'PREFIX',
-            '1',
-            self::PREFIX_FLOW,
-            'SCHEMA',
-            '$.flowType',
-            'AS',
-            'flowType',
-            'TEXT',
-            '$.flowSource',
-            'AS',
-            'flowSource',
-            'TEXT',
-            '$.flowHash',
-            'AS',
-            'flowHash',
-            'TAG',
-            '$.flowSchemaHash',
-            'AS',
-            'flowSchemaHash',
-            'TEXT'
-        );
+        if (!$this->existIndex(self::INDEX_FLOW)) {
+            $this->client->rawCommand(
+                'FT.CREATE',
+                self::INDEX_FLOW,
+                'ON',
+                'JSON',
+                'PREFIX',
+                '1',
+                self::PREFIX_FLOW,
+                'SCHEMA',
+                '$.flowType',
+                'AS',
+                'flowType',
+                'TEXT',
+                '$.flowSource',
+                'AS',
+                'flowSource',
+                'TEXT',
+                '$.flowHash',
+                'AS',
+                'flowHash',
+                'TAG',
+                '$.flowSchemaHash',
+                'AS',
+                'flowSchemaHash',
+                'TEXT'
+            );
+        }
 
-        $this->client->rawCommand(
-            'FT.CREATE',
-            self::INDEX_FLOW_RUN,
-            'ON',
-            'JSON',
-            'PREFIX',
-            '1',
-            self::PREFIX_FLOW_RUN,
-            'SCHEMA',
-            '$.flowHash',
-            'AS',
-            'flowHash',
-            'TAG',
-            '$.flowRuntimeHash',
-            'AS',
-            'flowRuntimeHash',
-            'TAG',
-        );
+        if (!$this->existIndex(self::INDEX_FLOW_RUN)) {
+            $this->client->rawCommand(
+                'FT.CREATE',
+                self::INDEX_FLOW_RUN,
+                'ON',
+                'JSON',
+                'PREFIX',
+                '1',
+                self::PREFIX_FLOW_RUN,
+                'SCHEMA',
+                '$.flowHash',
+                'AS',
+                'flowHash',
+                'TAG',
+                '$.flowRuntimeHash',
+                'AS',
+                'flowRuntimeHash',
+                'TAG',
+            );
+        }
 
-        $this->client->rawCommand(
-            'FT.CREATE',
-            self::INDEX_MESSAGE,
-            'ON',
-            'JSON',
-            'PREFIX',
-            '1',
-            self::PREFIX_MESSAGE,
-            'SCHEMA',
-            '$.flowHash',
-            'AS',
-            'flowHash',
-            'TAG',
-            '$.flowRuntimeHash',
-            'AS',
-            'flowRuntimeHash',
-            'TAG',
-            '$.stubSource',
-            'AS',
-            'stubSource',
-            'TEXT',
-            '$.messageType',
-            'AS',
-            'messageType',
-            'TEXT',
-            '$.messageSource',
-            'AS',
-            'messageSource',
-            'TEXT',
-            '$.hash',
-            'AS',
-            'hash',
-            'TAG',
-            '$.predecessorHash',
-            'AS',
-            'predecessorHash',
-            'TAG'
-        );
+        if (!$this->existIndex(self::INDEX_MESSAGE)) {
+            $this->client->rawCommand(
+                'FT.CREATE',
+                self::INDEX_MESSAGE,
+                'ON',
+                'JSON',
+                'PREFIX',
+                '1',
+                self::PREFIX_MESSAGE,
+                'SCHEMA',
+                '$.flowHash',
+                'AS',
+                'flowHash',
+                'TAG',
+                '$.flowRuntimeHash',
+                'AS',
+                'flowRuntimeHash',
+                'TAG',
+                '$.stubSource',
+                'AS',
+                'stubSource',
+                'TEXT',
+                '$.messageType',
+                'AS',
+                'messageType',
+                'TEXT',
+                '$.messageSource',
+                'AS',
+                'messageSource',
+                'TEXT',
+                '$.hash',
+                'AS',
+                'hash',
+                'TAG',
+                '$.predecessorHash',
+                'AS',
+                'predecessorHash',
+                'TAG'
+            );
+        }
     }
 
     public function registeredFlowSchema(FlowSchema $flowSchema): void
@@ -214,11 +236,61 @@ class Redis implements StorageInterface
     }
 
     /**
+     * @param class-string $flowSource
+     * @param class-string $messageSource
+     * @param array<mixed> $message
+     */
+    public function addObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void
+    {
+        Assert::classString($flowSource, FlowInterface::class);
+        Assert::classString($messageSource, MessageInterface::class);
+
+        $data = [
+            'type' => $type,
+            'flowSource' => $flowSource,
+            'flowHash' => $flowHash,
+            'messageSource' => $messageSource,
+            'message' => $message,
+        ];
+
+        $this->client->lPush('flow:queue', json_encode($data));
+    }
+
+    /**
      * @return iterable<ObserveItem>
      */
     public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable
     {
-        /** @phpstan-ignore argument.type */
-        yield new ObserveItem('1', '', '', '', '', []);
+        $executionTime = microtime(true);
+
+        while (true) {
+            if ($maxExecutionTimeInSeconds > 0 && (microtime(true) - $executionTime) >= $maxExecutionTimeInSeconds) {
+                break;
+            }
+
+            $result = $this->client->brPop('flow:queue', 1);
+            if (!is_array($result)) {
+                continue;
+            }
+
+            if (!array_key_exists(1, $result)) {
+                continue;
+            }
+
+            $payload = json_decode($result[1], true);
+            if (!is_array($payload)) {
+                throw new RuntimeException('The flow message payload must be a valid JSON object.');
+            }
+
+            yield new ObserveItem(
+                queueId: '1',
+                /** @phpstan-ignore-next-line */
+                type: $payload['type'] ?? '',
+                flowSource: $payload['flowSource'] ?? '',
+                flowHash: $payload['flowHash'] ?? null,
+                messageSource: $payload['messageSource'] ?? '',
+                message: $payload['message'] ?? [],
+            );
+        }
     }
 }

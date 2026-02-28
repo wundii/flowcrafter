@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
+namespace Tests;
+
 use PHPUnit\Framework\TestCase;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\EsdbClientTestTrait;
-use Thenativeweb\Eventsourcingdb\EventCandidate;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
 use Wundii\Flowcrafter\FlowObserver;
 use Wundii\Flowcrafter\Storage\EventSourcingDB;
@@ -35,27 +36,16 @@ final class FlowObserverEsdbTest extends TestCase
             $this->container->getBaseUrl(),
             $this->container->getApiToken(),
         );
-
-        $message = [
-            'type' => 'flow.workflow.v1',
-            'flowSource' => WorkflowMock::class,
-            'flowHash' => null,
-            'messageSource' => MessageInitMock::class,
-            'message' => [
-                'data' => 'test data',
-            ],
-        ];
-
-        $this->client->writeEvents([
-            new EventCandidate(
-                source: EventSourcingDB::SOURCE,
-                subject: EventSourcingDB::QUEUE_SUBJECT,
-                type: 'flowcrafter.flow.queue.v1',
-                data: $message,
-            ),
-        ]);
-
         $flowObserver = new FlowObserver($eventSourcingDB);
+        $flowObserver->addItem(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowHash: null,
+            messageSource: MessageInitMock::class,
+            message: [
+                'data' => 'test data',
+            ]
+        );
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));

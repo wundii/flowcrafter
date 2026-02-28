@@ -8,28 +8,52 @@ use PHPUnit\Framework\TestCase;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\RedisClientTestTrait;
-use Wundii\Flowcrafter\FlowRunner;
+use Wundii\Flowcrafter\FlowObserver;
 use Wundii\Flowcrafter\Storage\Redis;
 
-final class FlowRunnerRedisTest extends TestCase
+final class FlowObserverRedisTest extends TestCase
 {
     use RedisClientTestTrait;
 
-    public function testRunReturnsMessageReturnInterface(): void
+    public function testRunObserverWithoutMessages(): void
     {
         $redis = new Redis(
             $this->container->getHost(),
             $this->container->getMappedPort(6379),
         );
 
-        $flowRunner = new FlowRunner(
+        $flowObserver = new FlowObserver($redis);
+        $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
+
+        $events = $this->client->keys('flow:*');
+
+        $keyId = array_search('flow:queue', $events, true);
+
+        if (is_numeric($keyId)) {
+            unset($events[$keyId]);
+        }
+
+        $this->assertCount(0, $events);
+    }
+
+    public function testRunObserverWithMessages(): void
+    {
+        $redis = new Redis(
+            $this->container->getHost(),
+            $this->container->getMappedPort(6379),
+        );
+
+        $flowObserver = new FlowObserver($redis);
+        $flowObserver->addItem(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $redis,
+            flowHash: null,
+            messageSource: MessageInitMock::class,
+            message: [
+                'data' => 'test data',
+            ]
         );
-        $flowRunner->run(new MessageInitMock('test data'));
-
-        $this->assertCount(5, $flowRunner->getFlow()->getFlowMessages());
+        $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->keys('flow:*');
         $this->assertCount(8, $events);

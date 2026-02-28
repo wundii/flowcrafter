@@ -22,6 +22,13 @@ interface StorageInterface
     public function writeFlowMessage(FlowMessage $flowMessage): void;
 
     /**
+     * @param class-string $flowSource
+     * @param class-string $messageSource
+     * @param array<mixed> $message
+     */
+    public function addObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void;
+
+    /**
      * @return iterable<ObserveItem>
      */
     public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable;
