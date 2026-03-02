@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Storage;
 
 use DateTimeImmutable;
+use Exception;
 use Redis as Client;
 use RuntimeException;
 use Wundii\Flowcrafter\Assert;
@@ -16,6 +17,7 @@ use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Uuid;
 
 class Redis implements StorageInterface
@@ -130,10 +132,18 @@ class Redis implements StorageInterface
                 'AS',
                 'flowHash',
                 'TAG',
+                'SEPARATOR',
+                '|',
+                'SORTABLE',
                 '$.flowSchemaHash',
                 'AS',
                 'flowSchemaHash',
-                'TEXT'
+                'TEXT',
+                '$.time',
+                'AS',
+                'time',
+                'TEXT',
+                'SORTABLE',
             );
         }
 
@@ -322,6 +332,31 @@ class Redis implements StorageInterface
                 flowHash: $payload['flowHash'] ?? null,
                 messageSource: $payload['messageSource'] ?? '',
                 message: $payload['message'] ?? [],
+            );
+        }
+    }
+
+    /**
+     * @return FlowEntity[]
+     * @throws Exception
+     */
+    public function findFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    {
+        $result = $this->client->rawcommand('FT.SEARCH', self::INDEX_INSTANCE, '*', 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', 0, $top, 'RETURN', '1', '$');
+        $events = self::fetchData($result);
+
+        if ($events === []) {
+            return [];
+        }
+
+        foreach ($events as $event) {
+            yield new FlowEntity(
+                /** @phpstan-ignore-next-line */
+                flowHash: $event['flowHash'] ?? '',
+                flowType: $event['flowType'] ?? '',
+                flowSource: $event['flowSource'] ?? '',
+                flowSubject: $event['flowSubject'] ?? '',
+                time: new DateTimeImmutable($event['time'] ?? 'now'),
             );
         }
     }

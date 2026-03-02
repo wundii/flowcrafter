@@ -8,6 +8,8 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\SortEnum;
 
 interface StorageInterface
 {
@@ -32,4 +34,13 @@ interface StorageInterface
      * @return iterable<ObserveItem>
      */
     public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable;
+
+    /**
+     * @return FlowEntity[]
+     */
+    public function findFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable;
+
+    public function findFlowByHash(string $flowHash): ?Flow;
+
+    public function findFlowByRuntimeHash(string $flowRuntimeHash): ?Flow;
 }
