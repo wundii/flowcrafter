@@ -168,7 +168,7 @@ class Redis implements StorageInterface
         }
     }
 
-    public function registeredFlowSchema(FlowSchema $flowSchema): void
+    public function registerFlowSchema(FlowSchema $flowSchema): void
     {
         $key = self::PREFIX_TYPE_SCHEMA . $flowSchema->getHash();
         if ($this->client->exists($key)) {
@@ -178,7 +178,7 @@ class Redis implements StorageInterface
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($flowSchema));
     }
 
-    public function registeredFlow(Flow $flow): void
+    public function registerFlowInstance(Flow $flow): void
     {
         $key = self::PREFIX_TYPE_INSTANCE . $flow->getHash();
         if ($this->client->exists($key)) {
@@ -190,7 +190,7 @@ class Redis implements StorageInterface
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
 
-    public function writeFlow(Flow $flow, ?string $queueId = null): void
+    public function appendFlowRun(Flow $flow, ?string $queueId = null): void
     {
         $key = self::PREFIX_TYPE_RUN . $flow->getRuntimeHash();
         $data = [
@@ -202,7 +202,7 @@ class Redis implements StorageInterface
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
 
-    public function writeFlowMessage(FlowMessage $flowMessage): void
+    public function appendFlowMessage(FlowMessage $flowMessage): void
     {
         $key = self::PREFIX_TYPE_MESSAGE . $flowMessage->getHash();
         if ($this->client->exists($key)) {
@@ -242,7 +242,7 @@ class Redis implements StorageInterface
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function addObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);

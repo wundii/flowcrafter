@@ -43,7 +43,7 @@ final class FlowObserverRedisTest extends TestCase
             $this->container->getMappedPort(6379),
         );
 
-        $redis->addObserveItem(
+        $redis->appendObserveItem(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowHash: null,

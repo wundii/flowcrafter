@@ -20,14 +20,14 @@ final class FlowRunnerEsdbTest extends TestCase
 
     public function testRunReturnsMessageReturnInterface(): void
     {
-        $eventSourcingDB = new Esdb(
+        $esdb = new Esdb(
             $this->container->getBaseUrl(),
             $this->container->getApiToken(),
         );
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $eventSourcingDB,
+            storage: $esdb,
         );
         $flowRunner->run(new MessageInitMock('test data'));
 
@@ -51,14 +51,14 @@ final class FlowRunnerEsdbTest extends TestCase
 
     public function testRestartingAnWorkflow(): void
     {
-        $eventSourcingDB = new Esdb(
+        $esdb = new Esdb(
             $this->container->getBaseUrl(),
             $this->container->getApiToken(),
         );
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $eventSourcingDB,
+            storage: $esdb,
         );
         $flowRunner->run(new MessageInitMock('test data'));
 
@@ -73,7 +73,7 @@ final class FlowRunnerEsdbTest extends TestCase
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $eventSourcingDB,
+            storage: $esdb,
         );
         $flowRunner->run(new MessageDataMock('test data round two'), $flow->getHash());
 

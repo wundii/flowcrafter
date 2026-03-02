@@ -44,6 +44,19 @@ final class Converter
         $array = json_decode($json, true);
         $flow = Assert::array($array, 'Decoded JSON is not an array.');
 
+        return self::arrayToFlow($flow, $messageClassMap);
+    }
+
+    /**
+     * @param array<mixed> $flow
+     * @param array<class-string, class-string> $messageClassMap
+     */
+    public static function arrayToFlow(
+        array $flow,
+        array $messageClassMap = [
+            DateTimeInterface::class => DateTime::class,
+        ],
+    ): Flow {
         $dataConfig = new DataConfig(
             approachEnum: ApproachEnum::CONSTRUCTOR,
             classMap: $messageClassMap,

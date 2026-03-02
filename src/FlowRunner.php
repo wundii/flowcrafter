@@ -62,9 +62,9 @@ class FlowRunner
         $flowSchema = $this->flow->getSchema();
 
         $this->storage?->initializeDatabase();
-        $this->storage?->registeredFlowSchema($flowSchema);
-        $this->storage?->registeredFlow($this->flow);
-        $this->storage?->writeFlow($this->flow, $queueId); #start to run the flow
+        $this->storage?->registerFlowSchema($flowSchema);
+        $this->storage?->registerFlowInstance($this->flow);
+        $this->storage?->appendFlowRun($this->flow, $queueId); #start to run the flow
         $this->executedStubKey = [];
         $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
 
@@ -121,7 +121,7 @@ class FlowRunner
 
             foreach ($flowMessages as $flowMessage) {
                 $flowMessage->setFinish();
-                $this->storage?->writeFlowMessage($flowMessage);
+                $this->storage?->appendFlowMessage($flowMessage);
             }
 
             if (is_object($processResult) && !$processResult instanceof MessageReturnInterface) {

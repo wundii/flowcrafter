@@ -18,12 +18,12 @@ final class FlowObserverEsdbTest extends TestCase
 
     public function testRunObserverWithoutMessages(): void
     {
-        $eventSourcingDB = new Esdb(
+        $esdb = new Esdb(
             $this->container->getBaseUrl(),
             $this->container->getApiToken(),
         );
 
-        $flowObserver = new FlowObserver($eventSourcingDB);
+        $flowObserver = new FlowObserver($esdb);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
@@ -32,11 +32,11 @@ final class FlowObserverEsdbTest extends TestCase
 
     public function testRunObserverWithMessages(): void
     {
-        $eventSourcingDB = new Esdb(
+        $esdb = new Esdb(
             $this->container->getBaseUrl(),
             $this->container->getApiToken(),
         );
-        $eventSourcingDB->addObserveItem(
+        $esdb->appendObserveItem(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowHash: null,
@@ -46,7 +46,7 @@ final class FlowObserverEsdbTest extends TestCase
             ]
         );
 
-        $flowObserver = new FlowObserver($eventSourcingDB);
+        $flowObserver = new FlowObserver($esdb);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));

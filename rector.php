@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
+use Rector\Naming\Rector\Class_\RenamePropertyToMatchTypeRector;
 use Rector\PHPUnit\Set\PHPUnitSetList;
 use Rector\Set\ValueObject\SetList;
 use Rector\ValueObject\PhpVersion;
@@ -33,5 +34,11 @@ return static function (RectorConfig $rectorConfig): void
         SetList::INSTANCEOF,
         SetList::EARLY_RETURN,
         SetList::RECTOR_PRESET,
+    ]);
+
+    $rectorConfig->skip([
+        RenamePropertyToMatchTypeRector::class => [
+            __DIR__ . '/src/FlowRunner.php',
+        ],
     ]);
 };

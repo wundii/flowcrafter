@@ -13,20 +13,20 @@ interface StorageInterface
 {
     public function initializeDatabase(): void;
 
-    public function registeredFlowSchema(FlowSchema $flowSchema): void;
+    public function registerFlowSchema(FlowSchema $flowSchema): void;
 
-    public function registeredFlow(Flow $flow): void;
+    public function registerFlowInstance(Flow $flow): void;
 
-    public function writeFlow(Flow $flow, ?string $queueId = null): void;
+    public function appendFlowRun(Flow $flow, ?string $queueId = null): void;
 
-    public function writeFlowMessage(FlowMessage $flowMessage): void;
+    public function appendFlowMessage(FlowMessage $flowMessage): void;
 
     /**
      * @param class-string $flowSource
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function addObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void;
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void;
 
     /**
      * @return iterable<ObserveItem>

@@ -252,7 +252,7 @@ class Esdb implements StorageInterface
         }
     }
 
-    public function registeredFlowSchema(FlowSchema $flowSchema): void
+    public function registerFlowSchema(FlowSchema $flowSchema): void
     {
         $subject = '/flow/schema/' . $flowSchema->getHash();
 
@@ -278,7 +278,7 @@ class Esdb implements StorageInterface
         );
     }
 
-    public function registeredFlow(Flow $flow): void
+    public function registerFlowInstance(Flow $flow): void
     {
         $subject = '/flow/' . $flow->getHash();
 
@@ -309,7 +309,7 @@ class Esdb implements StorageInterface
         );
     }
 
-    public function writeFlow(Flow $flow, ?string $queueId = null): void
+    public function appendFlowRun(Flow $flow, ?string $queueId = null): void
     {
         $subject = '/flow/' . $flow->getHash();
         $eventCandidate = new EventCandidate(
@@ -335,7 +335,7 @@ class Esdb implements StorageInterface
         );
     }
 
-    public function writeFlowMessage(FlowMessage $flowMessage): void
+    public function appendFlowMessage(FlowMessage $flowMessage): void
     {
         $subject = '/flow/message/' . $flowMessage->getHash();
         $subjectFlow = '/flow/' . $flowMessage->getFlowHash();
@@ -362,7 +362,7 @@ class Esdb implements StorageInterface
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function addObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);
