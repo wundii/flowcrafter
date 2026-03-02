@@ -202,7 +202,7 @@ final class ConverterTest extends TestCase
                 [
                     'flowHash' => $hash,
                     'flowRuntimeHash' => Uuid::uuid7($datetime)->toString(),
-                    'subSource' => StubMock::class,
+                    'stubSource' => StubMock::class,
                     'messageType' => 'finish',
                     'messageSource' => MessageInitMock::class,
                     'message' => [

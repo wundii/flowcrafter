@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Redis as Client;
 use RuntimeException;
 use Wundii\Flowcrafter\Assert;
+use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
@@ -41,6 +42,37 @@ class Redis implements StorageInterface
     {
         $this->client = new Client();
         $this->client->connect($host, $port);
+    }
+
+    public static function escapeValue(string $value): string
+    {
+        //tag = @key:{' . $value . '} replace('-', '\-')
+        //text = @key:(' . $value . ') replace('-', ' ')
+        return str_replace('-', '\-', $value);
+    }
+
+    /**
+     * @return list<array<mixed, mixed>>
+     */
+    public static function fetchData(mixed $result): array
+    {
+        if ($result === false || !is_array($result)) {
+            return [];
+        }
+
+        $data = [];
+        $counter = count($result);
+        for ($i = 1; $i < $counter; $i += 2) {
+            $json = $result[$i + 1][1] ?? null;
+            if ($json !== null) {
+                $decoded = json_decode($json, true);
+                if (is_array($decoded)) {
+                    $data[] = $decoded;
+                }
+            }
+        }
+
+        return $data;
     }
 
     public function existIndex(string $indexName): bool
@@ -217,9 +249,7 @@ class Redis implements StorageInterface
      */
     public function getFlowMessagesByFlowHash(string $flowHash): array
     {
-        //tag = @key:{' . $value . '} replace('-', '\-')
-        //text = @key:(' . $value . ') replace('-', ' ')
-        $flowHash = str_replace('-', '\-', $flowHash);
+        $flowHash = self::escapeValue($flowHash);
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
         if ($result === false || !is_array($result)) {
             return [];
@@ -294,5 +324,53 @@ class Redis implements StorageInterface
                 message: $payload['message'] ?? [],
             );
         }
+    }
+
+    public function findFlowByHash(string $flowHash): ?Flow
+    {
+        $flowHash = self::escapeValue($flowHash);
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_INSTANCE, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
+        $flowArray = self::fetchData($result)[0] ?? [];
+
+        if ($flowArray === []) {
+            return null;
+        }
+
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
+        $messageEvents = self::fetchData($result);
+
+        foreach ($messageEvents as $messageEvent) {
+            $flowArray['flowMessages'][] = $messageEvent;
+        }
+
+        return Converter::arrayToFlow($flowArray);
+    }
+
+    public function findFlowByRuntimeHash(string $flowRuntimeHash): ?Flow
+    {
+        $flowRuntimeHash = self::escapeValue($flowRuntimeHash);
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'RETURN', '1', '$');
+        $flowHash = self::fetchData($result)[0]['flowHash'] ?? '';
+        if (!is_string($flowHash)) {
+            $flowHash = '';
+        }
+
+        $flowHash = self::escapeValue($flowHash);
+
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_INSTANCE, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
+        $flowArray = self::fetchData($result)[0] ?? [];
+
+        if ($flowArray === []) {
+            return null;
+        }
+
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'RETURN', '1', '$');
+        $messageEvents = self::fetchData($result);
+
+        foreach ($messageEvents as $messageEvent) {
+            $flowArray['flowMessages'][] = $messageEvent;
+        }
+
+        return Converter::arrayToFlow($flowArray);
     }
 }

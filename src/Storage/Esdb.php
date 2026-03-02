@@ -15,6 +15,7 @@ use Thenativeweb\Eventsourcingdb\IsSubjectPristine;
 use Thenativeweb\Eventsourcingdb\ObserveEventsOptions;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
 use Wundii\Flowcrafter\Assert;
+use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
@@ -418,5 +419,65 @@ class Esdb implements StorageInterface
                 message: $event->data['message'] ?? [],
             );
         }
+    }
+
+    public function findFlowByHash(string $flowHash): ?Flow
+    {
+        $flowArray = [];
+        $flowEvents = $this->client->readEvents('/flow/' . $flowHash, new ReadEventsOptions());
+
+        foreach ($flowEvents as $flowEvent) {
+            if ($flowEvent->type === self::TYPE_INSTANCE) {
+                $flowArray = $flowEvent->data;
+                break;
+            }
+        }
+
+        if ($flowArray === []) {
+            return null;
+        }
+
+        $messageEvents = $this->client->runEventQlQuery(
+            'FROM e IN events WHERE e.type == "' . self::TYPE_MESSAGE . '" and e.data.flowHash == "' . $flowHash . '" PROJECT INTO e.data'
+        );
+
+        foreach ($messageEvents as $messageEvent) {
+            $flowArray['flowMessages'][] = $messageEvent;
+        }
+
+        return Converter::arrayToFlow($flowArray);
+    }
+
+    public function findFlowByRuntimeHash(string $flowRuntimeHash): ?Flow
+    {
+        $flowHashIter = $this->client->runEventQlQuery(
+            'FROM e IN events WHERE e.type == "' . self::TYPE_RUN . '" and e.data.flowRuntimeHash == "' . $flowRuntimeHash . '" PROJECT INTO e.data.flowHash'
+        );
+
+        $flowHash = iterator_to_array($flowHashIter)[0] ?? '';
+
+        $flowArray = [];
+        $flowEvents = $this->client->readEvents('/flow/' . $flowHash, new ReadEventsOptions());
+
+        foreach ($flowEvents as $flowEvent) {
+            if ($flowEvent->type === self::TYPE_INSTANCE) {
+                $flowArray = $flowEvent->data;
+                break;
+            }
+        }
+
+        if ($flowArray === []) {
+            return null;
+        }
+
+        $messageEvents = $this->client->runEventQlQuery(
+            'FROM e IN events WHERE e.type == "' . self::TYPE_MESSAGE . '" and e.data.flowRuntimeHash == "' . $flowRuntimeHash . '" PROJECT INTO e.data'
+        );
+
+        foreach ($messageEvents as $messageEvent) {
+            $flowArray['flowMessages'][] = $messageEvent;
+        }
+
+        return Converter::arrayToFlow($flowArray);
     }
 }

@@ -82,7 +82,7 @@ final class Converter
                     return new FlowMessage(
                         Assert::string($stub['flowHash'] ?? null, 'Each Message must have a string flowHash.'),
                         Assert::string($stub['flowRuntimeHash'] ?? null, 'Each Message must have a string flowRuntimeHash.'),
-                        Assert::classString($stub['subSource'] ?? null, StubInterface::class, 'Each Message must have a string SubInterface.'),
+                        Assert::classString($stub['stubSource'] ?? null, StubInterface::class, 'Each Message must have a string SubInterface.'),
                         MessageTypeEnum::from(Assert::string($stub['messageType'] ?? null, 'Each Message must have a string messageType.')),
                         $messageSource,
                         Assert::object($message, MessageInterface::class, 'Each Message must have an MessageInterface message.'),
