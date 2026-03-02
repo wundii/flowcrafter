@@ -58,11 +58,8 @@ readonly class FlowObserver
                 queueId: $observeItem->getQueueId(),
             );
 
-            if ($maxExecutionTimeInSeconds > 0.0) {
-                $elapsedTime = microtime(true) - $startExecutionTime;
-                if ($elapsedTime >= $maxExecutionTimeInSeconds) {
-                    break;
-                }
+            if ($maxExecutionTimeInSeconds > 0.0 && (microtime(true) - $startExecutionTime) >= $maxExecutionTimeInSeconds) {
+                break;
             }
         }
     }

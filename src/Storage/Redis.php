@@ -19,21 +19,21 @@ use Wundii\Flowcrafter\Uuid;
 
 class Redis implements StorageInterface
 {
-    private const PREFIX_SCHEMA = 'flow:schema:';
+    public const PREFIX_TYPE_INSTANCE = 'flow:instance:';
 
-    private const PREFIX_FLOW = 'flow:instance:';
+    public const PREFIX_TYPE_MESSAGE = 'flow:message:';
 
-    private const PREFIX_FLOW_RUN = 'flow:run:';
+    public const PREFIX_TYPE_RUN = 'flow:run:';
 
-    private const PREFIX_MESSAGE = 'flow:message:';
+    public const PREFIX_TYPE_SCHEMA = 'flow:schema:';
 
-    private const INDEX_SCHEMA = 'idx:flow:schema';
-
-    private const INDEX_FLOW = 'idx:flow';
-
-    private const INDEX_FLOW_RUN = 'idx:flow:run';
+    private const INDEX_INSTANCE = 'idx:flow';
 
     private const INDEX_MESSAGE = 'idx:flow:message';
+
+    private const INDEX_RUN = 'idx:flow:run';
+
+    private const INDEX_SCHEMA = 'idx:flow:schema';
 
     private Client $client;
 
@@ -63,7 +63,7 @@ class Redis implements StorageInterface
                 'JSON',
                 'PREFIX',
                 '1',
-                self::PREFIX_SCHEMA,
+                self::PREFIX_TYPE_SCHEMA,
                 'SCHEMA',
                 '$.type',
                 'AS',
@@ -76,15 +76,15 @@ class Redis implements StorageInterface
             );
         }
 
-        if (!$this->existIndex(self::INDEX_FLOW)) {
+        if (!$this->existIndex(self::INDEX_INSTANCE)) {
             $this->client->rawCommand(
                 'FT.CREATE',
-                self::INDEX_FLOW,
+                self::INDEX_INSTANCE,
                 'ON',
                 'JSON',
                 'PREFIX',
                 '1',
-                self::PREFIX_FLOW,
+                self::PREFIX_TYPE_INSTANCE,
                 'SCHEMA',
                 '$.flowType',
                 'AS',
@@ -105,15 +105,15 @@ class Redis implements StorageInterface
             );
         }
 
-        if (!$this->existIndex(self::INDEX_FLOW_RUN)) {
+        if (!$this->existIndex(self::INDEX_RUN)) {
             $this->client->rawCommand(
                 'FT.CREATE',
-                self::INDEX_FLOW_RUN,
+                self::INDEX_RUN,
                 'ON',
                 'JSON',
                 'PREFIX',
                 '1',
-                self::PREFIX_FLOW_RUN,
+                self::PREFIX_TYPE_RUN,
                 'SCHEMA',
                 '$.flowHash',
                 'AS',
@@ -134,7 +134,7 @@ class Redis implements StorageInterface
                 'JSON',
                 'PREFIX',
                 '1',
-                self::PREFIX_MESSAGE,
+                self::PREFIX_TYPE_MESSAGE,
                 'SCHEMA',
                 '$.flowHash',
                 'AS',
@@ -170,7 +170,7 @@ class Redis implements StorageInterface
 
     public function registeredFlowSchema(FlowSchema $flowSchema): void
     {
-        $key = self::PREFIX_SCHEMA . $flowSchema->getHash();
+        $key = self::PREFIX_TYPE_SCHEMA . $flowSchema->getHash();
         if ($this->client->exists($key)) {
             return;
         }
@@ -180,7 +180,7 @@ class Redis implements StorageInterface
 
     public function registeredFlow(Flow $flow): void
     {
-        $key = self::PREFIX_FLOW . $flow->getHash();
+        $key = self::PREFIX_TYPE_INSTANCE . $flow->getHash();
         if ($this->client->exists($key)) {
             return;
         }
@@ -192,7 +192,7 @@ class Redis implements StorageInterface
 
     public function writeFlow(Flow $flow, ?string $queueId = null): void
     {
-        $key = self::PREFIX_FLOW_RUN . $flow->getRuntimeHash();
+        $key = self::PREFIX_TYPE_RUN . $flow->getRuntimeHash();
         $data = [
             'flowHash' => $flow->getHash(),
             'flowRuntimeHash' => $flow->getRuntimeHash(),
@@ -204,7 +204,7 @@ class Redis implements StorageInterface
 
     public function writeFlowMessage(FlowMessage $flowMessage): void
     {
-        $key = self::PREFIX_MESSAGE . $flowMessage->getHash();
+        $key = self::PREFIX_TYPE_MESSAGE . $flowMessage->getHash();
         if ($this->client->exists($key)) {
             return;
         }
@@ -263,10 +263,10 @@ class Redis implements StorageInterface
      */
     public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable
     {
-        $executionTime = microtime(true);
+        $startExecutionTime = microtime(true);
 
         while (true) {
-            if ($maxExecutionTimeInSeconds > 0 && (microtime(true) - $executionTime) >= $maxExecutionTimeInSeconds) {
+            if ($maxExecutionTimeInSeconds > 0.0 && (microtime(true) - $startExecutionTime) >= $maxExecutionTimeInSeconds) {
                 break;
             }
 

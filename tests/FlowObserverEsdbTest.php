@@ -10,7 +10,7 @@ use Tests\MockClass\WorkflowMock;
 use Tests\Trait\EsdbClientTestTrait;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
 use Wundii\Flowcrafter\FlowObserver;
-use Wundii\Flowcrafter\Storage\EventSourcingDB;
+use Wundii\Flowcrafter\Storage\Esdb;
 
 final class FlowObserverEsdbTest extends TestCase
 {
@@ -18,7 +18,7 @@ final class FlowObserverEsdbTest extends TestCase
 
     public function testRunObserverWithoutMessages(): void
     {
-        $eventSourcingDB = new EventSourcingDB(
+        $eventSourcingDB = new Esdb(
             $this->container->getBaseUrl(),
             $this->container->getApiToken(),
         );
@@ -32,7 +32,7 @@ final class FlowObserverEsdbTest extends TestCase
 
     public function testRunObserverWithMessages(): void
     {
-        $eventSourcingDB = new EventSourcingDB(
+        $eventSourcingDB = new Esdb(
             $this->container->getBaseUrl(),
             $this->container->getApiToken(),
         );

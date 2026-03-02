@@ -12,7 +12,7 @@ use Tests\Trait\EsdbClientTestTrait;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
-use Wundii\Flowcrafter\Storage\EventSourcingDB;
+use Wundii\Flowcrafter\Storage\Esdb;
 
 final class FlowRunnerEsdbTest extends TestCase
 {
@@ -20,7 +20,7 @@ final class FlowRunnerEsdbTest extends TestCase
 
     public function testRunReturnsMessageReturnInterface(): void
     {
-        $eventSourcingDB = new EventSourcingDB(
+        $eventSourcingDB = new Esdb(
             $this->container->getBaseUrl(),
             $this->container->getApiToken(),
         );
@@ -51,7 +51,7 @@ final class FlowRunnerEsdbTest extends TestCase
 
     public function testRestartingAnWorkflow(): void
     {
-        $eventSourcingDB = new EventSourcingDB(
+        $eventSourcingDB = new Esdb(
             $this->container->getBaseUrl(),
             $this->container->getApiToken(),
         );
