@@ -50,7 +50,10 @@ class Redis implements StorageInterface
     {
         //tag = @key:{' . $value . '} replace('-', '\-')
         //text = @key:(' . $value . ') replace('-', ' ')
-        return str_replace('-', '\-', $value);
+        return strtr($value, [
+            '\\' => '\\\\',
+            '-' => '\-',
+        ]);
     }
 
     /**
@@ -127,7 +130,7 @@ class Redis implements StorageInterface
                 '$.flowSource',
                 'AS',
                 'flowSource',
-                'TEXT',
+                'TAG',
                 '$.flowHash',
                 'AS',
                 'flowHash',
@@ -228,7 +231,9 @@ class Redis implements StorageInterface
         }
 
         $data = $flow->jsonSerialize();
+        unset($data['flowSchema']);
         unset($data['flowMessages']);
+
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
 
@@ -241,6 +246,7 @@ class Redis implements StorageInterface
             'time' => $flow->getTime()->format(DATE_ATOM),
             'queueId' => $queueId,
         ];
+
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
 
@@ -340,9 +346,25 @@ class Redis implements StorageInterface
      * @return FlowEntity[]
      * @throws Exception
      */
-    public function findFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
     {
-        $result = $this->client->rawcommand('FT.SEARCH', self::INDEX_INSTANCE, '*', 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', 0, $top, 'RETURN', '1', '$');
+        return $this->findFlowsBySource('*', $sortEnum, $top);
+    }
+
+    /**
+     * @return FlowEntity[]
+     * @throws Exception
+     */
+    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    {
+        $flowSource = self::escapeValue($flowSource);
+
+        $value = match ($flowSource) {
+            '*', '' => '*',
+            default => '@flowSource:{' . $flowSource . '}',
+        };
+
+        $result = $this->client->rawcommand('FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', 0, $top, 'RETURN', '1', '$');
         $events = self::fetchData($result);
 
         if ($events === []) {

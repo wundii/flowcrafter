@@ -37,7 +37,7 @@ final class FlowStorageEsdbTest extends TestCase
         $flowRunner->run(new MessageInitMock('test data1'));
         $flowRunner->run(new MessageInitMock('test data2'));
 
-        $flows = iterator_to_array($esdb->findFlows(SortEnum::ASC));
+        $flows = iterator_to_array($esdb->findAllFlows(SortEnum::ASC));
         $this->assertCount(2, $flows);
         $this->assertInstanceOf(FlowEntity::class, $flows[0]);
         $this->assertInstanceOf(FlowEntity::class, $flows[1]);
@@ -62,7 +62,57 @@ final class FlowStorageEsdbTest extends TestCase
         $flowRunner->run(new MessageInitMock('test data1'));
         $flowRunner->run(new MessageInitMock('test data2'));
 
-        $flows = iterator_to_array($esdb->findFlows());
+        $flows = iterator_to_array($esdb->findAllFlows());
+        $this->assertCount(2, $flows);
+        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertLessThan($flows[0]->flowHash, $flows[1]->flowHash);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindFlowsBySourceASC(): void
+    {
+        $esdb = new Esdb(
+            $this->container->getBaseUrl(),
+            $this->container->getApiToken(),
+        );
+
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $esdb,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+        $flowRunner->run(new MessageInitMock('test data2'));
+
+        $flows = iterator_to_array($esdb->findFlowsBySource(WorkflowMock::class, SortEnum::ASC));
+        $this->assertCount(2, $flows);
+        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertGreaterThan($flows[0]->flowHash, $flows[1]->flowHash);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindFlowsBySourceDESC(): void
+    {
+        $esdb = new Esdb(
+            $this->container->getBaseUrl(),
+            $this->container->getApiToken(),
+        );
+
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $esdb,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+        $flowRunner->run(new MessageInitMock('test data2'));
+
+        $flows = iterator_to_array($esdb->findFlowsBySource(WorkflowMock::class));
         $this->assertCount(2, $flows);
         $this->assertInstanceOf(FlowEntity::class, $flows[0]);
         $this->assertInstanceOf(FlowEntity::class, $flows[1]);

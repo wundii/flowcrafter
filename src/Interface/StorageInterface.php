@@ -38,7 +38,12 @@ interface StorageInterface
     /**
      * @return FlowEntity[]
      */
-    public function findFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable;
+    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable;
+
+    /**
+     * @return FlowEntity[]
+     */
+    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable;
 
     public function findFlowByHash(string $flowHash): ?Flow;
 
