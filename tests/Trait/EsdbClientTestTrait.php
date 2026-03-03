@@ -16,6 +16,7 @@ trait EsdbClientTestTrait
     protected function setUp(): void
     {
         parent::setUp();
+
         $this->container = $this->startContainer();
         $this->client = $this->container->getClient();
     }

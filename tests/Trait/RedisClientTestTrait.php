@@ -10,6 +10,8 @@ use Testcontainers\Container\StartedGenericContainer;
 
 trait RedisClientTestTrait
 {
+    private const PORT = 6379;
+
     private StartedGenericContainer $container;
 
     private Redis $client;
@@ -18,7 +20,8 @@ trait RedisClientTestTrait
     {
         parent::setUp();
 
-        $port = 6379;
+        $port = self::PORT;
+
         $this->container = $this->startContainer($port);
         $host = $this->container->getHost();
         $port = $this->container->getMappedPort($port);

@@ -27,12 +27,6 @@ final class FlowObserverRedisTest extends TestCase
 
         $events = $this->client->keys('flow:*');
 
-        $keyId = array_search('flow:queue', $events, true);
-
-        if (is_numeric($keyId)) {
-            unset($events[$keyId]);
-        }
-
         $this->assertCount(0, $events);
     }
 

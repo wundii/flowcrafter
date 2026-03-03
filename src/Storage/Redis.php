@@ -105,11 +105,11 @@ class Redis implements StorageInterface
                 '$.type',
                 'AS',
                 'type',
-                'TEXT',
+                'TAG',
                 '$.stubs[*].source',
                 'AS',
                 'stubSource',
-                'TEXT'
+                'TAG'
             );
         }
 
@@ -141,7 +141,7 @@ class Redis implements StorageInterface
                 '$.flowSchemaHash',
                 'AS',
                 'flowSchemaHash',
-                'TEXT',
+                'TAG',
                 '$.time',
                 'AS',
                 'time',
@@ -192,15 +192,15 @@ class Redis implements StorageInterface
                 '$.stubSource',
                 'AS',
                 'stubSource',
-                'TEXT',
+                'TAG',
                 '$.messageType',
                 'AS',
                 'messageType',
-                'TEXT',
+                'TAG',
                 '$.messageSource',
                 'AS',
                 'messageSource',
-                'TEXT',
+                'TAG',
                 '$.hash',
                 'AS',
                 'hash',

@@ -19,6 +19,7 @@
     "wundii/data-mapper": "^1.4.11"
   },
   "require-dev": {
+    "ext-pdo": "*",
     "ext-redis": "*",
     "phpstan/phpstan": "^2.1",
     "phpunit/phpunit": "^11.5",
