@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Interface;
 
+use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
-use Wundii\Flowcrafter\Storage\SortEnum;
 
 interface StorageInterface
 {

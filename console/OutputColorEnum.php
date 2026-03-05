@@ -24,6 +24,8 @@ enum OutputColorEnum: string
 
     case GRAY = 'gray';
 
+    case DEFAULT = 'default';
+
     case BRIGHT_RED = 'bright-red';
 
     case BRIGHT_GREEN = 'bright-green';

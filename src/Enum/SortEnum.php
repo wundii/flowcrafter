@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Wundii\Flowcrafter\Storage;
+namespace Wundii\Flowcrafter\Enum;
 
 enum SortEnum
 {

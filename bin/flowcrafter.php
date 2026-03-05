@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Symfony\Component\Console\Input\ArgvInput;
 use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\FlowContainerFactory;
 
@@ -33,7 +34,7 @@ final class AutoloadIncluder
 
 $flowContainerFactory = new FlowContainerFactory();
 try {
-    $container = $flowContainerFactory->createFromArgvInput();
+    $container = $flowContainerFactory->createFromArgvInput(new ArgvInput());
     $application = $container->get(FlowConsole::class);
     exit($application->run());
 } catch (Throwable $throwable) {

@@ -67,6 +67,28 @@ final class Assert
         return $value;
     }
 
+    public static function nullOrInt(
+        mixed $value,
+        string $expectedMessage = 'Expected a null or int value.',
+    ): ?int {
+        if (!is_int($value) && $value !== null) {
+            throw new InvalidArgumentException($expectedMessage);
+        }
+
+        return $value;
+    }
+
+    public static function nullOrFloat(
+        mixed $value,
+        string $expectedMessage = 'Expected a null or float value.',
+    ): ?float {
+        if (!is_float($value) && $value !== null) {
+            throw new InvalidArgumentException($expectedMessage);
+        }
+
+        return $value;
+    }
+
     /**
      * @return array<mixed>
      */
@@ -79,6 +101,63 @@ final class Assert
         }
 
         return $value;
+    }
+
+    /**
+     * @return string[]
+     */
+    public static function allString(
+        mixed $array,
+        string $expectedMessage = 'Expected an array with string values.',
+    ): array {
+        $array = self::array($array, $expectedMessage);
+
+        foreach ($array as $value) {
+            if (!is_string($value)) {
+                throw new InvalidArgumentException($expectedMessage);
+            }
+        }
+
+        /** @phpstan-ignore-next-line */
+        return $array;
+    }
+
+    /**
+     * @return int[]
+     */
+    public static function allInt(
+        mixed $array,
+        string $expectedMessage = 'Expected an array with integer values.',
+    ): array {
+        $array = self::array($array, $expectedMessage);
+
+        foreach ($array as $value) {
+            if (!is_int($value)) {
+                throw new InvalidArgumentException($expectedMessage);
+            }
+        }
+
+        /** @phpstan-ignore-next-line */
+        return $array;
+    }
+
+    /**
+     * @return float[]
+     */
+    public static function allFloat(
+        mixed $array,
+        string $expectedMessage = 'Expected an array with float values.',
+    ): array {
+        $array = self::array($array, $expectedMessage);
+
+        foreach ($array as $value) {
+            if (!is_float($value)) {
+                throw new InvalidArgumentException($expectedMessage);
+            }
+        }
+
+        /** @phpstan-ignore-next-line */
+        return $array;
     }
 
     public static function datetime(

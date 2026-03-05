@@ -9,10 +9,10 @@ use PHPUnit\Framework\TestCase;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\MySqlClientTestTrait;
+use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
-use Wundii\Flowcrafter\Storage\SortEnum;
 
 final class FlowStorageMySqlTest extends TestCase
 {

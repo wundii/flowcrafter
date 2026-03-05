@@ -18,6 +18,7 @@ use Thenativeweb\Eventsourcingdb\ObserveEventsOptions;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
+use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
@@ -43,7 +44,7 @@ class Esdb implements StorageInterface
 
     public const TYPE_SCHEMA = 'flowcrafter.flow.schema.v1';
 
-    private Client $client;
+    protected Client $client;
 
     public function __construct(
         string $url,

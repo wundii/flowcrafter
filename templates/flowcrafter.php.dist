@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+
+return static function (FlowcrafterConfig $flowcrafterConfig): void {
+    $flowcrafterConfig->setStorageClass('Wundii\Flowcrafter\Storage\Redis');
+    $flowcrafterConfig->setUrl();
+    $flowcrafterConfig->setApiToken();
+    $flowcrafterConfig->setHost('localhost');
+    $flowcrafterConfig->setPort(6379);
+    $flowcrafterConfig->setUsername();
+    $flowcrafterConfig->setPassword();
+    $flowcrafterConfig->setDatabase();
+};

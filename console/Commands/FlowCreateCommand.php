@@ -4,33 +4,29 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Console\Commands;
 
-use Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Wundii\Flowcrafter\Bootstrap\BootstrapConfigInitializer;
 use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 
-final class FlowMermaidCommand extends Command
+class FlowCreateCommand extends Command
 {
-    protected function configure(): void
-    {
-        $this->setName('mermaid');
-        $this->setDescription('Start to lint your PHP files');
-        $this->addOption(
-            'output',
-            'o',
-            InputOption::VALUE_REQUIRED,
-            'Pfad zur Ausgabedatei für das Mermaid-Diagramm'
-        );
+    public function __construct(
+        private readonly BootstrapConfigInitializer $bootstrapConfigInitializer
+    ) {
+        parent::__construct();
     }
 
-    /**
-     * @throws Exception
-     */
+    protected function configure(): void
+    {
+        $this->setName('create');
+        $this->setDescription('Create a new Flowcrafter configuration file if it does not exist');
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $startExecuteTime = microtime(true);
@@ -38,17 +34,20 @@ final class FlowMermaidCommand extends Command
         $output = new FlowSymfonyStyle($input, $output);
         $output->startApplication(FlowConsole::vendorVersion());
 
-        $outputPath = $input->getOption('output');
+        $configFile = $this->bootstrapConfigInitializer->createConfig((string) getcwd());
+        $outputColor = OutputColorEnum::DEFAULT;
+        $outputMessage = 'Configuration file ' . $configFile . ' was successfully created.';
 
-        if (!is_string($outputPath) || !$outputPath) {
-            $output->error('Bitte geben Sie einen gültigen Ausgabepfad mit der Option --output an.');
-            return self::FAILURE;
+        if ($configFile === null) {
+            $output->isFailing();
+            $outputColor = OutputColorEnum::RED;
+            $outputMessage = 'Configuration file could not be created.';
         }
 
         $output->writeln(sprintf(
-            '<fg=%s>mermaid: %s</>',
-            OutputColorEnum::BLUE->value,
-            $outputPath,
+            '<fg=%s>%s</>',
+            $outputColor->value,
+            $outputMessage,
         ));
         $output->writeln('');
 

@@ -13,8 +13,10 @@ use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
+use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
+use Wundii\Flowcrafter\Console\Commands\FlowCreateCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowMermaidCommand;
-use Wundii\Flowcrafter\Console\Commands\FlowRunnerCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowObserverCommand;
 
 final class FlowConsole extends BaseApplication
 {
@@ -29,14 +31,16 @@ final class FlowConsole extends BaseApplication
     public const VERSION = '0.1';
 
     public function __construct(
-        FlowMermaidCommand $flowCommand,
-        FlowRunnerCommand $flowRunnerCommand,
+        FlowCreateCommand $flowCreateCommand,
+        FlowMermaidCommand $flowMermaidCommand,
+        FlowObserverCommand $flowObserverCommand,
     ) {
         parent::__construct(self::NAME, self::vendorVersion());
 
         $this->addCommands([
-            $flowRunnerCommand,
-            $flowCommand,
+            $flowCreateCommand,
+            $flowMermaidCommand,
+            $flowObserverCommand,
         ]);
         $this->setDefaultCommand('list');
         $this->setDefinition($this->getInputDefinition());
@@ -108,7 +112,12 @@ final class FlowConsole extends BaseApplication
     {
         return new InputDefinition([
             new InputArgument('command', InputArgument::REQUIRED, 'The command to execute'),
-            ...OptionEnum::getInputDefinition(),
+            ...OptionEnum::getInputDefinition($this->getDefaultConfigPath()),
         ]);
+    }
+
+    private function getDefaultConfigPath(): string
+    {
+        return getcwd() . DIRECTORY_SEPARATOR . BootstrapConfig::DEFAULT_CONFIG_FILE;
     }
 }

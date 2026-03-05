@@ -11,6 +11,7 @@ use PDOException;
 use RuntimeException;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
+use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
@@ -32,7 +33,7 @@ class MySql implements StorageInterface
 
     public const TYPE_SCHEMA = 'flow_schema';
 
-    private Client $client;
+    protected Client $client;
 
     public function __construct(
         string $host,

@@ -6,19 +6,26 @@ namespace Wundii\Flowcrafter\Console\Commands;
 
 use Exception;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
+use Wundii\Flowcrafter\FlowObserver;
 
-final class FlowRunnerCommand extends Command
+final class FlowObserverCommand extends Command
 {
+    public function __construct(
+        private FlowcrafterConfig $flowcrafterConfig
+    ) {
+        parent::__construct();
+    }
+
     protected function configure(): void
     {
-        $this->setName('runner');
-        $this->setDescription('Start the Flowcrafter runner process');
+        $this->setName('observer');
+        $this->setDescription('Start the Flowcrafter observer process');
     }
 
     /**
@@ -26,20 +33,20 @@ final class FlowRunnerCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $startExecuteTime = microtime(true);
-
         $output = new FlowSymfonyStyle($input, $output);
         $output->startApplication(FlowConsole::vendorVersion());
 
         $output->writeln(sprintf(
             '<fg=%s>%s</>',
             OutputColorEnum::BLUE->value,
-            'runner',
+            'the observer is starting now...',
         ));
         $output->writeln('');
 
-        $usageExecuteTime = Helper::formatTime(microtime(true) - $startExecuteTime);
+        $storage = $this->flowcrafterConfig->getStorage();
+        $flowObserver = new FlowObserver($storage);
+        $flowObserver->run();
 
-        return (int) $output->finishApplication($usageExecuteTime);
+        return self::SUCCESS;
     }
 }

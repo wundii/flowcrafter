@@ -77,6 +77,63 @@ final class AssertTest extends TestCase
         Assert::array('not-an-array');
     }
 
+    public function testAllStringPasses(): void
+    {
+        $arr = [
+            'a',
+            'b',
+        ];
+        $this->assertSame($arr, Assert::allString($arr));
+    }
+
+    public function testAllStringFails(): void
+    {
+        $arr = [
+            12,
+            34,
+        ];
+        $this->expectException(InvalidArgumentException::class);
+        Assert::allString($arr);
+    }
+
+    public function testAllIntPasses(): void
+    {
+        $arr = [
+            12,
+            34,
+        ];
+        $this->assertSame($arr, Assert::allInt($arr));
+    }
+
+    public function testAllIntFails(): void
+    {
+        $arr = [
+            'a',
+            'b',
+        ];
+        $this->expectException(InvalidArgumentException::class);
+        Assert::allInt($arr);
+    }
+
+    public function testAllFloatPasses(): void
+    {
+        $arr = [
+            12.34,
+            56.78,
+        ];
+        $this->assertSame($arr, Assert::allFloat($arr));
+    }
+
+    public function testAllFloatFails(): void
+    {
+        $arr = [
+            'a',
+            'b',
+        ];
+        $this->expectException(InvalidArgumentException::class);
+        Assert::allFloat($arr);
+    }
+
     public function testDatetimePasses(): void
     {
         $this->assertEquals(new DateTime('2025-08-18 18:09:12'), Assert::datetime('2025-08-18 18:09:12'));

@@ -11,6 +11,11 @@ final class FlowSymfonyStyle extends SymfonyStyle
 {
     private bool $isSuccess = true;
 
+    public function isFailing(): void
+    {
+        $this->isSuccess = false;
+    }
+
     public function startApplication(string $version): void
     {
         $argv = $_SERVER['argv'] ?? [];
