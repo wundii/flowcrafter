@@ -54,8 +54,6 @@ class FlowMessage implements JsonSerializable
         ?DateTimeImmutable $time = null,
         ?string $hash = null,
     ): self {
-        $time = $time ?? new DateTimeImmutable();
-
         return new self(
             flowHash: $flowHash,
             flowRuntimeHash: $flowRuntimeHash,
@@ -63,7 +61,7 @@ class FlowMessage implements JsonSerializable
             messageTypeEnum: $messageTypeEnum,
             messageSource: get_class($message),
             message: $message,
-            time: $time,
+            time: $time ?? new DateTimeImmutable(),
             hash: $hash ?? Uuid::uuid7($time)->toString(),
             predecessorHash: $predecessorHash,
         );

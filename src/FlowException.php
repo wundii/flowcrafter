@@ -36,8 +36,6 @@ class FlowException implements JsonSerializable
         ?DateTimeInterface $time = null,
         ?string $hash = null,
     ): self {
-        $time = $time ?? new DateTimeImmutable();
-
         return new self(
             flowHash: $flowHash,
             flowRuntimeHash: $flowRuntimeHash,
@@ -47,7 +45,7 @@ class FlowException implements JsonSerializable
             file: $file,
             line: $line,
             traceString: $traceString,
-            time: $time,
+            time: $time ?? new DateTimeImmutable(),
             hash: $hash ?? Uuid::uuid7($time)->toString(),
         );
     }

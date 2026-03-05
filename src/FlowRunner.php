@@ -62,7 +62,6 @@ class FlowRunner
 
         $flowSchema = $this->flow->getSchema();
 
-        $this->storage?->initializeDatabase();
         $this->storage?->registerFlowSchema($flowSchema);
         $this->storage?->registerFlowInstance($this->flow);
         $this->storage?->appendFlowRun($this->flow, $queueId); #start to run the flow

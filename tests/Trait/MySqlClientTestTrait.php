@@ -53,13 +53,16 @@ trait MySqlClientTestTrait
 
     public function storage(): StorageInterface
     {
-        return new MySql(
+        $mySql = new MySql(
             $this->container->getHost(),
             $this->container->getMappedPort(self::PORT),
             self::DATABASE,
             self::USERNAME,
             self::PASSWORD
         );
+        $mySql->initializeDatabase();
+
+        return $mySql;
     }
 
     protected function startContainer(int $port, string $database, string $username, string $password): StartedGenericContainer

@@ -23,7 +23,7 @@ final class FlowSymfonyStyle extends SymfonyStyle
         $argv = array_map(static fn ($value): string => is_string($value) ? $value : '', $argv);
 
         $message = sprintf(
-            '<fg=blue;options=bold>PHP</><fg=yellow;options=bold>Lint</> %s - current PHP version: %s',
+            '<fg=blue;options=bold>Flow</><fg=yellow;options=bold>Crafter</> %s - current PHP version: %s',
             $version,
             PHP_VERSION,
         );

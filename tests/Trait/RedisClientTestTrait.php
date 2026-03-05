@@ -40,10 +40,13 @@ trait RedisClientTestTrait
 
     public function storage(): StorageInterface
     {
-        return new RedisStorage(
+        $redis = new RedisStorage(
             $this->container->getHost(),
             $this->container->getMappedPort(6379),
         );
+        $redis->initializeDatabase();
+
+        return $redis;
     }
 
     protected function startContainer(int $port): StartedGenericContainer

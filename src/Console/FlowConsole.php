@@ -15,6 +15,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
 use Wundii\Flowcrafter\Console\Commands\FlowCreateCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowInitCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowMermaidCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowObserverCommand;
 
@@ -32,6 +33,7 @@ final class FlowConsole extends BaseApplication
 
     public function __construct(
         FlowCreateCommand $flowCreateCommand,
+        FlowInitCommand $flowInitCommand,
         FlowMermaidCommand $flowMermaidCommand,
         FlowObserverCommand $flowObserverCommand,
     ) {
@@ -39,6 +41,7 @@ final class FlowConsole extends BaseApplication
 
         $this->addCommands([
             $flowCreateCommand,
+            $flowInitCommand,
             $flowMermaidCommand,
             $flowObserverCommand,
         ]);

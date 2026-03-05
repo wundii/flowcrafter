@@ -29,8 +29,6 @@ readonly class FlowObserver
         ],
         float $maxExecutionTimeInSeconds = 0.0,
     ): void {
-        $this->storage->initializeDatabase();
-
         $dataConfig = new DataConfig(
             approachEnum: ApproachEnum::CONSTRUCTOR,
             classMap: $messageClassMap,

@@ -39,9 +39,12 @@ trait EsdbClientTestTrait
 
     protected function storage(): StorageInterface
     {
-        return new Esdb(
+        $esdb = new Esdb(
             $this->container->getBaseUrl(),
             $this->container->getApiToken(),
         );
+        $esdb->initializeDatabase();
+
+        return $esdb;
     }
 }

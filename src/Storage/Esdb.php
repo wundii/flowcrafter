@@ -288,7 +288,7 @@ class Esdb implements StorageInterface
                         'type' => 'string',
                     ],
                     'flowHash' => [
-                        'type' => 'string',
+                        'type' => ['null', 'string'],
                     ],
                     'messageSource' => [
                         'type' => 'string',
@@ -392,10 +392,10 @@ class Esdb implements StorageInterface
             [
                 new IsSubjectPopulated($subject),
                 new IsEventQlQueryTrue(
-                    'FROM e IN events' .
-                    ' WHERE e.subject == "' . $subject . '"' .
-                    ' AND e.type == "' . self::TYPE_INSTANCE . '"' .
-                    ' PROJECT INTO COUNT() == 1'
+                    'FROM e IN events ' .
+                    'WHERE e.subject == "' . $subject . '" ' .
+                    'AND e.type == "' . self::TYPE_INSTANCE . '" ' .
+                    'PROJECT INTO COUNT() == 1'
                 ),
             ]
         );
@@ -478,11 +478,11 @@ class Esdb implements StorageInterface
         $this->client->abortIn($maxExecutionTimeInSeconds);
 
         $lastFlowRunWithQueueId = $this->client->runEventQlQuery(
-            'FROM e IN events' .
-            ' WHERE e.subject == "' . self::QUEUE_SUBJECT . '"' .
-            ' AND e.data.queueId != null' .
-            ' ORDER BY e.id DESC' .
-            ' PROJECT INTO e.data.queueId'
+            'FROM e IN events ' .
+            'WHERE e.subject == "' . self::QUEUE_SUBJECT . '" ' .
+            'AND e.data.queueId != null ' .
+            'ORDER BY e.id DESC ' .
+            'PROJECT INTO e.data.queueId'
         );
         $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
         $lastQueueId = $lastFlowRunEvent[0] ?? '0';
@@ -518,11 +518,11 @@ class Esdb implements StorageInterface
     public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
     {
         $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events' .
-            ' WHERE e.type == "' . self::TYPE_INSTANCE . '"' .
-            ' ORDER BY e.type ' . $sortEnum->name .
-            ' TOP ' . $top .
-            ' PROJECT INTO e.data'
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
+            'ORDER BY e.type ' . $sortEnum->name . ' ' .
+            'TOP ' . $top . ' ' .
+            'PROJECT INTO e.data'
         );
 
         foreach ($flowEvents as $flowEvent) {
@@ -543,12 +543,12 @@ class Esdb implements StorageInterface
     public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
     {
         $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events' .
-            ' WHERE e.type == "' . self::TYPE_INSTANCE . '"' .
-            ' AND e.data.flowSource == "' . $flowSource . '"' .
-            ' ORDER BY e.type ' . $sortEnum->name .
-            ' TOP ' . $top .
-            ' PROJECT INTO e.data'
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
+            'AND e.data.flowSource == "' . $flowSource . '" ' .
+            'ORDER BY e.type ' . $sortEnum->name . ' ' .
+            'TOP ' . $top . ' ' .
+            'PROJECT INTO e.data'
         );
 
         foreach ($flowEvents as $flowEvent) {
@@ -591,10 +591,10 @@ class Esdb implements StorageInterface
     public function findFlowByRuntimeHash(string $flowRuntimeHash): ?Flow
     {
         $flowHashIter = $this->client->runEventQlQuery(
-            'FROM e IN events' .
-            ' WHERE e.type == "' . self::TYPE_RUN . '"' .
-            ' AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '"' .
-            ' PROJECT INTO e.data.flowHash'
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
+            'AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '" ' .
+            'PROJECT INTO e.data.flowHash'
         );
 
         $flowHash = iterator_to_array($flowHashIter)[0] ?? '';
@@ -614,10 +614,10 @@ class Esdb implements StorageInterface
         }
 
         $messageEvents = $this->client->runEventQlQuery(
-            'FROM e IN events' .
-            ' WHERE e.type == "' . self::TYPE_MESSAGE . '"' .
-            ' AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '"' .
-            ' PROJECT INTO e.data'
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_MESSAGE . '" ' .
+            'AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '" ' .
+            'PROJECT INTO e.data'
         );
 
         foreach ($messageEvents as $messageEvent) {
@@ -625,10 +625,10 @@ class Esdb implements StorageInterface
         }
 
         $exceptionEvents = $this->client->runEventQlQuery(
-            'FROM e IN events' .
-            ' WHERE e.type == "' . self::TYPE_EXCEPTION . '"' .
-            ' AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '"' .
-            ' PROJECT INTO e.data'
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
+            'AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '" ' .
+            'PROJECT INTO e.data'
         );
 
         foreach ($exceptionEvents as $exceptionEvent) {
