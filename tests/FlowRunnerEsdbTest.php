@@ -12,7 +12,6 @@ use Tests\Trait\EsdbClientTestTrait;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
-use Wundii\Flowcrafter\Storage\Esdb;
 
 final class FlowRunnerEsdbTest extends TestCase
 {
@@ -20,14 +19,11 @@ final class FlowRunnerEsdbTest extends TestCase
 
     public function testRunReturnsMessageReturnInterface(): void
     {
-        $esdb = new Esdb(
-            $this->container->getBaseUrl(),
-            $this->container->getApiToken(),
-        );
+        $storage = $this->storage();
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $esdb,
+            storage: $storage,
         );
         $flowRunner->run(new MessageInitMock('test data'));
 
@@ -51,14 +47,11 @@ final class FlowRunnerEsdbTest extends TestCase
 
     public function testRestartingAnWorkflow(): void
     {
-        $esdb = new Esdb(
-            $this->container->getBaseUrl(),
-            $this->container->getApiToken(),
-        );
+        $storage = $this->storage();
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $esdb,
+            storage: $storage,
         );
         $flowRunner->run(new MessageInitMock('test data'));
 
@@ -73,7 +66,7 @@ final class FlowRunnerEsdbTest extends TestCase
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $esdb,
+            storage: $storage,
         );
         $flowRunner->run(new MessageDataMock('test data round two'), $flow->getHash());
 

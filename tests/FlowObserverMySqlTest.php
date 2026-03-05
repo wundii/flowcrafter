@@ -17,15 +17,8 @@ final class FlowObserverMySqlTest extends TestCase
 
     public function testRunObserverWithoutMessages(): void
     {
-        $mySql = new MySql(
-            $this->container->getHost(),
-            $this->container->getMappedPort(self::PORT),
-            self::DATABASE,
-            self::USERNAME,
-            self::PASSWORD
-        );
-
-        $flowObserver = new FlowObserver($mySql);
+        $storage = $this->storage();
+        $flowObserver = new FlowObserver($storage);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_QUEUE);
@@ -34,16 +27,9 @@ final class FlowObserverMySqlTest extends TestCase
 
     public function testRunObserverWithMessages(): void
     {
-        $mySql = new MySql(
-            $this->container->getHost(),
-            $this->container->getMappedPort(self::PORT),
-            self::DATABASE,
-            self::USERNAME,
-            self::PASSWORD
-        );
-
-        $mySql->initializeDatabase();
-        $mySql->appendObserveItem(
+        $storage = $this->storage();
+        $storage->initializeDatabase();
+        $storage->appendObserveItem(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowHash: null,
@@ -53,7 +39,7 @@ final class FlowObserverMySqlTest extends TestCase
             ]
         );
 
-        $flowObserver = new FlowObserver($mySql);
+        $flowObserver = new FlowObserver($storage);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SCHEMA);

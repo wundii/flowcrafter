@@ -9,7 +9,6 @@ use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\RedisClientTestTrait;
 use Wundii\Flowcrafter\FlowRunner;
-use Wundii\Flowcrafter\Storage\Redis;
 
 final class FlowRunnerRedisTest extends TestCase
 {
@@ -17,15 +16,11 @@ final class FlowRunnerRedisTest extends TestCase
 
     public function testRunReturnsMessageReturnInterface(): void
     {
-        $redis = new Redis(
-            $this->container->getHost(),
-            $this->container->getMappedPort(6379),
-        );
-
+        $storage = $this->storage();
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $redis,
+            storage: $storage,
         );
         $flowRunner->run(new MessageInitMock('test data'));
 

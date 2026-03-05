@@ -9,7 +9,6 @@ use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\RedisClientTestTrait;
 use Wundii\Flowcrafter\FlowObserver;
-use Wundii\Flowcrafter\Storage\Redis;
 
 final class FlowObserverRedisTest extends TestCase
 {
@@ -17,12 +16,8 @@ final class FlowObserverRedisTest extends TestCase
 
     public function testRunObserverWithoutMessages(): void
     {
-        $redis = new Redis(
-            $this->container->getHost(),
-            $this->container->getMappedPort(6379),
-        );
-
-        $flowObserver = new FlowObserver($redis);
+        $storage = $this->storage();
+        $flowObserver = new FlowObserver($storage);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->keys('flow:*');
@@ -32,12 +27,8 @@ final class FlowObserverRedisTest extends TestCase
 
     public function testRunObserverWithMessages(): void
     {
-        $redis = new Redis(
-            $this->container->getHost(),
-            $this->container->getMappedPort(6379),
-        );
-
-        $redis->appendObserveItem(
+        $storage = $this->storage();
+        $storage->appendObserveItem(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowHash: null,
@@ -47,7 +38,7 @@ final class FlowObserverRedisTest extends TestCase
             ]
         );
 
-        $flowObserver = new FlowObserver($redis);
+        $flowObserver = new FlowObserver($storage);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->keys('flow:*');

@@ -7,6 +7,8 @@ namespace Tests\Trait;
 use PDO as Client;
 use Testcontainers\Container\StartedGenericContainer;
 use Testcontainers\Modules\MySQLContainer;
+use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Storage\MySql;
 
 trait MySqlClientTestTrait
 {
@@ -47,6 +49,17 @@ trait MySqlClientTestTrait
     {
         $this->container->stop();
         parent::tearDown();
+    }
+
+    public function storage(): StorageInterface
+    {
+        return new MySql(
+            $this->container->getHost(),
+            $this->container->getMappedPort(self::PORT),
+            self::DATABASE,
+            self::USERNAME,
+            self::PASSWORD
+        );
     }
 
     protected function startContainer(int $port, string $database, string $username, string $password): StartedGenericContainer

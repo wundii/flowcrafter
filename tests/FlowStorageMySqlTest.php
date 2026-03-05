@@ -8,15 +8,15 @@ use Exception;
 use PHPUnit\Framework\TestCase;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\WorkflowMock;
-use Tests\Trait\EsdbClientTestTrait;
+use Tests\Trait\MySqlClientTestTrait;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\SortEnum;
 
-final class FlowStorageEsdbTest extends TestCase
+final class FlowStorageMySqlTest extends TestCase
 {
-    use EsdbClientTestTrait;
+    use MySqlClientTestTrait;
 
     /**
      * @throws Exception
@@ -114,8 +114,8 @@ final class FlowStorageEsdbTest extends TestCase
 
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
-
         $flow = $storage->findFlowByHash($flow->getHash());
+
         $this->assertInstanceOf(Flow::class, $flow);
     }
 
@@ -131,8 +131,8 @@ final class FlowStorageEsdbTest extends TestCase
 
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
-
         $flow = $storage->findFlowByRuntimeHash($flow->getRuntimeHash());
+
         $this->assertInstanceOf(Flow::class, $flow);
     }
 }

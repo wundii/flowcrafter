@@ -12,7 +12,6 @@ use Tests\Trait\RedisClientTestTrait;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
-use Wundii\Flowcrafter\Storage\Redis;
 use Wundii\Flowcrafter\Storage\SortEnum;
 
 final class FlowStorageRedisTest extends TestCase
@@ -24,20 +23,16 @@ final class FlowStorageRedisTest extends TestCase
      */
     public function testFindFlowsASC(): void
     {
-        $redis = new Redis(
-            $this->container->getHost(),
-            $this->container->getMappedPort(6379),
-        );
-
+        $storage = $this->storage();
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $redis,
+            storage: $storage,
         );
         $flowRunner->run(new MessageInitMock('test data1'));
         $flowRunner->run(new MessageInitMock('test data2'));
 
-        $flows = iterator_to_array($redis->findAllFlows(SortEnum::ASC));
+        $flows = iterator_to_array($storage->findAllFlows(SortEnum::ASC));
         $this->assertCount(2, $flows);
         $this->assertInstanceOf(FlowEntity::class, $flows[0]);
         $this->assertInstanceOf(FlowEntity::class, $flows[1]);
@@ -49,20 +44,16 @@ final class FlowStorageRedisTest extends TestCase
      */
     public function testFindFlowsDESC(): void
     {
-        $redis = new Redis(
-            $this->container->getHost(),
-            $this->container->getMappedPort(6379),
-        );
-
+        $storage = $this->storage();
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $redis,
+            storage: $storage,
         );
         $flowRunner->run(new MessageInitMock('test data1'));
         $flowRunner->run(new MessageInitMock('test data2'));
 
-        $flows = iterator_to_array($redis->findAllFlows());
+        $flows = iterator_to_array($storage->findAllFlows());
         $this->assertCount(2, $flows);
         $this->assertInstanceOf(FlowEntity::class, $flows[0]);
         $this->assertInstanceOf(FlowEntity::class, $flows[1]);
@@ -74,20 +65,16 @@ final class FlowStorageRedisTest extends TestCase
      */
     public function testFindFlowsBySourceASC(): void
     {
-        $redis = new Redis(
-            $this->container->getHost(),
-            $this->container->getMappedPort(6379),
-        );
-
+        $storage = $this->storage();
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $redis,
+            storage: $storage,
         );
         $flowRunner->run(new MessageInitMock('test data1'));
         $flowRunner->run(new MessageInitMock('test data2'));
 
-        $flows = iterator_to_array($redis->findFlowsBySource(WorkflowMock::class, SortEnum::ASC));
+        $flows = iterator_to_array($storage->findFlowsBySource(WorkflowMock::class, SortEnum::ASC));
         $this->assertCount(2, $flows);
         $this->assertInstanceOf(FlowEntity::class, $flows[0]);
         $this->assertInstanceOf(FlowEntity::class, $flows[1]);
@@ -99,20 +86,16 @@ final class FlowStorageRedisTest extends TestCase
      */
     public function testFindFlowsBySourceDESC(): void
     {
-        $redis = new Redis(
-            $this->container->getHost(),
-            $this->container->getMappedPort(6379),
-        );
-
+        $storage = $this->storage();
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $redis,
+            storage: $storage,
         );
         $flowRunner->run(new MessageInitMock('test data1'));
         $flowRunner->run(new MessageInitMock('test data2'));
 
-        $flows = iterator_to_array($redis->findFlowsBySource(WorkflowMock::class));
+        $flows = iterator_to_array($storage->findFlowsBySource(WorkflowMock::class));
         $this->assertCount(2, $flows);
         $this->assertInstanceOf(FlowEntity::class, $flows[0]);
         $this->assertInstanceOf(FlowEntity::class, $flows[1]);
@@ -121,42 +104,34 @@ final class FlowStorageRedisTest extends TestCase
 
     public function testFindFlowByHash(): void
     {
-        $redis = new Redis(
-            $this->container->getHost(),
-            $this->container->getMappedPort(6379),
-        );
-
+        $storage = $this->storage();
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $redis,
+            storage: $storage,
         );
         $flowRunner->run(new MessageInitMock('test data'));
 
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
-        $flow = $redis->findFlowByHash($flow->getHash());
+        $flow = $storage->findFlowByHash($flow->getHash());
 
         $this->assertInstanceOf(Flow::class, $flow);
     }
 
     public function testFindFlowByRuntimeHash(): void
     {
-        $redis = new Redis(
-            $this->container->getHost(),
-            $this->container->getMappedPort(6379),
-        );
-
+        $storage = $this->storage();
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $redis,
+            storage: $storage,
         );
         $flowRunner->run(new MessageInitMock('test data'));
 
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
-        $flow = $redis->findFlowByRuntimeHash($flow->getRuntimeHash());
+        $flow = $storage->findFlowByRuntimeHash($flow->getRuntimeHash());
 
         $this->assertInstanceOf(Flow::class, $flow);
     }

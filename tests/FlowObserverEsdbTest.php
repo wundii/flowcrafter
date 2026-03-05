@@ -10,7 +10,6 @@ use Tests\MockClass\WorkflowMock;
 use Tests\Trait\EsdbClientTestTrait;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
 use Wundii\Flowcrafter\FlowObserver;
-use Wundii\Flowcrafter\Storage\Esdb;
 
 final class FlowObserverEsdbTest extends TestCase
 {
@@ -18,12 +17,8 @@ final class FlowObserverEsdbTest extends TestCase
 
     public function testRunObserverWithoutMessages(): void
     {
-        $esdb = new Esdb(
-            $this->container->getBaseUrl(),
-            $this->container->getApiToken(),
-        );
-
-        $flowObserver = new FlowObserver($esdb);
+        $storage = $this->storage();
+        $flowObserver = new FlowObserver($storage);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
@@ -32,11 +27,8 @@ final class FlowObserverEsdbTest extends TestCase
 
     public function testRunObserverWithMessages(): void
     {
-        $esdb = new Esdb(
-            $this->container->getBaseUrl(),
-            $this->container->getApiToken(),
-        );
-        $esdb->appendObserveItem(
+        $storage = $this->storage();
+        $storage->appendObserveItem(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowHash: null,
@@ -46,7 +38,7 @@ final class FlowObserverEsdbTest extends TestCase
             ]
         );
 
-        $flowObserver = new FlowObserver($esdb);
+        $flowObserver = new FlowObserver($storage);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));

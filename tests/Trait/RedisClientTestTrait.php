@@ -7,6 +7,8 @@ namespace Tests\Trait;
 use Redis;
 use Testcontainers\Container\GenericContainer;
 use Testcontainers\Container\StartedGenericContainer;
+use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Storage\Redis as RedisStorage;
 
 trait RedisClientTestTrait
 {
@@ -34,6 +36,14 @@ trait RedisClientTestTrait
     {
         $this->container->stop();
         parent::tearDown();
+    }
+
+    public function storage(): StorageInterface
+    {
+        return new RedisStorage(
+            $this->container->getHost(),
+            $this->container->getMappedPort(6379),
+        );
     }
 
     protected function startContainer(int $port): StartedGenericContainer

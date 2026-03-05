@@ -17,17 +17,11 @@ final class FlowRunnerMySqlTest extends TestCase
 
     public function testRunReturnsMessageReturnInterface(): void
     {
-        $mySql = new MySql(
-            $this->container->getHost(),
-            $this->container->getMappedPort(self::PORT),
-            self::DATABASE,
-            self::USERNAME,
-            self::PASSWORD
-        );
+        $storage = $this->storage();
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            storage: $mySql,
+            storage: $storage,
         );
         $flowRunner->run(new MessageInitMock('test data'));
 

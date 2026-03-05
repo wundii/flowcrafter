@@ -55,8 +55,9 @@ class MySql implements StorageInterface
             <<<'SQL'
             CREATE TABLE IF NOT EXISTS flow_schema (
                 flow_schema_hash VARCHAR(191) NOT NULL PRIMARY KEY,
-                payload JSON NOT NULL,
-                created_at DATETIME NOT NULL
+                flow_schema JSON NOT NULL,
+                created_at DATETIME NOT NULL,
+                INDEX flow_schema_hash (flow_schema_hash)
             )
             SQL
         );
@@ -70,8 +71,11 @@ class MySql implements StorageInterface
                 flow_subject VARCHAR(255) NULL,
                 flow_schema_hash VARCHAR(191) NOT NULL,
                 `time` DATETIME NOT NULL,
-                INDEX idx_flow_instance_source_hash (flow_source, flow_hash),
-                INDEX idx_flow_instance_hash (flow_hash)
+                INDEX idx_flow_instance_flow_hash (flow_hash),
+                INDEX idx_flow_instance_flow_schema_hash (flow_schema_hash),
+                INDEX idx_flow_instance_flow_subject (flow_subject),
+                INDEX idx_flow_instance_flow_type (flow_type),
+                FOREIGN KEY (flow_schema_hash) REFERENCES flow_schema(flow_schema_hash)
             )
             SQL
         );
@@ -83,8 +87,9 @@ class MySql implements StorageInterface
                 flow_hash VARCHAR(191) NOT NULL,
                 queue_id VARCHAR(191) NULL,
                 `time` DATETIME NOT NULL,
+                INDEX idx_flow_run_flow_hash (flow_hash),
                 INDEX idx_flow_run_runtime_hash (flow_runtime_hash),
-                INDEX idx_flow_run_flow_hash (flow_hash)
+                FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash)
             )
             SQL
         );
@@ -98,11 +103,15 @@ class MySql implements StorageInterface
                 stub_source VARCHAR(255) NOT NULL,
                 message_type VARCHAR(64) NOT NULL,
                 message_source VARCHAR(255) NOT NULL,
+                message JSON NOT NULL,
                 predecessor_hash VARCHAR(191) NULL,
                 `time` DATETIME NOT NULL,
-                payload JSON NOT NULL,
                 INDEX idx_flow_message_flow_hash (flow_hash),
-                INDEX idx_flow_message_flow_runtime_hash (flow_runtime_hash)
+                INDEX idx_flow_message_flow_runtime_hash (flow_runtime_hash),
+                INDEX idx_flow_message_message_source (message_source),
+                INDEX idx_flow_message_message_type (message_type),
+                FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
+                FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash)
             )
             SQL
         );
@@ -125,17 +134,18 @@ class MySql implements StorageInterface
 
     public function registerFlowSchema(FlowSchema $flowSchema): void
     {
-        $payload = json_encode($flowSchema);
-        if (!is_string($payload)) {
+        $flowSchemaJson = json_encode($flowSchema);
+        if (!is_string($flowSchemaJson)) {
             throw new RuntimeException('Could not serialize flow schema.');
         }
 
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_schema (flow_schema_hash, payload, created_at) VALUES (:hash, CAST(:payload AS JSON), :created_at)'
+            'INSERT IGNORE INTO flow_schema (flow_schema_hash, flow_schema, created_at) ' .
+            'VALUES (:hash, CAST(:flow_schema AS JSON), :created_at)'
         );
         $stmt->execute([
             ':hash' => $flowSchema->getHash(),
-            ':payload' => $payload,
+            ':flow_schema' => $flowSchemaJson,
             ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.u'),
         ]);
     }
@@ -143,8 +153,8 @@ class MySql implements StorageInterface
     public function registerFlowInstance(Flow $flow): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_instance (flow_hash, flow_type, flow_source, flow_subject, flow_schema_hash, time)' .
-            ' VALUES (:flow_hash, :flow_type, :flow_source, :flow_subject, :flow_schema_hash, :time)'
+            'INSERT IGNORE INTO flow_instance (flow_hash, flow_type, flow_source, flow_subject, flow_schema_hash, time) ' .
+            'VALUES (:flow_hash, :flow_type, :flow_source, :flow_subject, :flow_schema_hash, :time)'
         );
 
         $stmt->execute([
@@ -160,7 +170,8 @@ class MySql implements StorageInterface
     public function appendFlowRun(Flow $flow, ?string $queueId = null): void
     {
         $stmt = $this->client->prepare(
-            'INSERT INTO flow_run (flow_runtime_hash, flow_hash, queue_id, time) VALUES (:flow_runtime_hash, :flow_hash, :queue_id, :time)'
+            'INSERT INTO flow_run (flow_runtime_hash, flow_hash, queue_id, time) ' .
+            'VALUES (:flow_runtime_hash, :flow_hash, :queue_id, :time)'
         );
 
         $stmt->execute([
@@ -173,14 +184,14 @@ class MySql implements StorageInterface
 
     public function appendFlowMessage(FlowMessage $flowMessage): void
     {
-        $payload = json_encode($flowMessage);
-        if (!is_string($payload)) {
+        $messageJson = json_encode($flowMessage->getMessage());
+        if (!is_string($messageJson)) {
             throw new RuntimeException('Could not serialize flow message.');
         }
 
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, stub_source, message_type, message_source, predecessor_hash, time, payload)' .
-            ' VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :message_type, :message_source, :predecessor_hash, :time, CAST(:payload AS JSON))'
+            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, stub_source, message_type, message_source, predecessor_hash, time, message) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :message_type, :message_source, :predecessor_hash, :time, CAST(:message AS JSON))'
         );
 
         $stmt->execute([
@@ -192,7 +203,7 @@ class MySql implements StorageInterface
             ':message_source' => $flowMessage->getMessageSource(),
             ':predecessor_hash' => $flowMessage->getPredecessorHash(),
             ':time' => $flowMessage->getTime()->format('Y-m-d H:i:s.u'),
-            ':payload' => $payload,
+            ':message' => $messageJson,
         ]);
     }
 
@@ -206,8 +217,8 @@ class MySql implements StorageInterface
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);
 
-        $messagePayload = json_encode($message);
-        if (!is_string($messagePayload)) {
+        $messageJson = json_encode($message);
+        if (!is_string($messageJson)) {
             throw new RuntimeException('Could not serialize observe message payload.');
         }
 
@@ -221,7 +232,7 @@ class MySql implements StorageInterface
             ':flow_source' => $flowSource,
             ':flow_hash' => $flowHash,
             ':message_source' => $messageSource,
-            ':message' => $messagePayload,
+            ':message' => $messageJson,
             ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.u'),
         ]);
     }
@@ -311,28 +322,58 @@ class MySql implements StorageInterface
 
     public function findFlowByHash(string $flowHash): ?Flow
     {
-        $stmt = $this->client->prepare('SELECT * FROM flow_instance WHERE flow_hash = :flow_hash LIMIT 1');
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_instance ' .
+            'WHERE flow_hash = :flow_hash LIMIT 1'
+        );
         $stmt->execute([
             ':flow_hash' => $flowHash,
         ]);
 
         $instance = $stmt->fetch();
-
-        if (!is_array($instance) || !isset($instance['payload'])) {
+        if (!is_array($instance)) {
             return null;
         }
 
-        /** @phpstan-ignore-next-line */
-        $flowArray = $this->decodeJsonArray((string) $instance['payload']);
-        if ($flowArray === []) {
-            return null;
-        }
+        $flowArray = [
+            'flowHash' => $instance['flow_hash'] ?? '',
+            'flowSchemaHash' => $instance['flow_schema_hash'] ?? '',
+            'flowSource' => $instance['flow_source'] ?? '',
+            'flowSubject' => $instance['flow_subject'] ?? '',
+            'flowType' => $instance['flow_type'] ?? '',
+            'time' => $instance['time'] ?? 'now',
+        ];
 
-        $messages = $this->loadMessages('flow_hash = :flow_hash', [
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_message ' .
+            'WHERE flow_hash = :flow_hash'
+        );
+        $stmt->execute([
             ':flow_hash' => $flowHash,
         ]);
-        foreach ($messages as $message) {
-            $flowArray['flowMessages'][] = $message;
+
+        foreach ($stmt->fetchAll() as $message) {
+            $messageJson = $message['message'] ?? '';
+            if (!json_validate($messageJson)) {
+                throw new RuntimeException('Could not validate flow message payload.');
+            }
+
+            $messageArray = json_decode($messageJson, true);
+            if (!is_array($messageArray)) {
+                throw new RuntimeException('Could not validate flow message payload.');
+            }
+
+            $flowArray['flowMessages'][] = [
+                'hash' => $message['hash'] ?? '',
+                'flowHash' => $message['flow_hash'] ?? '',
+                'flowRuntimeHash' => $message['flow_runtime_hash'] ?? '',
+                'stubSource' => $message['stub_source'] ?? '',
+                'messageType' => $message['message_type'] ?? '',
+                'messageSource' => $message['message_source'] ?? '',
+                'message' => $messageArray,
+                'predecessor' => $message['predecessor'] ?? '',
+                'time' => $message['time'] ?? 'now',
+            ];
         }
 
         return Converter::arrayToFlow($flowArray);
@@ -340,12 +381,18 @@ class MySql implements StorageInterface
 
     public function findFlowByRuntimeHash(string $flowRuntimeHash): ?Flow
     {
-        $stmt = $this->client->prepare('SELECT flow_hash FROM flow_run WHERE flow_runtime_hash = :flow_runtime_hash LIMIT 1');
+        $stmt = $this->client->prepare(
+            'SELECT flow_hash FROM flow_run ' .
+            'WHERE flow_runtime_hash = :flow_runtime_hash LIMIT 1'
+        );
         $stmt->execute([
             ':flow_runtime_hash' => $flowRuntimeHash,
         ]);
 
         $run = $stmt->fetch();
+        if ($run === false) {
+            return null;
+        }
 
         /** @phpstan-ignore-next-line */
         $flowHash = $run['flow_hash'] ?? '';
@@ -353,28 +400,58 @@ class MySql implements StorageInterface
             return null;
         }
 
-        $stmt = $this->client->prepare('SELECT * FROM flow_instance WHERE flow_hash = :flow_hash LIMIT 1');
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_instance ' .
+            'WHERE flow_hash = :flow_hash LIMIT 1'
+        );
         $stmt->execute([
             ':flow_hash' => $flowHash,
         ]);
 
         $instance = $stmt->fetch();
-
-        if (!is_array($instance) || !isset($instance['payload'])) {
+        if (!is_array($instance)) {
             return null;
         }
 
-        /** @phpstan-ignore-next-line */
-        $flowArray = $this->decodeJsonArray((string) $instance['payload']);
-        if ($flowArray === []) {
-            return null;
-        }
+        $flowArray = [
+            'flowHash' => $instance['flow_hash'] ?? '',
+            'flowSchemaHash' => $instance['flow_schema_hash'] ?? '',
+            'flowSource' => $instance['flow_source'] ?? '',
+            'flowSubject' => $instance['flow_subject'] ?? '',
+            'flowType' => $instance['flow_type'] ?? '',
+            'time' => $instance['time'] ?? 'now',
+        ];
 
-        $messages = $this->loadMessages('flow_runtime_hash = :flow_runtime_hash', [
-            ':flow_runtime_hash' => $flowRuntimeHash,
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_message ' .
+            'WHERE flow_runtime_hash = :flow_runtime_hash'
+        );
+        $stmt->execute([
+            ':flow_runtime_hash' => $flowHash,
         ]);
-        foreach ($messages as $message) {
-            $flowArray['flowMessages'][] = $message;
+
+        foreach ($stmt->fetchAll() as $message) {
+            $messageJson = $message['message'] ?? '';
+            if (!json_validate($messageJson)) {
+                throw new RuntimeException('Could not validate flow message payload.');
+            }
+
+            $messageArray = json_decode($messageJson, true);
+            if (!is_array($messageArray)) {
+                throw new RuntimeException('Could not validate flow message payload.');
+            }
+
+            $flowArray['flowMessages'][] = [
+                'hash' => $message['hash'] ?? '',
+                'flowHash' => $message['flow_hash'] ?? '',
+                'flowRuntimeHash' => $message['flow_runtime_hash'] ?? '',
+                'stubSource' => $message['stub_source'] ?? '',
+                'messageType' => $message['message_type'] ?? '',
+                'messageSource' => $message['message_source'] ?? '',
+                'message' => $messageArray,
+                'predecessor' => $message['predecessor'] ?? '',
+                'time' => $message['time'] ?? 'now',
+            ];
         }
 
         return Converter::arrayToFlow($flowArray);
@@ -386,8 +463,8 @@ class MySql implements StorageInterface
             $this->client->beginTransaction();
 
             $stmt = $this->client->query(
-                'SELECT queue_id, type, flow_source, flow_hash, message_source, message FROM flow_queue' .
-                ' ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED'
+                'SELECT * FROM flow_queue ' .
+                'ORDER BY created_at ASC LIMIT 1'
             );
 
             $row = $stmt === false ? false : $stmt->fetch();
@@ -403,8 +480,19 @@ class MySql implements StorageInterface
 
             $this->client->commit();
 
-            /** @phpstan-ignore-next-line */
-            $message = $this->decodeJsonArray($row['message'] ?? '{}');
+            $messageJson = $row['message'] ?? '';
+            if (!is_string($messageJson)) {
+                throw new RuntimeException('Could not validate flow message payload.');
+            }
+
+            if (!json_validate($messageJson)) {
+                throw new RuntimeException('Could not validate flow message payload.');
+            }
+
+            $messageArray = json_decode($messageJson, true);
+            if (!is_array($messageArray)) {
+                throw new RuntimeException('Could not validate flow message payload.');
+            }
 
             return new ObserveItem(
                 queueId: (string) $row['queue_id'],
@@ -412,7 +500,7 @@ class MySql implements StorageInterface
                 flowSource: $row['flow_source'] ?? '',
                 flowHash: $row['flow_hash'] ?? null,
                 messageSource: $row['message_source'] ?? '',
-                message: $message,
+                message: $messageArray,
             );
         } catch (PDOException $pdoException) {
             if ($this->client->inTransaction()) {
@@ -421,44 +509,5 @@ class MySql implements StorageInterface
 
             throw new RuntimeException('Could not fetch observe queue item.', 0, $pdoException);
         }
-    }
-
-    /**
-     * @param array<string, mixed> $params
-     * @return list<array<mixed>>
-     */
-    private function loadMessages(string $where, array $params): array
-    {
-        $stmt = $this->client->prepare('SELECT payload FROM flow_message WHERE ' . $where . ' ORDER BY time ASC');
-        $stmt->execute($params);
-
-        $rows = $stmt->fetchAll();
-
-        $messages = [];
-        foreach ($rows as $row) {
-            if (!isset($row['payload'])) {
-                continue;
-            }
-
-            $decoded = $this->decodeJsonArray((string) $row['payload']);
-            if ($decoded !== []) {
-                $messages[] = $decoded;
-            }
-        }
-
-        return $messages;
-    }
-
-    /**
-     * @return array<mixed>
-     */
-    private function decodeJsonArray(string $payload): array
-    {
-        $decoded = json_decode($payload, true);
-        if (!is_array($decoded)) {
-            return [];
-        }
-
-        return $decoded;
     }
 }
