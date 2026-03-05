@@ -10,7 +10,6 @@ use Symplify\EasyCodingStandard\ValueObject\Set\SetList;
 return function (ECSConfig $ecsConfig): void {
     $ecsConfig->cacheDirectory('./cache/ecs');
     $ecsConfig->paths([
-        __DIR__ . '/console',
         __DIR__ . '/service',
         __DIR__ . '/src',
         __DIR__ . '/tests',
