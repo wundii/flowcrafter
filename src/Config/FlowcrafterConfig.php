@@ -9,7 +9,6 @@ use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
 use Wundii\DataMapper\Enum\ApproachEnum;
 use Wundii\Flowcrafter\Assert;
-use Wundii\Flowcrafter\Enum\OptionEnum;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 
 final class FlowcrafterConfig extends FlowcrafterConfigParameter

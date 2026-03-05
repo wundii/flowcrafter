@@ -20,6 +20,7 @@ use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
@@ -37,6 +38,8 @@ class Esdb implements StorageInterface
     public const TYPE_INSTANCE = 'flowcrafter.flow.instance.v1';
 
     public const TYPE_MESSAGE = 'flowcrafter.flow.message.v1';
+
+    public const TYPE_EXCEPTION = 'flowcrafter.flow.exception.v1';
 
     public const TYPE_QUEUE = 'flowcrafter.flow.queue.v1';
 
@@ -219,6 +222,60 @@ class Esdb implements StorageInterface
             $this->client->registerEventSchema($eventType, $registerEventSchema);
         }
 
+        if (!in_array(self::TYPE_EXCEPTION, $eventTypes, true)) {
+            $eventType = self::TYPE_EXCEPTION;
+            $registerEventSchema = [
+                'type' => 'object',
+                'properties' => [
+                    'flowHash' => [
+                        'type' => 'string',
+                    ],
+                    'flowRuntimeHash' => [
+                        'type' => 'string',
+                    ],
+                    'stubSource' => [
+                        'type' => 'string',
+                    ],
+                    'code' => [
+                        'type' => 'integer',
+                    ],
+                    'message' => [
+                        'type' => 'string',
+                    ],
+                    'file' => [
+                        'type' => 'string',
+                    ],
+                    'line' => [
+                        'type' => 'integer',
+                    ],
+                    'traceString' => [
+                        'type' => 'string',
+                    ],
+                    'time' => [
+                        'type' => 'string',
+                    ],
+                    'hash' => [
+                        'type' => 'string',
+                    ],
+                ],
+                'required' => [
+                    'flowHash',
+                    'flowRuntimeHash',
+                    'stubSource',
+                    'code',
+                    'message',
+                    'file',
+                    'line',
+                    'traceString',
+                    'time',
+                    'hash',
+                ],
+                'additionalProperties' => false,
+            ];
+
+            $this->client->registerEventSchema($eventType, $registerEventSchema);
+        }
+
         if (!in_array(self::TYPE_QUEUE, $eventTypes, true)) {
             $eventType = self::TYPE_QUEUE;
             $registerEventSchema = [
@@ -292,6 +349,7 @@ class Esdb implements StorageInterface
         $data = $flow->jsonSerialize();
         unset($data['flowSchema']);
         unset($data['flowMessages']);
+        unset($data['flowExceptions']);
 
         $subjectSchema = '/flow/schema/' . $flow->getSchema()->getHash();
         $eventCandidate = new EventCandidate(
@@ -362,6 +420,27 @@ class Esdb implements StorageInterface
                 new IsSubjectPristine($subject),
                 new IsSubjectPopulated($subjectFlow),
             ]
+        );
+    }
+
+    public function appendFlowException(FlowException $flowException): void
+    {
+        $subject = '/flow/' . $flowException->getFlowHash() . '/exception/' . $flowException->getHash();
+        $subjectFlow = '/flow/' . $flowException->getFlowHash();
+        $eventCandidate = new EventCandidate(
+            source: self::SOURCE,
+            subject: $subject,
+            type: self::TYPE_EXCEPTION,
+            data: $flowException->jsonSerialize(),
+        );
+
+        $this->client->writeEvents(
+            [
+                $eventCandidate,
+            ],
+            [
+                new IsSubjectPopulated($subjectFlow),
+            ],
         );
     }
 
@@ -496,6 +575,10 @@ class Esdb implements StorageInterface
             if ($flowEvent->type === self::TYPE_MESSAGE) {
                 $flowArray['flowMessages'][] = $flowEvent->data;
             }
+
+            if ($flowEvent->type === self::TYPE_EXCEPTION) {
+                $flowArray['flowExceptions'][] = $flowEvent->data;
+            }
         }
 
         if ($flowArray === []) {
@@ -539,6 +622,17 @@ class Esdb implements StorageInterface
 
         foreach ($messageEvents as $messageEvent) {
             $flowArray['flowMessages'][] = $messageEvent;
+        }
+
+        $exceptionEvents = $this->client->runEventQlQuery(
+            'FROM e IN events' .
+            ' WHERE e.type == "' . self::TYPE_EXCEPTION . '"' .
+            ' AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '"' .
+            ' PROJECT INTO e.data'
+        );
+
+        foreach ($exceptionEvents as $exceptionEvent) {
+            $flowArray['flowExceptions'][] = $exceptionEvent;
         }
 
         return Converter::arrayToFlow($flowArray);

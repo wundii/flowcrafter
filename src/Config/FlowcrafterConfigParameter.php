@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Config;
 
 use Wundii\Flowcrafter\Assert;
-use Wundii\Flowcrafter\Enum\OptionEnum;
 
 class FlowcrafterConfigParameter
 {

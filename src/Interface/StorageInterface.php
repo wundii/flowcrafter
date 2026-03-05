@@ -6,6 +6,7 @@ namespace Wundii\Flowcrafter\Interface;
 
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
@@ -22,6 +23,8 @@ interface StorageInterface
     public function appendFlowRun(Flow $flow, ?string $queueId = null): void;
 
     public function appendFlowMessage(FlowMessage $flowMessage): void;
+
+    public function appendFlowException(FlowException $flowException): void;
 
     /**
      * @param class-string $flowSource

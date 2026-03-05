@@ -13,6 +13,7 @@ use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
@@ -26,6 +27,8 @@ class MySql implements StorageInterface
     public const TYPE_INSTANCE = 'flow_instance';
 
     public const TYPE_MESSAGE = 'flow_message';
+
+    public const TYPE_EXCEPTION = 'flow_exception';
 
     public const TYPE_QUEUE = 'flow_queue';
 
@@ -111,6 +114,28 @@ class MySql implements StorageInterface
                 INDEX idx_flow_message_flow_runtime_hash (flow_runtime_hash),
                 INDEX idx_flow_message_message_source (message_source),
                 INDEX idx_flow_message_message_type (message_type),
+                FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
+                FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash)
+            )
+            SQL
+        );
+
+        $this->client->exec(
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS flow_exception (
+                hash VARCHAR(191) NOT NULL PRIMARY KEY,
+                flow_hash VARCHAR(191) NOT NULL,
+                flow_runtime_hash VARCHAR(191) NOT NULL,
+                stub_source VARCHAR(255) NOT NULL,
+                code INT(11) NOT NULL,
+                message VARCHAR(2000) NOT NULL,
+                file VARCHAR(2000) NOT NULL,
+                line INT(11) NOT NULL,
+                traceString TEXT NOT NULL,
+                `time` DATETIME NOT NULL,
+                INDEX idx_flow_exception_flow_hash (flow_hash),
+                INDEX idx_flow_exception_flow_runtime_hash (flow_runtime_hash),
+                INDEX idx_flow_exception_stub_source (stub_source),
                 FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
                 FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash)
             )
@@ -205,6 +230,27 @@ class MySql implements StorageInterface
             ':predecessor_hash' => $flowMessage->getPredecessorHash(),
             ':time' => $flowMessage->getTime()->format('Y-m-d H:i:s.u'),
             ':message' => $messageJson,
+        ]);
+    }
+
+    public function appendFlowException(FlowException $flowException): void
+    {
+        $stmt = $this->client->prepare(
+            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, stub_source, code, message, file, line, traceString, time) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :code, :message, :file, :line, :traceString, :time)'
+        );
+
+        $stmt->execute([
+            ':hash' => $flowException->getHash(),
+            ':flow_hash' => $flowException->getFlowHash(),
+            ':flow_runtime_hash' => $flowException->getFlowRuntimeHash(),
+            ':stub_source' => $flowException->getStubSource(),
+            ':code' => $flowException->getCode(),
+            ':message' => $flowException->getMessage(),
+            ':file' => $flowException->getFile(),
+            ':line' => $flowException->getLine(),
+            ':traceString' => $flowException->getTraceString(),
+            ':time' => $flowException->getTime()->format('Y-m-d H:i:s.u'),
         ]);
     }
 
@@ -377,6 +423,29 @@ class MySql implements StorageInterface
             ];
         }
 
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_exception ' .
+            'WHERE flow_hash = :flow_hash'
+        );
+        $stmt->execute([
+            ':flow_hash' => $flowHash,
+        ]);
+
+        foreach ($stmt->fetchAll() as $exception) {
+            $flowArray['flowExceptions'][] = [
+                'hash' => $exception['hash'] ?? '',
+                'flowHash' => $exception['flow_hash'] ?? '',
+                'flowRuntimeHash' => $exception['flow_runtime_hash'] ?? '',
+                'stubSource' => $exception['stub_source'] ?? '',
+                'code' => $exception['code'] ?? 0,
+                'message' => $exception['message'] ?? '',
+                'file' => $exception['file'] ?? '',
+                'line' => $exception['line'] ?? 0,
+                'traceString' => $exception['traceString'] ?? '',
+                'time' => $exception['time'] ?? 'now',
+            ];
+        }
+
         return Converter::arrayToFlow($flowArray);
     }
 
@@ -452,6 +521,29 @@ class MySql implements StorageInterface
                 'message' => $messageArray,
                 'predecessor' => $message['predecessor'] ?? '',
                 'time' => $message['time'] ?? 'now',
+            ];
+        }
+
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_exception ' .
+            'WHERE flow_runtime_hash = :flow_runtime_hash'
+        );
+        $stmt->execute([
+            ':flow_runtime_hash' => $flowHash,
+        ]);
+
+        foreach ($stmt->fetchAll() as $exception) {
+            $flowArray['flowExceptions'][] = [
+                'hash' => $exception['hash'] ?? '',
+                'flowHash' => $exception['flow_hash'] ?? '',
+                'flowRuntimeHash' => $exception['flow_runtime_hash'] ?? '',
+                'stubSource' => $exception['stub_source'] ?? '',
+                'code' => $exception['code'] ?? 0,
+                'message' => $exception['message'] ?? '',
+                'file' => $exception['file'] ?? '',
+                'line' => $exception['line'] ?? 0,
+                'traceString' => $exception['traceString'] ?? '',
+                'time' => $exception['time'] ?? 'now',
             ];
         }
 

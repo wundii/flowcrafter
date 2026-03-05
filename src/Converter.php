@@ -72,26 +72,45 @@ final class Converter
             Assert::nullOrString($flow['flowSubject'] ?? null, 'Subject must be null or string.'),
             array_map(
                 static function (mixed $array) use ($dataMapper): FlowMessage {
-                    $stub = Assert::array($array, 'Each Message must be an array.');
+                    $message = Assert::array($array, 'Each Message must be an array.');
 
-                    $messageData = Assert::array($stub['message'] ?? [], 'Each Message must be an array.');
-                    $messageSource = Assert::classString($stub['messageSource'] ?? null, MessageInterface::class, 'Each Message must have a string source.');
+                    $messageData = Assert::array($message['message'] ?? [], 'Each Message must be an array.');
+                    $messageSource = Assert::classString($message['messageSource'] ?? null, MessageInterface::class, 'Each Message must have a string source.');
 
-                    $message = $dataMapper->array($messageData, $messageSource);
+                    $flowMessage = $dataMapper->array($messageData, $messageSource);
 
                     return new FlowMessage(
-                        Assert::string($stub['flowHash'] ?? null, 'Each Message must have a string flowHash.'),
-                        Assert::string($stub['flowRuntimeHash'] ?? null, 'Each Message must have a string flowRuntimeHash.'),
-                        Assert::classString($stub['stubSource'] ?? null, StubInterface::class, 'Each Message must have a string SubInterface.'),
-                        MessageTypeEnum::from(Assert::string($stub['messageType'] ?? null, 'Each Message must have a string messageType.')),
+                        Assert::string($message['flowHash'] ?? null, 'Each Message must have a string flowHash.'),
+                        Assert::string($message['flowRuntimeHash'] ?? null, 'Each Message must have a string flowRuntimeHash.'),
+                        Assert::classString($message['stubSource'] ?? null, StubInterface::class, 'Each Message must have a string SubInterface.'),
+                        MessageTypeEnum::from(Assert::string($message['messageType'] ?? null, 'Each Message must have a string messageType.')),
                         $messageSource,
-                        Assert::object($message, MessageInterface::class, 'Each Message must have an MessageInterface message.'),
-                        Assert::datetimeImmutable($stub['time'] ?? null, 'Each Message must have a valid time date string.'),
-                        Assert::string($stub['hash'] ?? null, 'Each Message must have a string hash.'),
-                        Assert::nullOrString($stub['predecessorHash'] ?? null, 'Each Message must have a string predecessorHash.'),
+                        Assert::object($flowMessage, MessageInterface::class, 'Each Message must have an MessageInterface message.'),
+                        Assert::datetimeImmutable($message['time'] ?? null, 'Each Message must have a valid time date string.'),
+                        Assert::string($message['hash'] ?? null, 'Each Message must have a string hash.'),
+                        Assert::nullOrString($message['predecessorHash'] ?? null, 'Each Message must have a string predecessorHash.'),
                     );
                 },
                 Assert::array($flow['flowMessages'] ?? [], 'Messages must be an array.'),
+            ),
+            array_map(
+                static function (mixed $array): FlowException {
+                    $exception = Assert::array($array, 'Each Exception must be an array.');
+
+                    return new FlowException(
+                        Assert::string($exception['flowHash'] ?? null, 'Each Exception must have a string flowHash.'),
+                        Assert::string($exception['flowRuntimeHash'] ?? null, 'Each Exception must have a string runtimeHash.'),
+                        Assert::string($exception['stubSource'] ?? null, 'Each Exception must have a string stubSource.'),
+                        Assert::int($exception['code'] ?? null, 'Each Exception must have an integer code.'),
+                        Assert::string($exception['message'] ?? null, 'Each Exception must have a string message.'),
+                        Assert::string($exception['file'] ?? null, 'Each Exception must have a string file.'),
+                        Assert::int($exception['line'] ?? null, 'Each Exception must have an integer line.'),
+                        Assert::string($exception['traceString'] ?? null, 'Each Exception must have a string traceString.'),
+                        Assert::datetimeImmutable($exception['time'] ?? null, 'Time must be a valid date string.'),
+                        Assert::string($exception['hash'] ?? null, 'Each Exception must have a string hash.'),
+                    );
+                },
+                Assert::array($flow['flowExceptions'] ?? [], 'Exceptions must be an array.'),
             ),
         );
     }

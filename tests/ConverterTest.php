@@ -18,6 +18,7 @@ use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Stub;
@@ -65,6 +66,7 @@ final class ConverterTest extends TestCase
             'flowHash' => $flow->getHash(),
             'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
             'flowMessages' => [],
+            'flowExceptions' => [],
         ]);
 
         $this->assertSame($expectedJson, $json);
@@ -76,9 +78,14 @@ final class ConverterTest extends TestCase
             '0198ce36-3a94-7125-9ac7-88902e8ff000', #$json::flowSchema::stubs::stub::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff001', #$json::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff002', #$json::runtimeHash
+            '0198ce36-3a94-7125-9ac7-88902e8ff003', #$json::flowException::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff002', #$expectedJson::flowMessage::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff003', #$expectedJson::flowException::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff000', #$expectedJson::flowSchema::stubs::stub::hash
         ]);
+
+        $file = __FILE__;
+        $line = __LINE__;
 
         $flow = Flow::create(
             flowType: 'flow.workflow.v1',
@@ -92,6 +99,20 @@ final class ConverterTest extends TestCase
                 messageTypeEnum: messageTypeEnum::FINISH,
                 predecessorHash: null,
                 message: new MessageInitMock('test data'),
+                time: $flow->getTime(),
+                hash: Uuid::uuid7($flow->getTime())->toString(),
+            ),
+        );
+        $flow->addException(
+            FlowException::create(
+                flowHash: $flow->getHash(),
+                flowRuntimeHash: $flow->getRuntimeHash(),
+                stubSource: StubMock::class,
+                code: 1,
+                message: 'Exception message',
+                file: $file,
+                line: $line,
+                traceString: 'Stack trace',
                 time: $flow->getTime(),
                 hash: Uuid::uuid7($flow->getTime())->toString(),
             ),
@@ -130,6 +151,20 @@ final class ConverterTest extends TestCase
                     'predecessorHash' => null,
                 ],
             ],
+            'flowExceptions' => [
+                [
+                    'flowHash' => $flow->getHash(),
+                    'flowRuntimeHash' => $flow->getRuntimeHash(),
+                    'stubSource' => StubMock::class,
+                    'code' => 1,
+                    'message' => 'Exception message',
+                    'file' => $file,
+                    'line' => $line,
+                    'traceString' => 'Stack trace',
+                    'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
+                    'hash' => Uuid::uuid7($flow->getTime())->toString(),
+                ],
+            ],
         ]);
 
         $this->assertSame($expectedJson, $json);
@@ -155,6 +190,7 @@ final class ConverterTest extends TestCase
             'flowHash' => $hash,
             'time' => $datetime->format(DateTimeInterface::ATOM),
             'flowMessages' => [],
+            'flowExceptions' => [],
         ]);
 
         $flow = Converter::jsonToFlow($json);
@@ -167,6 +203,7 @@ final class ConverterTest extends TestCase
             flowHash: $hash,
             flowSubject: '/workflow/1',
             flowMessages: [],
+            flowExceptions: [],
         );
 
         $this->assertSame($expectedFlow->getSource(), $flow->getSource());

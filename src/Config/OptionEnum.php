@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Wundii\Flowcrafter\Enum;
+namespace Wundii\Flowcrafter\Config;
 
 enum OptionEnum: string
 {

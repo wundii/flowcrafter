@@ -12,6 +12,7 @@ use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
@@ -27,6 +28,8 @@ class Redis implements StorageInterface
 
     public const PREFIX_TYPE_MESSAGE = 'flow:message:';
 
+    public const PREFIX_TYPE_EXCEPTION = 'flow:exception:';
+
     public const PREFIX_TYPE_RUN = 'flow:run:';
 
     public const PREFIX_TYPE_SCHEMA = 'flow:schema:';
@@ -34,6 +37,8 @@ class Redis implements StorageInterface
     private const INDEX_INSTANCE = 'idx:flow';
 
     private const INDEX_MESSAGE = 'idx:flow:message';
+
+    private const INDEX_EXCEPTION = 'idx:flow:exception';
 
     private const INDEX_RUN = 'idx:flow:run';
 
@@ -212,6 +217,60 @@ class Redis implements StorageInterface
                 'TAG'
             );
         }
+
+        if (!$this->existIndex(self::INDEX_EXCEPTION)) {
+            $this->client->rawCommand(
+                'FT.CREATE',
+                self::INDEX_EXCEPTION,
+                'ON',
+                'JSON',
+                'PREFIX',
+                '1',
+                self::PREFIX_TYPE_EXCEPTION,
+                'SCHEMA',
+                '$.flowHash',
+                'AS',
+                'flowHash',
+                'TAG',
+                '$.flowRuntimeHash',
+                'AS',
+                'flowRuntimeHash',
+                'TAG',
+                '$.stubSource',
+                'AS',
+                'stubSource',
+                'TAG',
+                '$.code',
+                'AS',
+                'code',
+                'TAG',
+                '$.message',
+                'AS',
+                'message',
+                'TAG',
+                '$.file',
+                'AS',
+                'file',
+                'TAG',
+                '$.line',
+                'AS',
+                'line',
+                'TAG',
+                '$.traceString',
+                'AS',
+                'traceString',
+                'TAG',
+                '$.time',
+                'AS',
+                'time',
+                'TEXT',
+                'SORTABLE',
+                '$.hash',
+                'AS',
+                'hash',
+                'TAG',
+            );
+        }
     }
 
     public function registerFlowSchema(FlowSchema $flowSchema): void
@@ -234,6 +293,7 @@ class Redis implements StorageInterface
         $data = $flow->jsonSerialize();
         unset($data['flowSchema']);
         unset($data['flowMessages']);
+        unset($data['flowExceptions']);
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
@@ -259,6 +319,16 @@ class Redis implements StorageInterface
         }
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($flowMessage));
+    }
+
+    public function appendFlowException(FlowException $flowException): void
+    {
+        $key = self::PREFIX_TYPE_EXCEPTION . $flowException->getHash();
+        if ($this->client->exists($key)) {
+            return;
+        }
+
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($flowException));
     }
 
     /**
@@ -395,10 +465,13 @@ class Redis implements StorageInterface
         }
 
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
-        $messageEvents = self::fetchData($result);
-
-        foreach ($messageEvents as $messageEvent) {
+        foreach (self::fetchData($result) as $messageEvent) {
             $flowArray['flowMessages'][] = $messageEvent;
+        }
+
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
+        foreach (self::fetchData($result) as $exceptionEvent) {
+            $flowArray['flowExceptions'][] = $exceptionEvent;
         }
 
         return Converter::arrayToFlow($flowArray);
@@ -423,10 +496,13 @@ class Redis implements StorageInterface
         }
 
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'RETURN', '1', '$');
-        $messageEvents = self::fetchData($result);
-
-        foreach ($messageEvents as $messageEvent) {
+        foreach (self::fetchData($result) as $messageEvent) {
             $flowArray['flowMessages'][] = $messageEvent;
+        }
+
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'RETURN', '1', '$');
+        foreach (self::fetchData($result) as $exceptionEvent) {
+            $flowArray['flowExceptions'][] = $exceptionEvent;
         }
 
         return Converter::arrayToFlow($flowArray);

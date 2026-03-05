@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use Throwable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -73,6 +74,9 @@ class FlowRunner
         return $this->messageReturn ?? false;
     }
 
+    /**
+     * @throws Throwable
+     */
     private function executeStubsRecursive(MessageInterface $message, ?string $flowMessageHash = null): void
     {
         $flow = $this->flow;
@@ -116,8 +120,26 @@ class FlowRunner
             );
 
             $this->executedStubKey[] = $stubKey;
-            $stubInstance = new $stubSource($stub->getMessageEnum()->value, reset($messages));
-            $processResult = $stubInstance->process();
+
+            try {
+                $stubInstance = new $stubSource($stub->getMessageEnum()->value, reset($messages));
+                $processResult = $stubInstance->process();
+            } catch (Throwable $exception) {
+                $flowException = FlowException::create(
+                    flowHash: $flow->getHash(),
+                    flowRuntimeHash: $flow->getRuntimeHash(),
+                    stubSource: $stubSource,
+                    code: $exception->getCode(),
+                    message: $exception->getMessage(),
+                    file: $exception->getFile(),
+                    line: $exception->getLine(),
+                    traceString: $exception->getTraceAsString(),
+                );
+
+                $flow->addException($flowException);
+                $this->storage?->appendFlowException($flowException);
+                throw $exception;
+            }
 
             foreach ($flowMessages as $flowMessage) {
                 $flowMessage->setFinish();
