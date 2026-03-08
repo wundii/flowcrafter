@@ -6,11 +6,14 @@ namespace Tests;
 
 use Exception;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Tests\MockClass\MessageInitMock;
+use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\RedisClientTestTrait;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 
@@ -100,6 +103,68 @@ final class FlowStorageRedisTest extends TestCase
         $this->assertInstanceOf(FlowEntity::class, $flows[0]);
         $this->assertInstanceOf(FlowEntity::class, $flows[1]);
         $this->assertLessThan($flows[0]->flowHash, $flows[1]->flowHash);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindExceptionsASC(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.fail.v1',
+            flowSource: WorkflowFailMock::class,
+            storage: $storage,
+        );
+
+        try {
+            $flowRunner->run(new MessageInitMock('test data'));
+        } catch (Exception $exception) {
+            $this->assertInstanceOf(RuntimeException::class, $exception);
+        }
+
+        try {
+            $flowRunner->run(new MessageInitMock('test data'));
+        } catch (Exception $exception) {
+            $this->assertInstanceOf(RuntimeException::class, $exception);
+        }
+
+        $exceptions = iterator_to_array($storage->findAllExceptions(SortEnum::ASC));
+        $this->assertCount(2, $exceptions);
+        $this->assertInstanceOf(FlowException::class, $exceptions[0]);
+        $this->assertInstanceOf(FlowException::class, $exceptions[1]);
+        $this->assertGreaterThan($exceptions[0]->getHash(), $exceptions[1]->getHash());
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindExceptionsDESC(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.fail.v1',
+            flowSource: WorkflowFailMock::class,
+            storage: $storage,
+        );
+
+        try {
+            $flowRunner->run(new MessageInitMock('test data'));
+        } catch (Exception $exception) {
+            $this->assertInstanceOf(RuntimeException::class, $exception);
+        }
+
+        try {
+            $flowRunner->run(new MessageInitMock('test data'));
+        } catch (Exception $exception) {
+            $this->assertInstanceOf(RuntimeException::class, $exception);
+        }
+
+        $exceptions = iterator_to_array($storage->findAllExceptions());
+        $this->assertCount(2, $exceptions);
+        $this->assertInstanceOf(FlowException::class, $exceptions[0]);
+        $this->assertInstanceOf(FlowException::class, $exceptions[1]);
+        $this->assertLessThan($exceptions[0]->getHash(), $exceptions[1]->getHash());
     }
 
     public function testFindFlowByHash(): void

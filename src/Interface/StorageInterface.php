@@ -48,6 +48,16 @@ interface StorageInterface
      */
     public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable;
 
+    /**
+     * @return FlowException[]
+     */
+    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable;
+
+    /**
+     * @return FlowException[]
+     */
+    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable;
+
     public function findFlowByHash(string $flowHash): ?Flow;
 
     public function findFlowByRuntimeHash(string $flowRuntimeHash): ?Flow;

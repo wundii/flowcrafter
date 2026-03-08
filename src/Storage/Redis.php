@@ -243,7 +243,7 @@ class Redis implements StorageInterface
                 '$.code',
                 'AS',
                 'code',
-                'TAG',
+                'NUMERIC',
                 '$.message',
                 'AS',
                 'message',
@@ -255,11 +255,11 @@ class Redis implements StorageInterface
                 '$.line',
                 'AS',
                 'line',
-                'TAG',
+                'NUMERIC',
                 '$.traceString',
                 'AS',
                 'traceString',
-                'TAG',
+                'TEXT',
                 '$.time',
                 'AS',
                 'time',
@@ -269,6 +269,7 @@ class Redis implements StorageInterface
                 'AS',
                 'hash',
                 'TAG',
+                'SORTABLE',
             );
         }
     }
@@ -450,6 +451,52 @@ class Redis implements StorageInterface
                 flowSource: $event['flowSource'] ?? '',
                 flowSubject: $event['flowSubject'] ?? '',
                 time: new DateTimeImmutable($event['time'] ?? 'now'),
+            );
+        }
+    }
+
+    /**
+     * @return FlowException[]
+     * @throws Exception
+     */
+    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    {
+        return $this->findExceptionsByFlowHash('*', $sortEnum, $top);
+    }
+
+    /**
+     * @return FlowException[]
+     * @throws Exception
+     */
+    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    {
+        $flowHash = self::escapeValue($flowHash);
+
+        $value = match ($flowHash) {
+            '*', '' => '*',
+            default => '@flowHash:{' . $flowHash . '}',
+        };
+
+        $result = $this->client->rawcommand('FT.SEARCH', self::INDEX_EXCEPTION, $value, 'SORTBY', 'hash', $sortEnum->name, 'LIMIT', 0, $top, 'RETURN', '1', '$');
+        $events = self::fetchData($result);
+
+        if ($events === []) {
+            return [];
+        }
+
+        foreach ($events as $event) {
+            yield new FlowException(
+                /** @phpstan-ignore-next-line */
+                flowHash: $event['flowHash'] ?? '',
+                flowRuntimeHash: $event['flowRuntimeHash'] ?? '',
+                stubSource: $event['stubSource'] ?? '',
+                code: $event['code'] ?? 0,
+                message: $event['message'] ?? '',
+                file: $event['file'] ?? '',
+                line: $event['line'] ?? 0,
+                traceString: $event['traceString'] ?? '',
+                time: new DateTimeImmutable($event['time'] ?? 'now'),
+                hash: $event['hash'] ?? '',
             );
         }
     }

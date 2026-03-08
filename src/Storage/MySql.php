@@ -236,7 +236,7 @@ class MySql implements StorageInterface
     public function appendFlowException(FlowException $flowException): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, stub_source, code, message, file, line, traceString, time) ' .
+            'INSERT IGNORE INTO flow_exception (hash, flow_hash, flow_runtime_hash, stub_source, code, message, file, line, traceString, time) ' .
             'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :code, :message, :file, :line, :traceString, :time)'
         );
 
@@ -315,7 +315,7 @@ class MySql implements StorageInterface
         $top = max(1, $top);
 
         $stmt = $this->client->query(
-            'SELECT flow_hash, flow_type, flow_source, flow_subject, time FROM flow_instance' .
+            'SELECT * FROM flow_instance' .
             ' ORDER BY flow_hash ' . $sortEnum->name .
             ' LIMIT ' . (int) $top
         );
@@ -349,7 +349,7 @@ class MySql implements StorageInterface
         $top = max(1, $top);
 
         $stmt = $this->client->prepare(
-            'SELECT flow_hash, flow_type, flow_source, flow_subject, time FROM flow_instance' .
+            'SELECT * FROM flow_instance' .
             ' WHERE flow_source = :flow_source ORDER BY flow_hash ' . $sortEnum->name . ' LIMIT :top'
         );
         $stmt->bindValue(':flow_source', $flowSource);
@@ -363,6 +363,79 @@ class MySql implements StorageInterface
                 flowSource: $row['flow_source'] ?? '',
                 flowSubject: $row['flow_subject'] ?? null,
                 time: new DateTimeImmutable($row['time'] ?? 'now'),
+            );
+        }
+    }
+
+    /**
+     * @return FlowException[]
+     * @throws Exception
+     */
+    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    {
+        $top = max(1, $top);
+
+        $stmt = $this->client->query(
+            'SELECT * FROM flow_exception ' .
+            'ORDER BY flow_hash ' . $sortEnum->name . ' ' .
+            'LIMIT ' . (int) $top
+        );
+
+        if ($stmt === false) {
+            return [];
+        }
+
+        foreach ($stmt->fetchAll() as $row) {
+            yield new FlowException(
+                flowHash: $row['flow_hash'] ?? '',
+                flowRuntimeHash: $row['flow_runtime_hash'] ?? '',
+                stubSource: $row['stub_source'] ?? '',
+                code: $row['code'] ?? 0,
+                message: $row['message'] ?? '',
+                file: $row['file'] ?? '',
+                line: $row['line'] ?? 0,
+                traceString: $row['trace_string'] ?? '',
+                time: new DateTimeImmutable($row['time'] ?? 'now'),
+                hash: $row['hash'] ?? '',
+            );
+        }
+    }
+
+    /**
+     * @return FlowException[]
+     * @throws Exception
+     */
+    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    {
+        if ($flowHash === '' || $flowHash === '*') {
+            yield from $this->findAllExceptions($sortEnum, $top);
+            return;
+        }
+
+        $top = max(1, $top);
+
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_exception ' .
+            'WHERE flow_hash = :flow_hash ' .
+            'ORDER BY flow_hash ' . $sortEnum->name . ' ' .
+            'LIMIT :top'
+        );
+        $stmt->bindValue(':flow_hash', $flowHash);
+        $stmt->bindValue(':top', $top, Client::PARAM_INT);
+        $stmt->execute();
+
+        foreach ($stmt->fetchAll() as $row) {
+            yield new FlowException(
+                flowHash: $row['flow_hash'] ?? '',
+                flowRuntimeHash: $row['flow_runtime_hash'] ?? '',
+                stubSource: $row['stub_source'] ?? '',
+                code: $row['code'] ?? 0,
+                message: $row['message'] ?? '',
+                file: $row['file'] ?? '',
+                line: $row['line'] ?? 0,
+                traceString: $row['trace_string'] ?? '',
+                time: new DateTimeImmutable($row['time'] ?? 'now'),
+                hash: $row['hash'] ?? '',
             );
         }
     }

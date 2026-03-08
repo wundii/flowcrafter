@@ -520,7 +520,7 @@ class Esdb implements StorageInterface
         $flowEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
-            'ORDER BY e.type ' . $sortEnum->name . ' ' .
+            'ORDER BY e.id ' . $sortEnum->name . ' ' .
             'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
         );
@@ -546,7 +546,7 @@ class Esdb implements StorageInterface
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'AND e.data.flowSource == "' . $flowSource . '" ' .
-            'ORDER BY e.type ' . $sortEnum->name . ' ' .
+            'ORDER BY e.id ' . $sortEnum->name . ' ' .
             'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
         );
@@ -558,6 +558,67 @@ class Esdb implements StorageInterface
                 flowSource: $flowEvent['flowSource'] ?? '',
                 flowSubject: $flowEvent['flowSubject'] ?? '',
                 time: new DateTimeImmutable($flowEvent['time'] ?? 'now'),
+            );
+        }
+    }
+
+    /**
+     * @return FlowException[]
+     * @throws Exception
+     */
+    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    {
+        $exceptionEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
+            'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'TOP ' . $top . ' ' .
+            'PROJECT INTO e.data'
+        );
+
+        foreach ($exceptionEvents as $exceptionEvent) {
+            yield new FlowException(
+                flowHash: $exceptionEvent['flowHash'] ?? '',
+                flowRuntimeHash: $exceptionEvent['flowRuntimeHash'] ?? '',
+                stubSource: $exceptionEvent['stubSource'] ?? '',
+                code: $exceptionEvent['code'] ?? 0,
+                message: $exceptionEvent['message'] ?? '',
+                file: $exceptionEvent['file'] ?? '',
+                line: $exceptionEvent['line'] ?? 0,
+                traceString: $exceptionEvent['traceString'] ?? '',
+                time: new DateTimeImmutable($exceptionEvent['time'] ?? 'now'),
+                hash: $exceptionEvent['hash'] ?? '',
+            );
+        }
+    }
+
+    /**
+     * @return FlowException[]
+     * @throws Exception
+     */
+    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    {
+        $exceptionEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
+            'AND e.data.flowHash == "' . $flowHash . '" ' .
+            'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'TOP ' . $top . ' ' .
+            'PROJECT INTO e.data'
+        );
+
+        foreach ($exceptionEvents as $exceptionEvent) {
+            yield new FlowException(
+                flowHash: $exceptionEvent['flowHash'] ?? '',
+                flowRuntimeHash: $exceptionEvent['flowRuntimeHash'] ?? '',
+                stubSource: $exceptionEvent['stubSource'] ?? '',
+                code: $exceptionEvent['code'] ?? 0,
+                message: $exceptionEvent['message'] ?? '',
+                file: $exceptionEvent['file'] ?? '',
+                line: $exceptionEvent['line'] ?? 0,
+                traceString: $exceptionEvent['traceString'] ?? '',
+                time: new DateTimeImmutable($exceptionEvent['time'] ?? 'now'),
+                hash: $exceptionEvent['hash'] ?? '',
             );
         }
     }
