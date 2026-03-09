@@ -78,19 +78,24 @@ $route->add(
     }
 );
 
-// GET /api/flows/detail?hash=<flowHash>
+// GET /api/flows/detail?hash=<flowHash> | ?runtimeHash=<flowRuntimeHash>
 $route->add(
     '/api/flows/detail',
     MethodEnum::GET,
     function (Request $request) use ($storage): JsonResponse {
         $hash = $request->query->get('hash');
-        if ($hash === null || $hash === '') {
+        $runtimeHash = $request->query->get('runtimeHash');
+
+        if ($runtimeHash !== null && $runtimeHash !== '') {
+            $flow = $storage->findFlowByRuntimeHash($runtimeHash);
+        } elseif ($hash !== null && $hash !== '') {
+            $flow = $storage->findFlowByHash($hash);
+        } else {
             return new JsonResponse([
-                'error' => 'hash parameter required',
+                'error' => 'hash or runtimeHash parameter required',
             ], 400);
         }
 
-        $flow = $storage->findFlowByHash($hash);
         if (!$flow instanceof Flow) {
             return new JsonResponse([
                 'error' => 'Flow not found',
