@@ -138,20 +138,30 @@ $route->add(
     }
 );
 
-// GET /api/flows[?sort=asc|desc&top=1000&source=App\YourFlow]
+// GET /api/flows[?sort=asc|desc&top=1000&skip=0&source=App\YourFlow]
 $route->add(
     '/api/flows',
     MethodEnum::GET,
     function (Request $request) use ($storage, $serializeEntity): JsonResponse {
         $sort = $request->query->get('sort', 'desc') === 'asc' ? SortEnum::ASC : SortEnum::DESC;
         $top = max(1, min(10000, (int) $request->query->get('top', 1000)));
+        $skip = max(0, (int) $request->query->get('skip', 0));
         $source = $request->query->get('source');
 
         $flows = $source !== null
-            ? $storage->findFlowsBySource($source, $sort, $top)
-            : $storage->findAllFlows($sort, $top);
+            ? $storage->findFlowsBySource($source, $sort, $top + 1, $skip)
+            : $storage->findAllFlows($sort, $top + 1, $skip);
 
-        return new JsonResponse(array_map($serializeEntity, iterator_to_array($flows)));
+        $items = array_map($serializeEntity, iterator_to_array($flows));
+        $hasMore = count($items) > $top;
+        if ($hasMore) {
+            array_pop($items);
+        }
+
+        return new JsonResponse([
+            'items' => $items,
+            'hasMore' => $hasMore,
+        ]);
     }
 );
 
@@ -183,20 +193,30 @@ $route->add(
     }
 );
 
-// GET /api/exceptions[?sort=asc|desc&top=1000&flowHash=<hash>]
+// GET /api/exceptions[?sort=asc|desc&top=1000&skip=0&flowHash=<hash>]
 $route->add(
     '/api/exceptions',
     MethodEnum::GET,
     function (Request $request) use ($storage): JsonResponse {
         $sort = $request->query->get('sort', 'desc') === 'asc' ? SortEnum::ASC : SortEnum::DESC;
         $top = max(1, min(10000, (int) $request->query->get('top', 1000)));
+        $skip = max(0, (int) $request->query->get('skip', 0));
         $flowHash = $request->query->get('flowHash');
 
         $exceptions = $flowHash !== null
-            ? $storage->findExceptionsByFlowHash($flowHash, $sort, $top)
-            : $storage->findAllExceptions($sort, $top);
+            ? $storage->findExceptionsByFlowHash($flowHash, $sort, $top + 1, $skip)
+            : $storage->findAllExceptions($sort, $top + 1, $skip);
 
-        return new JsonResponse(array_values(iterator_to_array($exceptions)));
+        $items = array_values(iterator_to_array($exceptions));
+        $hasMore = count($items) > $top;
+        if ($hasMore) {
+            array_pop($items);
+        }
+
+        return new JsonResponse([
+            'items' => $items,
+            'hasMore' => $hasMore,
+        ]);
     }
 );
 

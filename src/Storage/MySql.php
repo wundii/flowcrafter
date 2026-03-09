@@ -346,14 +346,15 @@ class MySql implements StorageInterface
      * @return FlowEntity[]
      * @throws Exception
      */
-    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
+        $skip = max(0, $skip);
         $top = max(1, $top);
 
         $stmt = $this->client->query(
             'SELECT * FROM flow_instance' .
             ' ORDER BY flow_hash ' . $sortEnum->name .
-            ' LIMIT ' . (int) $top
+            ' LIMIT ' . $skip . ' ' . $top
         );
 
         if ($stmt === false) {
@@ -375,20 +376,22 @@ class MySql implements StorageInterface
      * @return FlowEntity[]
      * @throws Exception
      */
-    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
         if ($flowSource === '' || $flowSource === '*') {
             yield from $this->findAllFlows($sortEnum, $top);
             return;
         }
 
+        $skip = max(0, $skip);
         $top = max(1, $top);
 
         $stmt = $this->client->prepare(
             'SELECT * FROM flow_instance' .
-            ' WHERE flow_source = :flow_source ORDER BY flow_hash ' . $sortEnum->name . ' LIMIT :top'
+            ' WHERE flow_source = :flow_source ORDER BY flow_hash ' . $sortEnum->name . ' LIMIT :skip :top'
         );
         $stmt->bindValue(':flow_source', $flowSource);
+        $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
         $stmt->bindValue(':top', $top, Client::PARAM_INT);
         $stmt->execute();
 
@@ -407,14 +410,15 @@ class MySql implements StorageInterface
      * @return FlowException[]
      * @throws Exception
      */
-    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
+        $skip = max(0, $skip);
         $top = max(1, $top);
 
         $stmt = $this->client->query(
             'SELECT * FROM flow_exception ' .
             'ORDER BY flow_hash ' . $sortEnum->name . ' ' .
-            'LIMIT ' . (int) $top
+            'LIMIT ' . $skip . ' ' . $top
         );
 
         if ($stmt === false) {
@@ -441,22 +445,24 @@ class MySql implements StorageInterface
      * @return FlowException[]
      * @throws Exception
      */
-    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
         if ($flowHash === '' || $flowHash === '*') {
             yield from $this->findAllExceptions($sortEnum, $top);
             return;
         }
 
+        $skip = max(0, $skip);
         $top = max(1, $top);
 
         $stmt = $this->client->prepare(
             'SELECT * FROM flow_exception ' .
             'WHERE flow_hash = :flow_hash ' .
             'ORDER BY flow_hash ' . $sortEnum->name . ' ' .
-            'LIMIT :top'
+            'LIMIT :skip :top'
         );
         $stmt->bindValue(':flow_hash', $flowHash);
+        $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
         $stmt->bindValue(':top', $top, Client::PARAM_INT);
         $stmt->execute();
 

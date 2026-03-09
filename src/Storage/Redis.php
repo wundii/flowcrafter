@@ -461,25 +461,27 @@ class Redis implements StorageInterface
      * @return FlowEntity[]
      * @throws Exception
      */
-    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
-        return $this->findFlowsBySource('*', $sortEnum, $top);
+        return $this->findFlowsBySource('*', $sortEnum, $top, $skip);
     }
 
     /**
      * @return FlowEntity[]
      * @throws Exception
      */
-    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
         $flowSource = self::escapeValue($flowSource);
+        $skip = max(0, $skip);
+        $top = max(1, $top);
 
         $value = match ($flowSource) {
             '*', '' => '*',
             default => '@flowSource:{' . $flowSource . '}',
         };
 
-        $result = $this->client->rawcommand('FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', 0, $top, 'RETURN', '1', '$');
+        $result = $this->client->rawcommand('FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', $skip, $top, 'RETURN', '1', '$');
         $events = self::fetchData($result);
 
         if ($events === []) {
@@ -502,25 +504,27 @@ class Redis implements StorageInterface
      * @return FlowException[]
      * @throws Exception
      */
-    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
-        return $this->findExceptionsByFlowHash('*', $sortEnum, $top);
+        return $this->findExceptionsByFlowHash('*', $sortEnum, $top, $skip);
     }
 
     /**
      * @return FlowException[]
      * @throws Exception
      */
-    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
         $flowHash = self::escapeValue($flowHash);
+        $skip = max(0, $skip);
+        $top = max(1, $top);
 
         $value = match ($flowHash) {
             '*', '' => '*',
             default => '@flowHash:{' . $flowHash . '}',
         };
 
-        $result = $this->client->rawcommand('FT.SEARCH', self::INDEX_EXCEPTION, $value, 'SORTBY', 'hash', $sortEnum->name, 'LIMIT', 0, $top, 'RETURN', '1', '$');
+        $result = $this->client->rawcommand('FT.SEARCH', self::INDEX_EXCEPTION, $value, 'SORTBY', 'hash', $sortEnum->name, 'LIMIT', $skip, $top, 'RETURN', '1', '$');
         $events = self::fetchData($result);
 
         if ($events === []) {

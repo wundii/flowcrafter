@@ -590,12 +590,16 @@ class Esdb implements StorageInterface
      * @return FlowEntity[]
      * @throws Exception
      */
-    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
+        $skip = max(0, $skip);
+        $top = max(1, $top);
+
         $flowEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'SKIP ' . $skip . ' ' .
             'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
         );
@@ -615,13 +619,17 @@ class Esdb implements StorageInterface
      * @return FlowEntity[]
      * @throws Exception
      */
-    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
+        $skip = max(0, $skip);
+        $top = max(1, $top);
+
         $flowEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'AND e.data.flowSource == "' . $flowSource . '" ' .
             'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'SKIP ' . $skip . ' ' .
             'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
         );
@@ -641,12 +649,16 @@ class Esdb implements StorageInterface
      * @return FlowException[]
      * @throws Exception
      */
-    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
+        $skip = max(0, $skip);
+        $top = max(1, $top);
+
         $exceptionEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
             'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'SKIP ' . $skip . ' ' .
             'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
         );
@@ -671,13 +683,17 @@ class Esdb implements StorageInterface
      * @return FlowException[]
      * @throws Exception
      */
-    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable
+    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
+        $skip = max(0, $skip);
+        $top = max(1, $top);
+
         $exceptionEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
             'AND e.data.flowHash == "' . $flowHash . '" ' .
             'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'SKIP ' . $skip . ' ' .
             'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
         );
