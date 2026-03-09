@@ -35,7 +35,7 @@ final class FlowRunnerTest extends TestCase
         $this->assertCount(0, $exceptions);
         $this->assertCount(1, $runs);
 
-        $this->assertCount(5, $flow->getFlowMessages());
+        $this->assertCount(6, $flow->getFlowMessages());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
         $this->assertSame('End of flow', $result->getData());
     }
@@ -51,7 +51,7 @@ final class FlowRunnerTest extends TestCase
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
 
-        $this->assertCount(5, $flow->getFlowMessages());
+        $this->assertCount(6, $flow->getFlowMessages());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
         $this->assertSame('End of flow', $result->getData());
 
@@ -66,7 +66,7 @@ final class FlowRunnerTest extends TestCase
         $this->assertCount(0, $exceptions);
         $this->assertCount(1, $runs);
 
-        $this->assertCount(4, $flowRunner->getFlow()->getFlowMessages());
+        $this->assertCount(5, $flowRunner->getFlow()->getFlowMessages());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
         $this->assertSame('End of flow', $result->getData());
     }

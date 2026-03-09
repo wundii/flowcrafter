@@ -125,6 +125,11 @@ class FlowRunner
                 $stubInstance = new $stubSource($stub->getMessageEnum()->value, reset($messages));
                 $processResult = $stubInstance->process();
             } catch (Throwable $exception) {
+                foreach ($flowMessages as $flowMessage) {
+                    $flowMessage->setFinish();
+                    $this->storage?->appendFlowMessage($flowMessage);
+                }
+
                 $flowException = FlowException::create(
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
@@ -156,6 +161,19 @@ class FlowRunner
             }
 
             $this->messageReturn = $processResult;
+
+            if ($processResult instanceof MessageReturnInterface) {
+                $returnFlowMessage = FlowMessage::create(
+                    flowHash: $flow->getHash(),
+                    flowRuntimeHash: $flow->getRuntimeHash(),
+                    stubSource: $stubSource,
+                    messageTypeEnum: MessageTypeEnum::FINISH,
+                    predecessorHash: $flowMessage->getHash(),
+                    message: $processResult,
+                );
+                $flow->addMessage($returnFlowMessage);
+                $this->storage?->appendFlowMessage($returnFlowMessage);
+            }
         }
     }
 }

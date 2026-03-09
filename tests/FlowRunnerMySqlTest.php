@@ -29,7 +29,7 @@ final class FlowRunnerMySqlTest extends TestCase
         );
         $flowRunner->run(new MessageInitMock('test data'));
 
-        $this->assertCount(5, $flowRunner->getFlow()->getFlowMessages());
+        $this->assertCount(6, $flowRunner->getFlow()->getFlowMessages());
 
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SCHEMA);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
@@ -41,7 +41,7 @@ final class FlowRunnerMySqlTest extends TestCase
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_MESSAGE);
-        $this->assertCount(5, iterator_to_array($stmt->fetchAll()));
+        $this->assertCount(6, iterator_to_array($stmt->fetchAll()));
     }
 
     public function testRunFail(): void

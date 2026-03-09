@@ -182,7 +182,7 @@ final class FlowStorageMySqlTest extends TestCase
         $flow = $storage->findFlowByHash($flow->getHash());
 
         $this->assertInstanceOf(Flow::class, $flow);
-        $this->assertCount(5, $flow->getFlowMessages());
+        $this->assertCount(6, $flow->getFlowMessages());
         $this->assertCount(0, $flow->getFlowExceptions());
         $this->assertCount(1, $flow->getFlowRuns());
     }
@@ -202,7 +202,7 @@ final class FlowStorageMySqlTest extends TestCase
         $flow = $storage->findFlowByRuntimeHash($flow->getRuntimeHash());
 
         $this->assertInstanceOf(Flow::class, $flow);
-        $this->assertCount(5, $flow->getFlowMessages());
+        $this->assertCount(6, $flow->getFlowMessages());
         $this->assertCount(0, $flow->getFlowExceptions());
         $this->assertCount(1, $flow->getFlowRuns());
     }

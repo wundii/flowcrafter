@@ -118,6 +118,7 @@ final class ConverterTest extends TestCase
                 hash: Uuid::uuid7($flow->getTime())->toString(),
             ),
         );
+        $flow->addRun();
 
         $json = Converter::flowToJson($flow);
 
@@ -166,7 +167,14 @@ final class ConverterTest extends TestCase
                     'hash' => Uuid::uuid7($flow->getTime())->toString(),
                 ],
             ],
-            'flowRuns' => [],
+            'flowRuns' => [
+                [
+                    'flowHash' => $flow->getHash(),
+                    'flowRuntimeHash' => $flow->getRuntimeHash(),
+                    'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
+                    'queueId' => null,
+                ]
+            ],
         ]);
 
         $this->assertSame($expectedJson, $json);
