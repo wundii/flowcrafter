@@ -21,7 +21,7 @@ class Flow implements JsonSerializable
      * @param class-string<FlowInterface> $flowSource
      * @param FlowMessage[] $flowMessages
      * @param FlowException[] $flowExceptions
-     * @param FlowRun[] $flowExceptions
+     * @param FlowRun[] $flowRuns
      */
     public function __construct(
         private readonly string $flowType,
@@ -246,7 +246,7 @@ class Flow implements JsonSerializable
     }
 
     /**
-     * @return array<string, null|string|array<FlowMessage|FlowException>|FlowSchema>
+     * @return array<string, null|string|array<FlowMessage|FlowException|FlowRun>|FlowSchema>
      */
     public function jsonSerialize(): array
     {

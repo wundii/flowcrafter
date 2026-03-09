@@ -41,7 +41,7 @@ class Flower
         $response = null;
 
         if ($secret !== null && $secret !== '' && $request->getPathInfo() !== '/') {
-            $authHeader = $request->headers->get('Authorization', '');
+            $authHeader = (string) $request->headers->get('Authorization', '');
             $provided = str_starts_with($authHeader, 'Bearer ') ? substr($authHeader, 7) : '';
             if (!hash_equals($secret, $provided)) {
                 (new Response('Unauthorized', 401))->send();

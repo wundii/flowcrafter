@@ -47,7 +47,7 @@ class FlowRun implements JsonSerializable
         return $this->time;
     }
 
-    public function getQueueId(): string
+    public function getQueueId(): ?string
     {
         return $this->queueId;
     }

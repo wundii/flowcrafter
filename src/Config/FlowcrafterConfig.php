@@ -70,7 +70,7 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::SERVER_SECRET, $serverSecret);
     }
 
-    public function getServerSecret() : ?string
+    public function getServerSecret(): ?string
     {
         return $this->getNullOrString(OptionEnum::SERVER_SECRET);
     }
