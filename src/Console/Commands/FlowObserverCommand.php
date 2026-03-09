@@ -54,10 +54,14 @@ final class FlowObserverCommand extends Command
         $storage = $this->flowcrafterConfig->getStorage();
         $flowObserver = new FlowObserver($storage);
 
+        $logger = static function (string $message) use ($output): void {
+            $output->writeln($message);
+        };
+
         /** @phpstan-ignore-next-line */
         while (true) {
             try {
-                $flowObserver->run();
+                $flowObserver->run(logger: $logger);
             } catch (Throwable $e) {
                 echo '[Observer] error: ' . $e->getMessage() . PHP_EOL;
                 sleep(2);

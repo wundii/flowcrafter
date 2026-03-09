@@ -38,9 +38,8 @@ if (file_exists($configFile)) {
     $configClosure($flowcrafterConfig);
 }
 
-$storage = $flowcrafterConfig->getStorage();
-
 try {
+    $storage = $flowcrafterConfig->getStorage();
     $storage->initializeDatabase();
 } catch (Throwable $throwable) {
     http_response_code(503);

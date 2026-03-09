@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use Closure;
 use DateTime;
 use DateTimeInterface;
 use RuntimeException;
@@ -28,6 +29,7 @@ readonly class FlowObserver
             DateTimeInterface::class => DateTime::class,
         ],
         float $maxExecutionTimeInSeconds = 0.0,
+        ?Closure $logger = null,
     ): void {
         $dataConfig = new DataConfig(
             approachEnum: ApproachEnum::CONSTRUCTOR,
@@ -39,7 +41,9 @@ readonly class FlowObserver
         foreach ($this->storage->observeQueue($maxExecutionTimeInSeconds) as $observeItem) {
             $messageSource = Assert::classString($observeItem->getMessageSource(), MessageInterface::class, 'Each Message must have a string source.');
 
-            echo date('Y-m-d H:i:s') . ' ' . $messageSource . PHP_EOL;
+            if ($logger !== null) {
+                $logger(date('Y-m-d H:i:s') . ' ' . $messageSource);
+            }
 
             $message = $dataMapper->array($observeItem->getMessage(), $messageSource);
             if (!$message instanceof MessageInterface) {
