@@ -350,6 +350,7 @@ class Esdb implements StorageInterface
         unset($data['flowSchema']);
         unset($data['flowMessages']);
         unset($data['flowExceptions']);
+        unset($data['flowRuns']);
 
         $subjectSchema = '/flow/schema/' . $flow->getSchema()->getHash();
         $eventCandidate = new EventCandidate(
@@ -640,6 +641,10 @@ class Esdb implements StorageInterface
             if ($flowEvent->type === self::TYPE_EXCEPTION) {
                 $flowArray['flowExceptions'][] = $flowEvent->data;
             }
+
+            if ($flowEvent->type === self::TYPE_RUN) {
+                $flowArray['flowRuns'][] = $flowEvent->data;
+            }
         }
 
         if ($flowArray === []) {
@@ -694,6 +699,17 @@ class Esdb implements StorageInterface
 
         foreach ($exceptionEvents as $exceptionEvent) {
             $flowArray['flowExceptions'][] = $exceptionEvent;
+        }
+
+        $runEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
+            'AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '" ' .
+            'PROJECT INTO e.data'
+        );
+
+        foreach ($runEvents as $runEvent) {
+            $flowArray['flowRuns'][] = $runEvent;
         }
 
         return Converter::arrayToFlow($flowArray);

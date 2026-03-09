@@ -67,6 +67,7 @@ final class ConverterTest extends TestCase
             'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
             'flowMessages' => [],
             'flowExceptions' => [],
+            'flowRuns' => [],
         ]);
 
         $this->assertSame($expectedJson, $json);
@@ -165,6 +166,7 @@ final class ConverterTest extends TestCase
                     'hash' => Uuid::uuid7($flow->getTime())->toString(),
                 ],
             ],
+            'flowRuns' => [],
         ]);
 
         $this->assertSame($expectedJson, $json);
@@ -191,6 +193,7 @@ final class ConverterTest extends TestCase
             'time' => $datetime->format(DateTimeInterface::ATOM),
             'flowMessages' => [],
             'flowExceptions' => [],
+            'flowRuns' => [],
         ]);
 
         $flow = Converter::jsonToFlow($json);

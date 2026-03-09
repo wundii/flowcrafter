@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use DateTimeImmutable;
 use Throwable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
@@ -59,6 +60,7 @@ class FlowRunner
             $this->flowSubject,
             $flowHash,
         );
+        $this->flow->addRun($queueId);
 
         $flowSchema = $this->flow->getSchema();
 

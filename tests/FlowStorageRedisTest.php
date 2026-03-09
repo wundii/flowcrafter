@@ -182,6 +182,9 @@ final class FlowStorageRedisTest extends TestCase
         $flow = $storage->findFlowByHash($flow->getHash());
 
         $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertCount(5, $flow->getFlowMessages());
+        $this->assertCount(0, $flow->getFlowExceptions());
+        $this->assertCount(1, $flow->getFlowRuns());
     }
 
     public function testFindFlowByRuntimeHash(): void
@@ -199,5 +202,8 @@ final class FlowStorageRedisTest extends TestCase
         $flow = $storage->findFlowByRuntimeHash($flow->getRuntimeHash());
 
         $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertCount(5, $flow->getFlowMessages());
+        $this->assertCount(0, $flow->getFlowExceptions());
+        $this->assertCount(1, $flow->getFlowRuns());
     }
 }

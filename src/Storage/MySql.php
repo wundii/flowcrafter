@@ -519,6 +519,23 @@ class MySql implements StorageInterface
             ];
         }
 
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_run ' .
+            'WHERE flow_hash = :flow_hash'
+        );
+        $stmt->execute([
+            ':flow_hash' => $flowHash,
+        ]);
+
+        foreach ($stmt->fetchAll() as $run) {
+            $flowArray['flowRuns'][] = [
+                'flowHash' => $run['flow_hash'] ?? '',
+                'flowRuntimeHash' => $run['flow_runtime_hash'] ?? '',
+                'time' => $run['time'] ?? 'now',
+                'queueId' => $run['queueId'] ?? '',
+            ];
+        }
+
         return Converter::arrayToFlow($flowArray);
     }
 
@@ -570,7 +587,7 @@ class MySql implements StorageInterface
             'WHERE flow_runtime_hash = :flow_runtime_hash'
         );
         $stmt->execute([
-            ':flow_runtime_hash' => $flowHash,
+            ':flow_runtime_hash' => $flowRuntimeHash,
         ]);
 
         foreach ($stmt->fetchAll() as $message) {
@@ -602,7 +619,7 @@ class MySql implements StorageInterface
             'WHERE flow_runtime_hash = :flow_runtime_hash'
         );
         $stmt->execute([
-            ':flow_runtime_hash' => $flowHash,
+            ':flow_runtime_hash' => $flowRuntimeHash,
         ]);
 
         foreach ($stmt->fetchAll() as $exception) {
@@ -617,6 +634,23 @@ class MySql implements StorageInterface
                 'line' => $exception['line'] ?? 0,
                 'traceString' => $exception['traceString'] ?? '',
                 'time' => $exception['time'] ?? 'now',
+            ];
+        }
+
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_run ' .
+            'WHERE flow_runtime_hash = :flow_runtime_hash'
+        );
+        $stmt->execute([
+            ':flow_runtime_hash' => $flowRuntimeHash,
+        ]);
+
+        foreach ($stmt->fetchAll() as $run) {
+            $flowArray['flowRuns'][] = [
+                'flowHash' => $run['flow_hash'] ?? '',
+                'flowRuntimeHash' => $run['flow_runtime_hash'] ?? '',
+                'time' => $run['time'] ?? 'now',
+                'queueId' => $run['queueId'] ?? '',
             ];
         }
 

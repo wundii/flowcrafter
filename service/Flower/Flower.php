@@ -33,12 +33,21 @@ class Flower
         return $flower->router;
     }
 
-    public static function run(): void
+    public static function run(?string $secret = null): void
     {
         $flower = self::getInstance();
         $request = $flower->request;
         $router = $flower->router();
         $response = null;
+
+        if ($secret !== null && $secret !== '' && $request->getPathInfo() !== '/') {
+            $authHeader = $request->headers->get('Authorization', '');
+            $provided = str_starts_with($authHeader, 'Bearer ') ? substr($authHeader, 7) : '';
+            if (!hash_equals($secret, $provided)) {
+                (new Response('Unauthorized', 401))->send();
+                return;
+            }
+        }
 
         $requestContext = new RequestContext();
         $requestContext->fromRequest($request);

@@ -21,6 +21,7 @@ class Flow implements JsonSerializable
      * @param class-string<FlowInterface> $flowSource
      * @param FlowMessage[] $flowMessages
      * @param FlowException[] $flowExceptions
+     * @param FlowRun[] $flowExceptions
      */
     public function __construct(
         private readonly string $flowType,
@@ -31,6 +32,7 @@ class Flow implements JsonSerializable
         private readonly ?string $flowSubject = null,
         private array $flowMessages = [],
         private array $flowExceptions = [],
+        private array $flowRuns = [],
     ) {
         Assert::classString(
             $flowSource,
@@ -175,6 +177,24 @@ class Flow implements JsonSerializable
     }
 
     /**
+     * @return FlowRun[]
+     */
+    public function getFlowRuns(): array
+    {
+        return $this->flowRuns;
+    }
+
+    public function addRun(?string $queueId): void
+    {
+        $this->flowRuns[] = new FlowRun(
+            $this->getHash(),
+            $this->getRuntimeHash(),
+            new DateTimeImmutable('now'),
+            $queueId,
+        );
+    }
+
+    /**
      * @param class-string<MessageInterface> $message
      */
     public function hasMessage(string $message): bool
@@ -240,6 +260,7 @@ class Flow implements JsonSerializable
             'time' => $this->time->format(DateTimeInterface::ATOM),
             'flowMessages' => $this->flowMessages,
             'flowExceptions' => $this->flowExceptions,
+            'flowRuns' => $this->flowRuns,
         ];
     }
 }

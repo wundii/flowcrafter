@@ -295,6 +295,7 @@ class Redis implements StorageInterface
         unset($data['flowSchema']);
         unset($data['flowMessages']);
         unset($data['flowExceptions']);
+        unset($data['flowRuns']);
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
@@ -521,6 +522,11 @@ class Redis implements StorageInterface
             $flowArray['flowExceptions'][] = $exceptionEvent;
         }
 
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
+        foreach (self::fetchData($result) as $runEvent) {
+            $flowArray['flowRuns'][] = $runEvent;
+        }
+
         return Converter::arrayToFlow($flowArray);
     }
 
@@ -550,6 +556,11 @@ class Redis implements StorageInterface
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $exceptionEvent) {
             $flowArray['flowExceptions'][] = $exceptionEvent;
+        }
+
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'RETURN', '1', '$');
+        foreach (self::fetchData($result) as $runEvent) {
+            $flowArray['flowRuns'][] = $runEvent;
         }
 
         return Converter::arrayToFlow($flowArray);

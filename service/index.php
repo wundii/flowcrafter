@@ -16,14 +16,13 @@ require __DIR__ . '/../vendor/autoload.php';
 // CORS for development (Vite dev server on different port)
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
-// Load flowcrafter.php config and instantiate storage
 $flowcrafterConfig = new FlowcrafterConfig();
 $configFile = __DIR__ . '/../flowcrafter.php';
 if (file_exists($configFile)) {
@@ -34,7 +33,6 @@ if (file_exists($configFile)) {
 $storage = $flowcrafterConfig->getStorage();
 $storage->initializeDatabase();
 
-// Helper: serialize FlowEntity (public props but DateTimeInterface needs manual mapping)
 $serializeEntity = static fn (FlowEntity $flowEntity): array => [
     'flowHash' => $flowEntity->flowHash,
     'flowType' => $flowEntity->flowType,
@@ -52,6 +50,14 @@ $route->add(
         return new JsonResponse([
             'status' => 'ok',
         ], 200);
+    }
+);
+
+$route->add(
+    '/api/ping',
+    MethodEnum::GET,
+    function (): JsonResponse {
+        return new JsonResponse('pong', 200);
     }
 );
 
@@ -112,4 +118,4 @@ $route->add(
     }
 );
 
-Flower::run();
+Flower::run($flowcrafterConfig->getServerSecret());
