@@ -4,18 +4,26 @@ declare(strict_types=1);
 
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Wundii\DataMapper\DataConfig;
+use Wundii\DataMapper\DataMapper;
+use Wundii\DataMapper\Enum\ApproachEnum;
+use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowRunner;
+use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flower\Flower;
 use Wundii\Flower\MethodEnum;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-// CORS for development (Vite dev server on different port)
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -120,6 +128,76 @@ $route->add(
             : $storage->findAllExceptions($sort, $top);
 
         return new JsonResponse(array_values(iterator_to_array($exceptions)));
+    }
+);
+
+// POST /api/flows/run  body: { flowHash, messageSource, message }
+$route->add(
+    '/api/flows/run',
+    MethodEnum::POST,
+    function (Request $request) use ($storage): JsonResponse {
+        $body = json_decode($request->getContent(), true);
+        if (!is_array($body)) {
+            return new JsonResponse([
+                'error' => 'Invalid JSON body',
+            ], 400);
+        }
+
+        $flowHash = Assert::string($body['flowHash'] ?? '');
+        $messageSource = Assert::string($body['messageSource'] ?? '');
+        $message = Assert::array($body['message'] ?? []);
+
+        if ($flowHash === '' || $messageSource === '' || $message === []) {
+            return new JsonResponse([
+                'error' => 'flowHash, messageSource and message required',
+            ], 400);
+        }
+
+        if (!class_exists($messageSource)) {
+            return new JsonResponse([
+                'error' => 'Unknown message class',
+            ], 400);
+        }
+
+        $existingFlow = $storage->findFlowByHash($flowHash);
+        if (!$existingFlow instanceof Flow) {
+            return new JsonResponse([
+                'error' => 'Flow not found',
+            ], 404);
+        }
+
+        try {
+            $dataConfig = new DataConfig(approachEnum: ApproachEnum::CONSTRUCTOR);
+            $dataMapper = new DataMapper($dataConfig);
+            $messageInstance = $dataMapper->array($message, $messageSource);
+
+            if (!$messageInstance instanceof MessageInterface) {
+                return new JsonResponse([
+                    'error' => 'Invalid message class or data',
+                ], 400);
+            }
+
+            $flowRunner = new FlowRunner(
+                type: $existingFlow->getType(),
+                flowSource: $existingFlow->getSource(),
+                storage: $storage,
+            );
+        } catch (Throwable $throwable) {
+            return new JsonResponse([
+                'error' => $throwable->getMessage(),
+            ], 500);
+        }
+
+        try {
+            $flowRunner->run($messageInstance, $flowHash);
+        } catch (Throwable $throwable) {
+            // the exception is recorded in storage
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'runtimeHash' => $flowRunner->getFlow()?->getRuntimeHash(),
+        ]);
     }
 );
 

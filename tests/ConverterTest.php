@@ -173,7 +173,7 @@ final class ConverterTest extends TestCase
                     'flowRuntimeHash' => $flow->getRuntimeHash(),
                     'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
                     'queueId' => null,
-                ]
+                ],
             ],
         ]);
 
