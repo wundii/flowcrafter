@@ -445,6 +445,11 @@ class Esdb implements StorageInterface
         );
     }
 
+    public function openQueues(): int
+    {
+        return 0;
+    }
+
     /**
      * @param class-string $flowSource
      * @param class-string $messageSource

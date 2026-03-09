@@ -69,6 +69,16 @@ $route->add(
     }
 );
 
+$route->add(
+    '/api/info',
+    MethodEnum::GET,
+    function () use ($flowcrafterConfig): JsonResponse {
+        return new JsonResponse([
+            'description' => $flowcrafterConfig->getServerDescription(),
+        ]);
+    }
+);
+
 // GET /api/flows[?sort=asc|desc&top=1000&source=App\YourFlow]
 $route->add(
     '/api/flows',
@@ -128,6 +138,17 @@ $route->add(
             : $storage->findAllExceptions($sort, $top);
 
         return new JsonResponse(array_values(iterator_to_array($exceptions)));
+    }
+);
+
+// GET /api/queue/count
+$route->add(
+    '/api/queue/count',
+    MethodEnum::GET,
+    function () use ($storage): JsonResponse {
+        return new JsonResponse([
+            'count' => $storage->openQueues(),
+        ]);
     }
 );
 

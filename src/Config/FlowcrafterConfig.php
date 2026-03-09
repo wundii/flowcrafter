@@ -75,6 +75,16 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         return $this->getNullOrString(OptionEnum::SERVER_SECRET);
     }
 
+    public function setServerDescription(?string $serverDescription = null): void
+    {
+        $this->setParameter(OptionEnum::SERVER_DESCRIPTION, $serverDescription);
+    }
+
+    public function getServerDescription(): ?string
+    {
+        return $this->getNullOrString(OptionEnum::SERVER_DESCRIPTION);
+    }
+
     /**
      * @return mixed[]
      */

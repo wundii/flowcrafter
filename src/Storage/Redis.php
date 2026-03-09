@@ -356,6 +356,12 @@ class Redis implements StorageInterface
         return $messages;
     }
 
+    public function openQueues(): int
+    {
+        $len = $this->client->lLen('flow:queue');
+        return $len === false ? 0 : (int) $len;
+    }
+
     /**
      * @param class-string $flowSource
      * @param class-string $messageSource

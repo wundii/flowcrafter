@@ -33,6 +33,8 @@ interface StorageInterface
      */
     public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void;
 
+    public function openQueues(): int;
+
     /**
      * @return iterable<ObserveItem>
      */

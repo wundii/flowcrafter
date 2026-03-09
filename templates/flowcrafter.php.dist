@@ -6,11 +6,13 @@ use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 
 return static function (FlowcrafterConfig $flowcrafterConfig): void {
     $flowcrafterConfig->setStorageClass('Wundii\Flowcrafter\Storage\Redis');
-    $flowcrafterConfig->setUrl();
-    $flowcrafterConfig->setApiToken();
-    $flowcrafterConfig->setHost('localhost');
-    $flowcrafterConfig->setPort(6379);
-    $flowcrafterConfig->setUsername();
-    $flowcrafterConfig->setPassword();
-    $flowcrafterConfig->setDatabase();
+    $flowcrafterConfig->setStorageUrl();
+    $flowcrafterConfig->setStorageApiToken();
+    $flowcrafterConfig->setStorageHost('localhost');
+    $flowcrafterConfig->setStoragePort(6379);
+    $flowcrafterConfig->setStorageUsername();
+    $flowcrafterConfig->setStoragePassword();
+    $flowcrafterConfig->setStorageDatabase();
+    $flowcrafterConfig->setServerSecret();
+    $flowcrafterConfig->setServerDescription();
 };

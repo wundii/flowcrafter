@@ -50,4 +50,9 @@ enum OptionEnum: string
      * @internal
      */
     case SERVER_SECRET = 'server_secret';
+
+    /**
+     * @internal
+     */
+    case SERVER_DESCRIPTION = 'server_description';
 }

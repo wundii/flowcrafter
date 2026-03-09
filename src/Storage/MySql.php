@@ -254,6 +254,16 @@ class MySql implements StorageInterface
         ]);
     }
 
+    public function openQueues(): int
+    {
+        $stmt = $this->client->query('SELECT COUNT(*) FROM flow_queue');
+        if ($stmt === false) {
+            return 0;
+        }
+
+        return (int) $stmt->fetchColumn();
+    }
+
     /**
      * @param class-string $flowSource
      * @param class-string $messageSource
