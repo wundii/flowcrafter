@@ -457,10 +457,40 @@ class Redis implements StorageInterface
         }
     }
 
-    /**
-     * @return FlowEntity[]
-     * @throws Exception
-     */
+    public function countFlows(): int
+    {
+        return $this->countFlowsBySource('*');
+    }
+
+    public function countFlowsBySource(string $flowSource = ''): int
+    {
+        $flowSource = self::escapeValue($flowSource);
+        $value = match ($flowSource) {
+            '*', '' => '*',
+            default => '@flowSource:{' . $flowSource . '}',
+        };
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_INSTANCE, $value, 'LIMIT', '0', '0');
+
+        return is_array($result) && is_int($result[0] ?? null) ? $result[0] : 0;
+    }
+
+    public function countExceptions(): int
+    {
+        return $this->countExceptionsByFlowHash('*');
+    }
+
+    public function countExceptionsByFlowHash(string $flowHash = ''): int
+    {
+        $flowHash = self::escapeValue($flowHash);
+        $value = match ($flowHash) {
+            '*', '' => '*',
+            default => '@flowHash:{' . $flowHash . '}',
+        };
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, $value, 'LIMIT', '0', '0');
+
+        return is_array($result) && is_int($result[0] ?? null) ? $result[0] : 0;
+    }
+
     public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
         return $this->findFlowsBySource('*', $sortEnum, $top, $skip);

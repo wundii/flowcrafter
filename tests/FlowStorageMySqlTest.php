@@ -131,6 +131,7 @@ final class FlowStorageMySqlTest extends TestCase
 
         $exceptions = iterator_to_array($storage->findAllExceptions(SortEnum::ASC));
         $this->assertCount(2, $exceptions);
+        $this->assertSame(2, $storage->countExceptions());
         $this->assertInstanceOf(FlowException::class, $exceptions[0]);
         $this->assertInstanceOf(FlowException::class, $exceptions[1]);
         $this->assertGreaterThan($exceptions[0]->getHash(), $exceptions[1]->getHash());
@@ -162,6 +163,7 @@ final class FlowStorageMySqlTest extends TestCase
 
         $exceptions = iterator_to_array($storage->findAllExceptions());
         $this->assertCount(2, $exceptions);
+        $this->assertSame(2, $storage->countExceptions());
         $this->assertInstanceOf(FlowException::class, $exceptions[0]);
         $this->assertInstanceOf(FlowException::class, $exceptions[1]);
         $this->assertLessThan($exceptions[0]->getHash(), $exceptions[1]->getHash());

@@ -45,6 +45,14 @@ interface StorageInterface
      */
     public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable;
 
+    public function countFlows(): int;
+
+    public function countFlowsBySource(string $flowSource = ''): int;
+
+    public function countExceptions(): int;
+
+    public function countExceptionsByFlowHash(string $flowHash = ''): int;
+
     /**
      * @return FlowEntity[]
      */

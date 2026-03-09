@@ -342,10 +342,52 @@ class MySql implements StorageInterface
         }
     }
 
-    /**
-     * @return FlowEntity[]
-     * @throws Exception
-     */
+    public function countFlows(): int
+    {
+        $stmt = $this->client->query('SELECT COUNT(*) FROM flow_instance');
+        if ($stmt === false) {
+            return 0;
+        }
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countFlowsBySource(string $flowSource = ''): int
+    {
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_instance WHERE flow_source = :flow_source');
+        $stmt->bindValue(':flow_source', $flowSource);
+        $stmt->execute();
+
+        if ($stmt === false) {
+            return 0;
+        }
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countExceptions(): int
+    {
+        $stmt = $this->client->query('SELECT COUNT(*) FROM flow_exception');
+        if ($stmt === false) {
+            return 0;
+        }
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countExceptionsByFlowHash(string $flowHash = ''): int
+    {
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_exception WHERE flow_hash = :flow_hash');
+        $stmt->bindValue(':flow_hash', $flowHash);
+        $stmt->execute();
+
+        if ($stmt === false) {
+            return 0;
+        }
+
+        return (int) $stmt->fetchColumn();
+    }
+
     public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
     {
         $skip = max(0, $skip);
@@ -354,7 +396,7 @@ class MySql implements StorageInterface
         $stmt = $this->client->query(
             'SELECT * FROM flow_instance' .
             ' ORDER BY flow_hash ' . $sortEnum->name .
-            ' LIMIT ' . $skip . ' ' . $top
+            ' LIMIT ' . $skip . ', ' . $top
         );
 
         if ($stmt === false) {
@@ -388,7 +430,7 @@ class MySql implements StorageInterface
 
         $stmt = $this->client->prepare(
             'SELECT * FROM flow_instance' .
-            ' WHERE flow_source = :flow_source ORDER BY flow_hash ' . $sortEnum->name . ' LIMIT :skip :top'
+            ' WHERE flow_source = :flow_source ORDER BY flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
         );
         $stmt->bindValue(':flow_source', $flowSource);
         $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
@@ -418,7 +460,7 @@ class MySql implements StorageInterface
         $stmt = $this->client->query(
             'SELECT * FROM flow_exception ' .
             'ORDER BY flow_hash ' . $sortEnum->name . ' ' .
-            'LIMIT ' . $skip . ' ' . $top
+            'LIMIT ' . $skip . ', ' . $top
         );
 
         if ($stmt === false) {
@@ -459,7 +501,7 @@ class MySql implements StorageInterface
             'SELECT * FROM flow_exception ' .
             'WHERE flow_hash = :flow_hash ' .
             'ORDER BY flow_hash ' . $sortEnum->name . ' ' .
-            'LIMIT :skip :top'
+            'LIMIT :skip, :top'
         );
         $stmt->bindValue(':flow_hash', $flowHash);
         $stmt->bindValue(':skip', $skip, Client::PARAM_INT);

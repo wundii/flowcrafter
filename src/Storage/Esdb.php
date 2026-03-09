@@ -586,6 +586,52 @@ class Esdb implements StorageInterface
         }
     }
 
+    public function countFlows(): int
+    {
+        $flowEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
+            'PROJECT INTO COUNT()'
+        );
+        $flowEvents = iterator_to_array($flowEvents);
+        return $flowEvents[0] ?? 0;
+    }
+
+    public function countFlowsBySource(string $flowSource = ''): int
+    {
+        $flowEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
+            'AND e.data.flowSource == "' . $flowSource . '" ' .
+            'PROJECT INTO COUNT()'
+        );
+        $flowEvents = iterator_to_array($flowEvents);
+        return $flowEvents[0] ?? 0;
+    }
+
+    public function countExceptions(): int
+    {
+        $flowEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
+            'PROJECT INTO COUNT()'
+        );
+        $flowEvents = iterator_to_array($flowEvents);
+        return $flowEvents[0] ?? 0;
+    }
+
+    public function countExceptionsByFlowHash(string $flowHash = ''): int
+    {
+        $flowEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
+            'AND e.data.flowHash == "' . $flowHash . '" ' .
+            'PROJECT INTO COUNT()'
+        );
+        $flowEvents = iterator_to_array($flowEvents);
+        return $flowEvents[0] ?? 0;
+    }
+
     /**
      * @return FlowEntity[]
      * @throws Exception

@@ -158,8 +158,13 @@ $route->add(
             array_pop($items);
         }
 
+        $total = $source !== null
+            ? $storage->countFlowsBySource($source)
+            : $storage->countFlows();
+
         return new JsonResponse([
             'items' => $items,
+            'total' => $total,
             'hasMore' => $hasMore,
         ]);
     }
@@ -213,8 +218,13 @@ $route->add(
             array_pop($items);
         }
 
+        $total = $flowHash !== null
+            ? $storage->countExceptionsByFlowHash($flowHash)
+            : $storage->countExceptions();
+
         return new JsonResponse([
             'items' => $items,
+            'total' => $total,
             'hasMore' => $hasMore,
         ]);
     }
