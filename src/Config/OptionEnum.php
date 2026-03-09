@@ -14,35 +14,40 @@ enum OptionEnum: string
     /**
      * @internal
      */
-    case URL = 'url';
+    case STORAGE_URL = 'url';
 
     /**
      * @internal
      */
-    case APITOKEN = 'apiToken';
+    case STORAGE_APITOKEN = 'apiToken';
 
     /**
      * @internal
      */
-    case HOST = 'host';
+    case STORAGE_HOST = 'host';
 
     /**
      * @internal
      */
-    case PORT = 'port';
+    case STORAGE_PORT = 'port';
 
     /**
      * @internal
      */
-    case USERNAME = 'username';
+    case STORAGE_USERNAME = 'username';
 
     /**
      * @internal
      */
-    case PASSWORD = 'password';
+    case STORAGE_PASSWORD = 'password';
 
     /**
      * @internal
      */
-    case DATABASE = 'database';
+    case STORAGE_DATABASE = 'database';
+
+    /**
+     * @internal
+     */
+    case SERVER_SECRET = 'server_secret';
 }

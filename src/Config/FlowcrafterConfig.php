@@ -16,13 +16,13 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
     public function __construct()
     {
         $this->setParameter(OptionEnum::STORAGE_CLASS, null);
-        $this->setParameter(OptionEnum::URL, null);
-        $this->setParameter(OptionEnum::APITOKEN, null);
-        $this->setParameter(OptionEnum::HOST, null);
-        $this->setParameter(OptionEnum::PORT, null);
-        $this->setParameter(OptionEnum::USERNAME, null);
-        $this->setParameter(OptionEnum::PASSWORD, null);
-        $this->setParameter(OptionEnum::DATABASE, null);
+        $this->setParameter(OptionEnum::STORAGE_URL, null);
+        $this->setParameter(OptionEnum::STORAGE_APITOKEN, null);
+        $this->setParameter(OptionEnum::STORAGE_HOST, null);
+        $this->setParameter(OptionEnum::STORAGE_PORT, null);
+        $this->setParameter(OptionEnum::STORAGE_USERNAME, null);
+        $this->setParameter(OptionEnum::STORAGE_PASSWORD, null);
+        $this->setParameter(OptionEnum::STORAGE_DATABASE, null);
     }
 
     public function setStorageClass(string $storageClass): void
@@ -30,39 +30,44 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::STORAGE_CLASS, $storageClass);
     }
 
-    public function setUrl(?string $url = null): void
+    public function setStorageUrl(?string $storageUrl = null): void
     {
-        $this->setParameter(OptionEnum::URL, $url);
+        $this->setParameter(OptionEnum::STORAGE_URL, $storageUrl);
     }
 
-    public function setApiToken(?string $apiToken = null): void
+    public function setStorageApiToken(?string $storageApiToken = null): void
     {
-        $this->setParameter(OptionEnum::APITOKEN, $apiToken);
+        $this->setParameter(OptionEnum::STORAGE_APITOKEN, $storageApiToken);
     }
 
-    public function setHost(string $host): void
+    public function setStorageHost(string $storageHost): void
     {
-        $this->setParameter(OptionEnum::HOST, $host);
+        $this->setParameter(OptionEnum::STORAGE_HOST, $storageHost);
     }
 
-    public function setPort(int $port): void
+    public function setStoragePort(int $storagePort): void
     {
-        $this->setParameter(OptionEnum::PORT, $port);
+        $this->setParameter(OptionEnum::STORAGE_PORT, $storagePort);
     }
 
-    public function setUsername(?string $username = null): void
+    public function setStorageUsername(?string $storageUsername = null): void
     {
-        $this->setParameter(OptionEnum::USERNAME, $username);
+        $this->setParameter(OptionEnum::STORAGE_USERNAME, $storageUsername);
     }
 
-    public function setPassword(?string $password = null): void
+    public function setStoragePassword(?string $storagePassword = null): void
     {
-        $this->setParameter(OptionEnum::PASSWORD, $password);
+        $this->setParameter(OptionEnum::STORAGE_PASSWORD, $storagePassword);
     }
 
-    public function setDatabase(?string $database = null): void
+    public function setStorageDatabase(?string $storageDatabase = null): void
     {
-        $this->setParameter(OptionEnum::DATABASE, $database);
+        $this->setParameter(OptionEnum::STORAGE_DATABASE, $storageDatabase);
+    }
+
+    public function setServerSecret(?string $serverSecret = null): void
+    {
+        $this->setParameter(OptionEnum::SERVER_SECRET, $serverSecret);
     }
 
     /**
@@ -71,13 +76,13 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
     public function toArray(): array
     {
         return [
-            'url' => $this->getNullOrString(OptionEnum::URL),
-            'apiToken' => $this->getNullOrString(OptionEnum::APITOKEN),
-            'host' => $this->getNullOrString(OptionEnum::HOST),
-            'port' => $this->getNullOrInt(OptionEnum::PORT),
-            'username' => $this->getNullOrString(OptionEnum::USERNAME),
-            'password' => $this->getNullOrString(OptionEnum::PASSWORD),
-            'database' => $this->getNullOrString(OptionEnum::DATABASE),
+            OptionEnum::STORAGE_URL->value => $this->getNullOrString(OptionEnum::STORAGE_URL),
+            OptionEnum::STORAGE_APITOKEN->value => $this->getNullOrString(OptionEnum::STORAGE_APITOKEN),
+            OptionEnum::STORAGE_HOST->value => $this->getNullOrString(OptionEnum::STORAGE_HOST),
+            OptionEnum::STORAGE_PORT->value => $this->getNullOrInt(OptionEnum::STORAGE_PORT),
+            OptionEnum::STORAGE_USERNAME->value => $this->getNullOrString(OptionEnum::STORAGE_USERNAME),
+            OptionEnum::STORAGE_PASSWORD->value => $this->getNullOrString(OptionEnum::STORAGE_PASSWORD),
+            OptionEnum::STORAGE_DATABASE->value => $this->getNullOrString(OptionEnum::STORAGE_DATABASE),
         ];
     }
 
