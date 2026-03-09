@@ -23,6 +23,8 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::STORAGE_USERNAME, null);
         $this->setParameter(OptionEnum::STORAGE_PASSWORD, null);
         $this->setParameter(OptionEnum::STORAGE_DATABASE, null);
+        $this->setParameter(OptionEnum::SERVER_SECRET, null);
+        $this->setParameter(OptionEnum::SERVER_DESCRIPTION, null);
     }
 
     public function setStorageClass(string $storageClass): void
@@ -40,12 +42,12 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::STORAGE_APITOKEN, $storageApiToken);
     }
 
-    public function setStorageHost(string $storageHost): void
+    public function setStorageHost(?string $storageHost = null): void
     {
         $this->setParameter(OptionEnum::STORAGE_HOST, $storageHost);
     }
 
-    public function setStoragePort(int $storagePort): void
+    public function setStoragePort(?int $storagePort = null): void
     {
         $this->setParameter(OptionEnum::STORAGE_PORT, $storagePort);
     }

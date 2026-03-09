@@ -39,7 +39,19 @@ if (file_exists($configFile)) {
 }
 
 $storage = $flowcrafterConfig->getStorage();
-$storage->initializeDatabase();
+
+try {
+    $storage->initializeDatabase();
+} catch (Throwable $throwable) {
+    http_response_code(503);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'error' => 'Storage initialization failed',
+        'message' => $throwable->getMessage(),
+        'class' => get_class($throwable),
+    ]);
+    exit;
+}
 
 $serializeEntity = static fn (FlowEntity $flowEntity): array => [
     'flowHash' => $flowEntity->flowHash,
@@ -69,12 +81,21 @@ $route->add(
     }
 );
 
+$observerPidFile = sys_get_temp_dir() . '/flowcrafter-observer.pid';
+
 $route->add(
     '/api/info',
     MethodEnum::GET,
-    function () use ($flowcrafterConfig): JsonResponse {
+    function () use ($flowcrafterConfig, $observerPidFile): JsonResponse {
+        $observerRunning = false;
+        if (file_exists($observerPidFile)) {
+            $pid = (int) file_get_contents($observerPidFile);
+            $observerRunning = $pid > 0 && file_exists('/proc/' . $pid);
+        }
+
         return new JsonResponse([
             'description' => $flowcrafterConfig->getServerDescription(),
+            'observerRunning' => $observerRunning,
         ]);
     }
 );
@@ -218,6 +239,62 @@ $route->add(
         return new JsonResponse([
             'success' => true,
             'runtimeHash' => $flowRunner->getFlow()?->getRuntimeHash(),
+        ]);
+    }
+);
+
+// POST /api/queue  body: { flowHash, messageSource, message }
+$route->add(
+    '/api/queue',
+    MethodEnum::POST,
+    function (Request $request) use ($storage): JsonResponse {
+        $body = json_decode($request->getContent(), true);
+        if (!is_array($body)) {
+            return new JsonResponse([
+                'error' => 'Invalid JSON body',
+            ], 400);
+        }
+
+        $flowHash = Assert::string($body['flowHash'] ?? '');
+        $messageSource = Assert::string($body['messageSource'] ?? '');
+        $message = Assert::array($body['message'] ?? []);
+
+        if ($flowHash === '' || $messageSource === '' || $message === []) {
+            return new JsonResponse([
+                'error' => 'flowHash, messageSource and message required',
+            ], 400);
+        }
+
+        if (!class_exists($messageSource)) {
+            return new JsonResponse([
+                'error' => 'Unknown message class',
+            ], 400);
+        }
+
+        $existingFlow = $storage->findFlowByHash($flowHash);
+        if (!$existingFlow instanceof Flow) {
+            return new JsonResponse([
+                'error' => 'Flow not found',
+            ], 404);
+        }
+
+        try {
+            /** @var class-string<object> $messageSource */
+            $storage->appendObserveItem(
+                type: $existingFlow->getType(),
+                flowSource: $existingFlow->getSource(),
+                flowHash: $flowHash,
+                messageSource: $messageSource,
+                message: $message,
+            );
+        } catch (Throwable $throwable) {
+            return new JsonResponse([
+                'error' => $throwable->getMessage(),
+            ], 500);
+        }
+
+        return new JsonResponse([
+            'queued' => true,
         ]);
     }
 );

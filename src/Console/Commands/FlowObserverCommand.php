@@ -8,6 +8,7 @@ use Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
@@ -43,10 +44,24 @@ final class FlowObserverCommand extends Command
         ));
         $output->writeln('');
 
+        $pidFile = sys_get_temp_dir() . '/flowcrafter-observer.pid';
+        file_put_contents($pidFile, (string) getmypid());
+
+        register_shutdown_function(static function () use ($pidFile): void {
+            @unlink($pidFile);
+        });
+
         $storage = $this->flowcrafterConfig->getStorage();
         $flowObserver = new FlowObserver($storage);
-        $flowObserver->run();
 
-        return self::SUCCESS;
+        /** @phpstan-ignore-next-line */
+        while (true) {
+            try {
+                $flowObserver->run();
+            } catch (Throwable $e) {
+                echo '[Observer] error: ' . $e->getMessage() . PHP_EOL;
+                sleep(2);
+            }
+        }
     }
 }

@@ -39,6 +39,8 @@ readonly class FlowObserver
         foreach ($this->storage->observeQueue($maxExecutionTimeInSeconds) as $observeItem) {
             $messageSource = Assert::classString($observeItem->getMessageSource(), MessageInterface::class, 'Each Message must have a string source.');
 
+            echo date('Y-m-d H:i:s') . ' ' . $messageSource . PHP_EOL;
+
             $message = $dataMapper->array($observeItem->getMessage(), $messageSource);
             if (!$message instanceof MessageInterface) {
                 throw new RuntimeException('Mapped message does not implement MessageInterface.');

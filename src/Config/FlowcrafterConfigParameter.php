@@ -13,11 +13,6 @@ class FlowcrafterConfigParameter
      */
     private array $parameters = [];
 
-    public function setParameter(OptionEnum $optionEnum, mixed $value): void
-    {
-        $this->parameters[$optionEnum->value] = $value;
-    }
-
     public function has(OptionEnum $optionEnum): bool
     {
         return array_key_exists($optionEnum->value, $this->parameters);
@@ -78,5 +73,10 @@ class FlowcrafterConfigParameter
     public function getParameter(OptionEnum $optionEnum, mixed $default = null): mixed
     {
         return $this->parameters[$optionEnum->value] ?? $default;
+    }
+
+    protected function setParameter(OptionEnum $optionEnum, mixed $value): void
+    {
+        $this->parameters[$optionEnum->value] = $value;
     }
 }

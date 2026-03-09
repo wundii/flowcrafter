@@ -125,6 +125,7 @@ class Esdb implements StorageInterface
                     'flowHash',
                     'flowRuntimeHash',
                     'time',
+                    'queueId',
                 ],
                 'additionalProperties' => false,
             ];
@@ -447,7 +448,28 @@ class Esdb implements StorageInterface
 
     public function openQueues(): int
     {
-        return 0;
+        $lastFlowRunWithQueueId = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
+            'AND e.data.queueId != null ' .
+            'ORDER BY e.id DESC ' .
+            'TOP 1 ' .
+            'PROJECT INTO e.data.queueId'
+        );
+        $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
+        $lastQueueId = $lastFlowRunEvent[0] ?? '0';
+
+        $events = $this->client->readEvents(
+            self::QUEUE_SUBJECT,
+            new ReadEventsOptions(
+                lowerBound: new Bound(
+                    id: $lastQueueId,
+                    type: $lastQueueId === '0' ? BoundType::INCLUSIVE : BoundType::EXCLUSIVE,
+                ),
+            ),
+        );
+
+        return count(iterator_to_array($events));
     }
 
     /**
@@ -485,7 +507,7 @@ class Esdb implements StorageInterface
 
         $lastFlowRunWithQueueId = $this->client->runEventQlQuery(
             'FROM e IN events ' .
-            'WHERE e.subject == "' . self::QUEUE_SUBJECT . '" ' .
+            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
             'AND e.data.queueId != null ' .
             'ORDER BY e.id DESC ' .
             'PROJECT INTO e.data.queueId'
