@@ -422,6 +422,42 @@ class Redis implements StorageInterface
     }
 
     /**
+     * @return iterable<ObserveItem>
+     */
+    public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable
+    {
+        $items = $this->client->lRange('flow:queue', 0, -1);
+        if ($items === false || $items === []) {
+            return;
+        }
+
+        if ($sortEnum === SortEnum::ASC) {
+            $items = array_reverse($items);
+        }
+
+        foreach ($items as $item) {
+            if (!is_string($item)) {
+                continue;
+            }
+
+            $payload = json_decode($item, true);
+            if (!is_array($payload)) {
+                continue;
+            }
+
+            yield new ObserveItem(
+                /** @phpstan-ignore-next-line */
+                queueId: $payload['queueId'] ?? '',
+                type: $payload['type'] ?? '',
+                flowSource: $payload['flowSource'] ?? '',
+                flowHash: $payload['flowHash'] ?? null,
+                messageSource: $payload['messageSource'] ?? '',
+                message: $payload['message'] ?? [],
+            );
+        }
+    }
+
+    /**
      * @return FlowEntity[]
      * @throws Exception
      */
@@ -518,17 +554,17 @@ class Redis implements StorageInterface
             return null;
         }
 
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $messageEvent) {
             $flowArray['flowMessages'][] = $messageEvent;
         }
 
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $exceptionEvent) {
             $flowArray['flowExceptions'][] = $exceptionEvent;
         }
 
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $runEvent) {
             $flowArray['flowRuns'][] = $runEvent;
         }
@@ -554,17 +590,17 @@ class Redis implements StorageInterface
             return null;
         }
 
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'RETURN', '1', '$');
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $messageEvent) {
             $flowArray['flowMessages'][] = $messageEvent;
         }
 
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'RETURN', '1', '$');
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $exceptionEvent) {
             $flowArray['flowExceptions'][] = $exceptionEvent;
         }
 
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'RETURN', '1', '$');
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $runEvent) {
             $flowArray['flowRuns'][] = $runEvent;
         }

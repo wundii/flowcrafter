@@ -317,6 +317,32 @@ class MySql implements StorageInterface
     }
 
     /**
+     * @return iterable<ObserveItem>
+     */
+    public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable
+    {
+        $stmt = $this->client->query(
+            'SELECT * FROM flow_queue ' .
+            'ORDER BY queue_id ' . $sortEnum->name
+        );
+
+        if ($stmt === false) {
+            return [];
+        }
+
+        foreach ($stmt->fetchAll() as $row) {
+            yield new ObserveItem(
+                queueId: $row['queue_id'] ?? '',
+                type: $row['type'] ?? '',
+                flowSource: $row['flow_source'] ?? '',
+                flowHash: $row['flow_hash'] ?? null,
+                messageSource: $row['message_source'] ?? '',
+                message: $row['message'] ?? [],
+            );
+        }
+    }
+
+    /**
      * @return FlowEntity[]
      * @throws Exception
      */

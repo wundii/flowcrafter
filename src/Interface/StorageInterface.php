@@ -41,6 +41,11 @@ interface StorageInterface
     public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable;
 
     /**
+     * @return iterable<ObserveItem>
+     */
+    public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable;
+
+    /**
      * @return FlowEntity[]
      */
     public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000): iterable;

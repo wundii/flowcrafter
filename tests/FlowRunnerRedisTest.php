@@ -14,7 +14,6 @@ use Tests\MockClass\WorkflowMock;
 use Tests\Trait\RedisClientTestTrait;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
-use Wundii\Flowcrafter\Storage\Redis;
 
 final class FlowRunnerRedisTest extends TestCase
 {
@@ -71,23 +70,5 @@ final class FlowRunnerRedisTest extends TestCase
         $this->assertSame($flow->getRuntimeHash(), $exception->getFlowRuntimeHash());
         $this->assertSame(FailStubMock::class, $exception->getStubSource());
         $this->assertSame('Test Exception', $exception->getMessage());
-    }
-
-    public function testAndi(): void
-    {
-        $redis = new Redis(
-            'default-redis',
-            6379,
-        );
-
-        $redis->appendObserveItem(
-            type: 'flow.workflow.v1',
-            flowSource: WorkflowMock::class,
-            flowHash: null,
-            messageSource: MessageInitMock::class,
-            message: [
-                'data' => 'test data',
-            ]
-        );
     }
 }

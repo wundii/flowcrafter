@@ -23,6 +23,7 @@ readonly class FlowObserver
 
     /**
      * @param array<class-string, class-string> $messageClassMap
+     * @param (Closure(string): void)|null $logger
      */
     public function run(
         array $messageClassMap = [
@@ -41,7 +42,7 @@ readonly class FlowObserver
         foreach ($this->storage->observeQueue($maxExecutionTimeInSeconds) as $observeItem) {
             $messageSource = Assert::classString($observeItem->getMessageSource(), MessageInterface::class, 'Each Message must have a string source.');
 
-            if ($logger !== null) {
+            if ($logger instanceof \Closure) {
                 $logger(date('Y-m-d H:i:s') . ' ' . $messageSource);
             }
 

@@ -161,6 +161,29 @@ $route->add(
     }
 );
 
+// GET /api/queues[?sort=asc|desc]
+$route->add(
+    '/api/queues',
+    MethodEnum::GET,
+    function (Request $request) use ($storage): JsonResponse {
+        $sort = $request->query->get('sort', 'desc') === 'asc' ? SortEnum::ASC : SortEnum::DESC;
+
+        $result = [];
+        foreach ($storage->findAllQueues($sort) as $item) {
+            $result[] = [
+                'queueId' => $item->getQueueId(),
+                'type' => $item->getType(),
+                'flowSource' => $item->getFlowSource(),
+                'flowHash' => $item->getFlowHash(),
+                'messageSource' => $item->getMessageSource(),
+                'message' => $item->getMessage(),
+            ];
+        }
+
+        return new JsonResponse($result);
+    }
+);
+
 // GET /api/queue/count
 $route->add(
     '/api/queue/count',

@@ -540,6 +540,53 @@ class Esdb implements StorageInterface
     }
 
     /**
+     * @return iterable<ObserveItem >
+     */
+    public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable
+    {
+        $lastFlowRunWithQueueId = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
+            'AND e.data.queueId != null ' .
+            'ORDER BY e.id DESC ' .
+            'TOP 1 ' .
+            'PROJECT INTO e.data.queueId'
+        );
+        $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
+        $lastQueueId = $lastFlowRunEvent[0] ?? '0';
+
+        if (!is_string($lastQueueId)) {
+            return;
+        }
+
+        $events = $this->client->readEvents(
+            self::QUEUE_SUBJECT,
+            new ReadEventsOptions(
+                lowerBound: new Bound(
+                    id: $lastQueueId,
+                    type: $lastQueueId === '0' ? BoundType::INCLUSIVE : BoundType::EXCLUSIVE,
+                ),
+            ),
+        );
+
+        $allEvents = iterator_to_array($events);
+        if ($sortEnum === SortEnum::DESC) {
+            $allEvents = array_reverse($allEvents);
+        }
+
+        foreach ($allEvents as $allEvent) {
+            yield new ObserveItem(
+                queueId: $allEvent->id,
+                type: $allEvent->data['type'] ?? '',
+                flowSource: $allEvent->data['flowSource'] ?? '',
+                flowHash: $allEvent->data['flowHash'] ?? null,
+                messageSource: $allEvent->data['messageSource'] ?? '',
+                message: $allEvent->data['message'] ?? [],
+            );
+        }
+    }
+
+    /**
      * @return FlowEntity[]
      * @throws Exception
      */
