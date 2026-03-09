@@ -166,7 +166,7 @@ Ein Stub kann zurückgeben:
 
 ## API-Endpunkte
 
-Die REST-API wird über `service/index.php` bereitgestellt (Flower Micro-Router). Alle Endpunkte außer `GET /` erfordern einen Bearer-Token (`setServerSecret()`).
+Die REST-API wird über `service/index.php` bereitgestellt (Flower Micro-Router). Alle Endpunkte außer `GET /` und `GET /metrics` erfordern einen Bearer-Token (`setServerSecret()`).
 
 ### Flows & Exceptions
 
@@ -185,6 +185,54 @@ Die REST-API wird über `service/index.php` bereitgestellt (Flower Micro-Router)
 | POST | `/api/flows/run` | `{ flowHash, messageSource, message }` | Flow synchron ausführen |
 | POST | `/api/queue` | `{ flowHash, messageSource, message }` | Flow in die Queue stellen |
 | GET | `/api/queue/count` | — | Aktuelle Queue-Größe |
+
+### Monitoring
+
+| Methode | Pfad | Auth | Beschreibung |
+| ------- | ---- | ---- | ------------ |
+| GET | `/metrics` | keine | Prometheus / OpenMetrics Exposition |
+
+---
+
+## Monitoring (Prometheus / OpenMetrics)
+
+Der Endpunkt `GET /metrics` gibt Metriken im [Prometheus-Textformat](https://prometheus.io/docs/instrumenting/exposition_formats/) (Version 0.0.4) zurück und ist ohne Authentication erreichbar. Die Absicherung erfolgt auf Netzwerkebene (Firewall, Reverse Proxy).
+
+**Exportierte Metriken:**
+
+| Metrik | Typ | Beschreibung |
+| ------ | --- | ------------ |
+| `flowcrafter_info` | gauge | Immer `1`, Label `description` enthält die Server-Beschreibung |
+| `flowcrafter_observer_up` | gauge | `1` = Observer läuft, `0` = Observer gestoppt |
+| `flowcrafter_queue_size` | gauge | Aktuelle Anzahl der Einträge in der Queue |
+
+**Beispielausgabe:**
+
+```
+# HELP flowcrafter_info FlowCrafter service information
+# TYPE flowcrafter_info gauge
+flowcrafter_info{description="Production"} 1
+# HELP flowcrafter_observer_up Whether the FlowCrafter observer process is running (1 = up, 0 = down)
+# TYPE flowcrafter_observer_up gauge
+flowcrafter_observer_up 1
+# HELP flowcrafter_queue_size Number of items currently pending in the queue
+# TYPE flowcrafter_queue_size gauge
+flowcrafter_queue_size 0
+```
+
+### Prometheus-Konfiguration
+
+```yaml
+scrape_configs:
+  - job_name: flowcrafter
+    static_configs:
+      - targets: ['localhost:8000']
+    metrics_path: /metrics
+```
+
+### CheckMK
+
+In CheckMK den **Prometheus Special Agent** oder einen **HTTP-Check** auf `/metrics` einrichten. Das Format wird nativ als Prometheus-Exposition erkannt.
 
 ---
 

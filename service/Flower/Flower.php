@@ -40,7 +40,8 @@ class Flower
         $router = $flower->router();
         $response = null;
 
-        if ($secret !== null && $secret !== '' && $request->getPathInfo() !== '/') {
+        $publicPaths = ['/', '/metrics'];
+        if ($secret !== null && $secret !== '' && !in_array($request->getPathInfo(), $publicPaths, true)) {
             $authHeader = (string) $request->headers->get('Authorization', '');
             $provided = str_starts_with($authHeader, 'Bearer ') ? substr($authHeader, 7) : '';
             if (!hash_equals($secret, $provided)) {

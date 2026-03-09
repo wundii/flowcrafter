@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
 use Wundii\DataMapper\Enum\ApproachEnum;
@@ -95,6 +96,44 @@ $route->add(
         return new JsonResponse([
             'description' => $flowcrafterConfig->getServerDescription(),
             'observerRunning' => $observerRunning,
+        ]);
+    }
+);
+
+// GET /metrics  — Prometheus / OpenMetrics exposition format
+$route->add(
+    '/metrics',
+    MethodEnum::GET,
+    function () use ($storage, $flowcrafterConfig, $observerPidFile): Response {
+        $observerRunning = false;
+        if (file_exists($observerPidFile)) {
+            $pid = (int) file_get_contents($observerPidFile);
+            $observerRunning = $pid > 0 && file_exists('/proc/' . $pid);
+        }
+
+        $queueSize = $storage->openQueues();
+
+        $description = $flowcrafterConfig->getServerDescription() ?? '';
+        $safeDescription = str_replace(['"', "\n", "\r"], ['\"', ' ', ' '], $description);
+
+        $lines = [];
+
+        $lines[] = '# HELP flowcrafter_info FlowCrafter service information';
+        $lines[] = '# TYPE flowcrafter_info gauge';
+        $lines[] = sprintf('flowcrafter_info{description="%s"} 1', $safeDescription);
+
+        $lines[] = '# HELP flowcrafter_observer_up Whether the FlowCrafter observer process is running (1 = up, 0 = down)';
+        $lines[] = '# TYPE flowcrafter_observer_up gauge';
+        $lines[] = sprintf('flowcrafter_observer_up %d', $observerRunning ? 1 : 0);
+
+        $lines[] = '# HELP flowcrafter_queue_size Number of items currently pending in the queue';
+        $lines[] = '# TYPE flowcrafter_queue_size gauge';
+        $lines[] = sprintf('flowcrafter_queue_size %d', $queueSize);
+
+        $body = implode("\n", $lines) . "\n";
+
+        return new Response($body, 200, [
+            'Content-Type' => 'text/plain; version=0.0.4; charset=utf-8',
         ]);
     }
 );
