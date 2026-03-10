@@ -11,6 +11,7 @@ use RuntimeException;
 use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
 use Wundii\DataMapper\Enum\ApproachEnum;
+use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 
@@ -40,10 +41,16 @@ readonly class FlowObserver
         $startExecutionTime = microtime(true);
 
         foreach ($this->storage->observeQueue($maxExecutionTimeInSeconds) as $observeItem) {
+            $flowSource = Assert::classString($observeItem->getFlowSource(), FlowInterface::class, 'Each Flow must have a string source.');
             $messageSource = Assert::classString($observeItem->getMessageSource(), MessageInterface::class, 'Each Message must have a string source.');
 
             if ($logger instanceof \Closure) {
-                $logger(date('Y-m-d H:i:s') . ' ' . $messageSource);
+                $logger(sprintf(
+                    '%s - Flow: %s - Message: %s',
+                    date('Y-m-d H:i:s'),
+                    $flowSource,
+                    $messageSource,
+                ));
             }
 
             $message = $dataMapper->array($observeItem->getMessage(), $messageSource);

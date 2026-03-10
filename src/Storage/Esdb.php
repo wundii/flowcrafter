@@ -651,12 +651,14 @@ class Esdb implements StorageInterface
         );
 
         foreach ($flowEvents as $flowEvent) {
+            $flowHash = $flowEvent['flowHash'] ?? '';
             yield new FlowEntity(
-                flowHash: $flowEvent['flowHash'] ?? '',
+                flowHash: $flowHash,
                 flowType: $flowEvent['flowType'] ?? '',
                 flowSource: $flowEvent['flowSource'] ?? '',
                 flowSubject: $flowEvent['flowSubject'] ?? '',
                 time: new DateTimeImmutable($flowEvent['time'] ?? 'now'),
+                exceptionCount: $this->countExceptionsByFlowHash($flowHash),
             );
         }
     }
@@ -681,12 +683,14 @@ class Esdb implements StorageInterface
         );
 
         foreach ($flowEvents as $flowEvent) {
+            $flowHash = $flowEvent['flowHash'] ?? '';
             yield new FlowEntity(
-                flowHash: $flowEvent['flowHash'] ?? '',
+                flowHash: $flowHash,
                 flowType: $flowEvent['flowType'] ?? '',
                 flowSource: $flowEvent['flowSource'] ?? '',
                 flowSubject: $flowEvent['flowSubject'] ?? '',
                 time: new DateTimeImmutable($flowEvent['time'] ?? 'now'),
+                exceptionCount: $this->countExceptionsByFlowHash($flowHash),
             );
         }
     }

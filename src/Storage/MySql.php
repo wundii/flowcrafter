@@ -394,8 +394,10 @@ class MySql implements StorageInterface
         $top = max(1, $top);
 
         $stmt = $this->client->query(
-            'SELECT * FROM flow_instance' .
-            ' ORDER BY flow_hash ' . $sortEnum->name .
+            'SELECT fi.*, COUNT(fe.flow_hash) AS exception_count FROM flow_instance fi' .
+            ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
+            ' GROUP BY fi.flow_hash' .
+            ' ORDER BY fi.flow_hash ' . $sortEnum->name .
             ' LIMIT ' . $skip . ', ' . $top
         );
 
@@ -410,6 +412,7 @@ class MySql implements StorageInterface
                 flowSource: $row['flow_source'] ?? '',
                 flowSubject: $row['flow_subject'] ?? null,
                 time: new DateTimeImmutable($row['time'] ?? 'now'),
+                exceptionCount: $row['exception_count'] ?? 0,
             );
         }
     }
@@ -429,8 +432,11 @@ class MySql implements StorageInterface
         $top = max(1, $top);
 
         $stmt = $this->client->prepare(
-            'SELECT * FROM flow_instance' .
-            ' WHERE flow_source = :flow_source ORDER BY flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
+            'SELECT fi.*, COUNT(fe.flow_hash) AS exception_count FROM flow_instance fi' .
+            ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
+            ' WHERE fi.flow_source = :flow_source' .
+            ' GROUP BY fi.flow_hash' .
+            ' ORDER BY fi.flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
         );
         $stmt->bindValue(':flow_source', $flowSource);
         $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
@@ -444,6 +450,7 @@ class MySql implements StorageInterface
                 flowSource: $row['flow_source'] ?? '',
                 flowSubject: $row['flow_subject'] ?? null,
                 time: new DateTimeImmutable($row['time'] ?? 'now'),
+                exceptionCount: $row['exception_count'] ?? 0,
             );
         }
     }

@@ -519,13 +519,15 @@ class Redis implements StorageInterface
         }
 
         foreach ($events as $event) {
+            /** @var string $flowHash */
+            $flowHash = $event['flowHash'] ?? '';
             yield new FlowEntity(
-                /** @phpstan-ignore-next-line */
-                flowHash: $event['flowHash'] ?? '',
+                flowHash: $flowHash,
                 flowType: $event['flowType'] ?? '',
                 flowSource: $event['flowSource'] ?? '',
                 flowSubject: $event['flowSubject'] ?? '',
                 time: new DateTimeImmutable($event['time'] ?? 'now'),
+                exceptionCount: $this->countExceptionsByFlowHash($flowHash),
             );
         }
     }

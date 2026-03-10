@@ -33,13 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 $flowcrafterConfig = new FlowcrafterConfig();
-$configFile = $_SERVER['FLOWCRAFTER_CONFIG'];
-if (!file_exists($configFile)) {
+$configFile = $_ENV['FLOWCRAFTER_CONFIG'] ?? null;
+if (!is_string($configFile) || !file_exists($configFile)) {
     http_response_code(503);
     header('Content-Type: application/json');
     echo json_encode([
         'error' => 'Config file not found',
-        'message' => 'The config file "' . $configFile . '" does not exist.',
+        'message' => 'The config file "' . (is_string($configFile) ? $configFile : '') . '" does not exist.',
     ]);
     exit;
 }
@@ -67,6 +67,7 @@ $serializeEntity = static fn (FlowEntity $flowEntity): array => [
     'flowSource' => $flowEntity->flowSource,
     'flowSubject' => $flowEntity->flowSubject,
     'time' => $flowEntity->time->format(DateTimeInterface::ATOM),
+    'exceptionCount' => $flowEntity->exceptionCount,
 ];
 
 $route = Flower::router();
@@ -342,7 +343,7 @@ $route->add(
     }
 );
 
-// POST /api/queue  body: { flowHash, messageSource, message }
+// POST /api/queue  body: { flowHash, messageSource, message, type, flowSource }
 $route->add(
     '/api/queue',
     MethodEnum::POST,
@@ -354,13 +355,27 @@ $route->add(
             ], 400);
         }
 
-        $flowHash = Assert::string($body['flowHash'] ?? '');
+        $flowHash = Assert::nullOrString($body['flowHash'] ?? null);
         $messageSource = Assert::string($body['messageSource'] ?? '');
         $message = Assert::array($body['message'] ?? []);
+        $type = Assert::string($body['type'] ?? '');
+        $flowSource = Assert::string($body['flowSource'] ?? '');
 
-        if ($flowHash === '' || $messageSource === '' || $message === []) {
+        if ($flowHash !== null && $flowHash !== '') {
+            $flow = $storage->findFlowByHash($flowHash);
+            if (!$flow instanceof Flow) {
+                return new JsonResponse([
+                    'error' => 'Flow not found',
+                ], 404);
+            }
+
+            $type = $flow->getType();
+            $flowSource = $flow->getSource();
+        }
+
+        if ($type === '' || $flowSource === '' || $messageSource === '' || $message === []) {
             return new JsonResponse([
-                'error' => 'flowHash, messageSource and message required',
+                'error' => 'type, flowSource, messageSource and message required',
             ], 400);
         }
 
@@ -370,18 +385,14 @@ $route->add(
             ], 400);
         }
 
-        $existingFlow = $storage->findFlowByHash($flowHash);
-        if (!$existingFlow instanceof Flow) {
-            return new JsonResponse([
-                'error' => 'Flow not found',
-            ], 404);
-        }
-
         try {
-            /** @var class-string<object> $messageSource */
+            /**
+             * @var class-string $flowSource
+             * @var class-string $messageSource
+             */
             $storage->appendObserveItem(
-                type: $existingFlow->getType(),
-                flowSource: $existingFlow->getSource(),
+                type: $type,
+                flowSource: $flowSource,
                 flowHash: $flowHash,
                 messageSource: $messageSource,
                 message: $message,
