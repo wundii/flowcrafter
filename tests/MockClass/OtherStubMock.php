@@ -21,6 +21,15 @@ class OtherStubMock extends AbstractStub
 
     public function process(): MessageDataInterface
     {
-        return new MessageDataSecondMock('End of flow');
+        $dataMessages = $this->getDataMessages();
+        $input = $dataMessages[0]?->getData() ?? 'nichts';
+
+        $methods = ['gebraten', 'gegrillt', 'gedaempft', 'flammbiert', 'mariniert'];
+        $method = $methods[array_rand($methods)];
+
+        $extras = ['einer Prise Liebe', 'einem Hauch Magie', 'extra Kaese', 'frischen Kraeutern', 'Geheimgewuerz'];
+        $extra = $extras[array_rand($extras)];
+
+        return new MessageDataSecondMock(sprintf('%s, %s mit %s', $input, $method, $extra));
     }
 }

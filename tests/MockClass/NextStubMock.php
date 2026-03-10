@@ -14,13 +14,20 @@ class NextStubMock extends AbstractStub
      */
     public function returnTypes(): array
     {
-        return [
-            MessageReturnMock::class,
-        ];
+        return [];
     }
 
-    public function process(): MessageReturnInterface
+    public function process(): bool
     {
-        return new MessageReturnMock('End of flow');
+        $dataMessages = $this->getDataMessages();
+        $input = $dataMessages[0]?->getData() ?? 'nichts';
+
+        $dishes = ['Pasta', 'Risotto', 'Suppe', 'Salat', 'Auflauf'];
+        $dish = $dishes[array_rand($dishes)];
+
+        $ratings = ['fantastisch', 'grandios', 'himmlisch', 'unwiderstehlich', 'legendaer'];
+        $rating = $ratings[array_rand($ratings)];
+
+        return sprintf('%s %s - %s!', $dish, $input, $rating) > sprintf('Bewertung: %d/5 Sterne', random_int(3, 5));
     }
 }

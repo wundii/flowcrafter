@@ -21,6 +21,12 @@ class StubMock extends AbstractStub
 
     public function process(): MessageDataInterface
     {
-        return new MessageDataMock('stub data');
+        $initMessage = $this->getInitMessage();
+        $input = $initMessage?->getData() ?? 'unknown';
+
+        $ingredients = ['Tomaten', 'Knoblauch', 'Basilikum', 'Zwiebeln', 'Pilze', 'Paprika'];
+        $ingredient = $ingredients[array_rand($ingredients)];
+
+        return new MessageDataMock(sprintf('%s mit %s', $input, $ingredient));
     }
 }
