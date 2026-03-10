@@ -509,7 +509,7 @@ class MySql implements StorageInterface
             $params[':to'] = $to->format('Y-m-d H:i:s');
         }
 
-        $sql = 'SELECT * FROM flow_exception' .
+        $sql = 'SELECT * FROM flow_exception fi' .
             ' WHERE 1=1' .
             $where .
             ' ORDER BY flow_hash ' . $sortEnum->name .
@@ -565,7 +565,7 @@ class MySql implements StorageInterface
         }
 
         $stmt = $this->client->prepare(
-            'SELECT * FROM flow_exception' .
+            'SELECT * FROM flow_exception fi' .
             ' WHERE flow_hash = :flow_hash' .
             $where .
             ' ORDER BY flow_hash ' . $sortEnum->name .
