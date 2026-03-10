@@ -644,11 +644,11 @@ class Esdb implements StorageInterface
 
         $timeFilter = '';
         if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time >= "' . $from->format(DateTimeInterface::ATOM) . '" ';
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
         }
 
         if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time <= "' . $to->format(DateTimeInterface::ATOM) . '" ';
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
         }
 
         $flowEvents = $this->client->runEventQlQuery(
@@ -685,11 +685,11 @@ class Esdb implements StorageInterface
 
         $timeFilter = '';
         if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time >= "' . $from->format(DateTimeInterface::ATOM) . '" ';
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
         }
 
         if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time <= "' . $to->format(DateTimeInterface::ATOM) . '" ';
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
         }
 
         $flowEvents = $this->client->runEventQlQuery(
@@ -727,11 +727,11 @@ class Esdb implements StorageInterface
 
         $timeFilter = '';
         if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time >= "' . $from->format(DateTimeInterface::ATOM) . '" ';
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
         }
 
         if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time <= "' . $to->format(DateTimeInterface::ATOM) . '" ';
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
         }
 
         $exceptionEvents = $this->client->runEventQlQuery(
@@ -771,12 +771,21 @@ class Esdb implements StorageInterface
 
         $timeFilter = '';
         if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time >= "' . $from->format(DateTimeInterface::ATOM) . '" ';
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
         }
 
         if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time <= "' . $to->format(DateTimeInterface::ATOM) . '" ';
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
         }
+
+        dump('FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
+            'AND e.data.flowHash == "' . $flowHash . '" ' .
+            $timeFilter .
+            'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'SKIP ' . $skip . ' ' .
+            'TOP ' . $top . ' ' .
+            'PROJECT INTO e.data');
 
         $exceptionEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
