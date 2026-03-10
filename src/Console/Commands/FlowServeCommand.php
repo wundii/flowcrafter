@@ -106,7 +106,7 @@ final class FlowServeCommand extends Command
         /** @phpstan-ignore while.alwaysTrue */
         while ($serverProcess->isRunning()) {
             try {
-                $flowObserver->run(logger: $logger);
+                $flowObserver->run(maxExecutionTimeInSeconds: 5.0, logger: $logger);
             } catch (Throwable $e) {
                 $output->writeln('[Observer] error: ' . $e->getMessage());
                 sleep(2);

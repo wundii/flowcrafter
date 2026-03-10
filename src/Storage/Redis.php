@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Storage;
 
 use DateTimeImmutable;
+use DateTimeInterface;
 use Exception;
 use Redis as Client;
 use RuntimeException;
@@ -151,7 +152,7 @@ class Redis implements StorageInterface
                 '$.time',
                 'AS',
                 'time',
-                'TEXT',
+                'NUMERIC',
                 'SORTABLE',
             );
         }
@@ -263,7 +264,7 @@ class Redis implements StorageInterface
                 '$.time',
                 'AS',
                 'time',
-                'TEXT',
+                'NUMERIC',
                 'SORTABLE',
                 '$.hash',
                 'AS',
@@ -296,6 +297,7 @@ class Redis implements StorageInterface
         unset($data['flowMessages']);
         unset($data['flowExceptions']);
         unset($data['flowRuns']);
+        $data['time'] = $flow->getTime()->getTimestamp();
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
@@ -330,7 +332,10 @@ class Redis implements StorageInterface
             return;
         }
 
-        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($flowException));
+        $data = $flowException->jsonSerialize();
+        $data['time'] = $flowException->getTime()->getTimestamp();
+
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
 
     /**
@@ -491,16 +496,16 @@ class Redis implements StorageInterface
         return is_array($result) && is_int($result[0] ?? null) ? $result[0] : 0;
     }
 
-    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
-        return $this->findFlowsBySource('*', $sortEnum, $top, $skip);
+        return $this->findFlowsBySource('*', $sortEnum, $top, $skip, $from, $to);
     }
 
     /**
      * @return FlowEntity[]
      * @throws Exception
      */
-    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         $flowSource = self::escapeValue($flowSource);
         $skip = max(0, $skip);
@@ -511,7 +516,19 @@ class Redis implements StorageInterface
             default => '@flowSource:{' . $flowSource . '}',
         };
 
-        $result = $this->client->rawcommand('FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', $skip, $top, 'RETURN', '1', '$');
+        $args = ['FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', $skip, $top];
+        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
+            $args[] = 'FILTER';
+            $args[] = 'time';
+            $args[] = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
+            $args[] = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
+        }
+
+        $args[] = 'RETURN';
+        $args[] = '1';
+        $args[] = '$';
+
+        $result = $this->client->rawcommand(...$args);
         $events = self::fetchData($result);
 
         if ($events === []) {
@@ -526,7 +543,7 @@ class Redis implements StorageInterface
                 flowType: $event['flowType'] ?? '',
                 flowSource: $event['flowSource'] ?? '',
                 flowSubject: $event['flowSubject'] ?? '',
-                time: new DateTimeImmutable($event['time'] ?? 'now'),
+                time: (new DateTimeImmutable())->setTimestamp((int) ($event['time'] ?? 0)),
                 exceptionCount: $this->countExceptionsByFlowHash($flowHash),
             );
         }
@@ -536,16 +553,16 @@ class Redis implements StorageInterface
      * @return FlowException[]
      * @throws Exception
      */
-    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
-        return $this->findExceptionsByFlowHash('*', $sortEnum, $top, $skip);
+        return $this->findExceptionsByFlowHash('*', $sortEnum, $top, $skip, $from, $to);
     }
 
     /**
      * @return FlowException[]
      * @throws Exception
      */
-    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         $flowHash = self::escapeValue($flowHash);
         $skip = max(0, $skip);
@@ -556,7 +573,19 @@ class Redis implements StorageInterface
             default => '@flowHash:{' . $flowHash . '}',
         };
 
-        $result = $this->client->rawcommand('FT.SEARCH', self::INDEX_EXCEPTION, $value, 'SORTBY', 'hash', $sortEnum->name, 'LIMIT', $skip, $top, 'RETURN', '1', '$');
+        $args = ['FT.SEARCH', self::INDEX_EXCEPTION, $value, 'SORTBY', 'hash', $sortEnum->name, 'LIMIT', $skip, $top];
+        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
+            $args[] = 'FILTER';
+            $args[] = 'time';
+            $args[] = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
+            $args[] = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
+        }
+
+        $args[] = 'RETURN';
+        $args[] = '1';
+        $args[] = '$';
+
+        $result = $this->client->rawcommand(...$args);
         $events = self::fetchData($result);
 
         if ($events === []) {
@@ -574,7 +603,7 @@ class Redis implements StorageInterface
                 file: $event['file'] ?? '',
                 line: $event['line'] ?? 0,
                 traceString: $event['traceString'] ?? '',
-                time: new DateTimeImmutable($event['time'] ?? 'now'),
+                time: (new DateTimeImmutable())->setTimestamp((int) ($event['time'] ?? 0)),
                 hash: $event['hash'] ?? '',
             );
         }
@@ -590,6 +619,8 @@ class Redis implements StorageInterface
             return null;
         }
 
+        $flowArray['time'] = $this->timestampToAtom($flowArray['time'] ?? 0);
+
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $messageEvent) {
             $flowArray['flowMessages'][] = $messageEvent;
@@ -597,6 +628,7 @@ class Redis implements StorageInterface
 
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $exceptionEvent) {
+            $exceptionEvent['time'] = $this->timestampToAtom($exceptionEvent['time'] ?? 0);
             $flowArray['flowExceptions'][] = $exceptionEvent;
         }
 
@@ -626,6 +658,8 @@ class Redis implements StorageInterface
             return null;
         }
 
+        $flowArray['time'] = $this->timestampToAtom($flowArray['time'] ?? 0);
+
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $messageEvent) {
             $flowArray['flowMessages'][] = $messageEvent;
@@ -633,6 +667,7 @@ class Redis implements StorageInterface
 
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $exceptionEvent) {
+            $exceptionEvent['time'] = $this->timestampToAtom($exceptionEvent['time'] ?? 0);
             $flowArray['flowExceptions'][] = $exceptionEvent;
         }
 
@@ -642,5 +677,10 @@ class Redis implements StorageInterface
         }
 
         return Converter::arrayToFlow($flowArray);
+    }
+
+    private function timestampToAtom(mixed $timestamp): string
+    {
+        return (new DateTimeImmutable())->setTimestamp((int) (is_numeric($timestamp) ? $timestamp : 0))->format(DateTimeInterface::ATOM);
     }
 }

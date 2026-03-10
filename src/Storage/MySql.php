@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Storage;
 
 use DateTimeImmutable;
+use DateTimeInterface;
 use Exception;
 use PDO as Client;
 use PDOException;
@@ -388,22 +389,37 @@ class MySql implements StorageInterface
         return (int) $stmt->fetchColumn();
     }
 
-    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         $skip = max(0, $skip);
         $top = max(1, $top);
 
-        $stmt = $this->client->query(
-            'SELECT fi.*, COUNT(fe.flow_hash) AS exception_count FROM flow_instance fi' .
+        $where = '';
+        $params = [];
+        if ($from instanceof DateTimeInterface) {
+            $where .= ' AND fi.`time` >= :from';
+            $params[':from'] = $from->format('Y-m-d H:i:s');
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $where .= ' AND fi.`time` <= :to';
+            $params[':to'] = $to->format('Y-m-d H:i:s');
+        }
+
+        $sql = 'SELECT fi.*, COUNT(fe.flow_hash) AS exception_count FROM flow_instance fi' .
             ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
+            ' WHERE 1=1' .
+            $where .
             ' GROUP BY fi.flow_hash' .
             ' ORDER BY fi.flow_hash ' . $sortEnum->name .
-            ' LIMIT ' . $skip . ', ' . $top
-        );
+            ' LIMIT ' . $skip . ', ' . $top;
 
-        if ($stmt === false) {
-            return [];
+        $stmt = $this->client->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
         }
+
+        $stmt->execute();
 
         foreach ($stmt->fetchAll() as $row) {
             yield new FlowEntity(
@@ -421,26 +437,43 @@ class MySql implements StorageInterface
      * @return FlowEntity[]
      * @throws Exception
      */
-    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         if ($flowSource === '' || $flowSource === '*') {
-            yield from $this->findAllFlows($sortEnum, $top);
+            yield from $this->findAllFlows($sortEnum, $top, $skip, $from, $to);
             return;
         }
 
         $skip = max(0, $skip);
         $top = max(1, $top);
 
+        $where = '';
+        $params = [];
+        if ($from instanceof DateTimeInterface) {
+            $where .= ' AND fi.`time` >= :from';
+            $params[':from'] = $from->format('Y-m-d H:i:s');
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $where .= ' AND fi.`time` <= :to';
+            $params[':to'] = $to->format('Y-m-d H:i:s');
+        }
+
         $stmt = $this->client->prepare(
             'SELECT fi.*, COUNT(fe.flow_hash) AS exception_count FROM flow_instance fi' .
             ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
             ' WHERE fi.flow_source = :flow_source' .
+            $where .
             ' GROUP BY fi.flow_hash' .
             ' ORDER BY fi.flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
         );
         $stmt->bindValue(':flow_source', $flowSource);
         $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
         $stmt->bindValue(':top', $top, Client::PARAM_INT);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+
         $stmt->execute();
 
         foreach ($stmt->fetchAll() as $row) {
@@ -459,20 +492,35 @@ class MySql implements StorageInterface
      * @return FlowException[]
      * @throws Exception
      */
-    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         $skip = max(0, $skip);
         $top = max(1, $top);
 
-        $stmt = $this->client->query(
-            'SELECT * FROM flow_exception ' .
-            'ORDER BY flow_hash ' . $sortEnum->name . ' ' .
-            'LIMIT ' . $skip . ', ' . $top
-        );
-
-        if ($stmt === false) {
-            return [];
+        $where = '';
+        $params = [];
+        if ($from instanceof DateTimeInterface) {
+            $where .= ' AND fi.`time` >= :from';
+            $params[':from'] = $from->format('Y-m-d H:i:s');
         }
+
+        if ($to instanceof DateTimeInterface) {
+            $where .= ' AND fi.`time` <= :to';
+            $params[':to'] = $to->format('Y-m-d H:i:s');
+        }
+
+        $sql = 'SELECT * FROM flow_exception' .
+            ' WHERE 1=1' .
+            $where .
+            ' ORDER BY flow_hash ' . $sortEnum->name .
+            ' LIMIT ' . $skip . ', ' . $top;
+
+        $stmt = $this->client->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+
+        $stmt->execute();
 
         foreach ($stmt->fetchAll() as $row) {
             yield new FlowException(
@@ -494,25 +542,42 @@ class MySql implements StorageInterface
      * @return FlowException[]
      * @throws Exception
      */
-    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         if ($flowHash === '' || $flowHash === '*') {
-            yield from $this->findAllExceptions($sortEnum, $top);
+            yield from $this->findAllExceptions($sortEnum, $top, $skip, $from, $to);
             return;
         }
 
         $skip = max(0, $skip);
         $top = max(1, $top);
 
+        $where = '';
+        $params = [];
+        if ($from instanceof DateTimeInterface) {
+            $where .= ' AND fi.`time` >= :from';
+            $params[':from'] = $from->format('Y-m-d H:i:s');
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $where .= ' AND fi.`time` <= :to';
+            $params[':to'] = $to->format('Y-m-d H:i:s');
+        }
+
         $stmt = $this->client->prepare(
-            'SELECT * FROM flow_exception ' .
-            'WHERE flow_hash = :flow_hash ' .
-            'ORDER BY flow_hash ' . $sortEnum->name . ' ' .
-            'LIMIT :skip, :top'
+            'SELECT * FROM flow_exception' .
+            ' WHERE flow_hash = :flow_hash' .
+            $where .
+            ' ORDER BY flow_hash ' . $sortEnum->name .
+            ' LIMIT :skip, :top'
         );
         $stmt->bindValue(':flow_hash', $flowHash);
         $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
         $stmt->bindValue(':top', $top, Client::PARAM_INT);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+
         $stmt->execute();
 
         foreach ($stmt->fetchAll() as $row) {

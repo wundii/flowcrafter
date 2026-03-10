@@ -147,7 +147,7 @@ $route->add(
     }
 );
 
-// GET /api/flows[?sort=asc|desc&top=1000&skip=0&source=App\YourFlow]
+// GET /api/flows[?sort=asc|desc&top=1000&skip=0&source=App\YourFlow&from=ISO8601&to=ISO8601]
 $route->add(
     '/api/flows',
     MethodEnum::GET,
@@ -156,10 +156,16 @@ $route->add(
         $top = max(1, min(10000, (int) $request->query->get('top', 1000)));
         $skip = max(0, (int) $request->query->get('skip', 0));
         $source = $request->query->get('source');
+        $fromStr = $request->query->get('from');
+        $toStr = $request->query->get('to');
+        $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $fromStr) : null;
+        $to = is_string($toStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $toStr) : null;
+        $from = $from instanceof DateTimeImmutable ? $from : null;
+        $to = $to instanceof DateTimeImmutable ? $to : null;
 
         $flows = $source !== null
-            ? $storage->findFlowsBySource($source, $sort, $top + 1, $skip)
-            : $storage->findAllFlows($sort, $top + 1, $skip);
+            ? $storage->findFlowsBySource($source, $sort, $top + 1, $skip, $from, $to)
+            : $storage->findAllFlows($sort, $top + 1, $skip, $from, $to);
 
         $items = array_map($serializeEntity, iterator_to_array($flows));
         $hasMore = count($items) > $top;
@@ -207,7 +213,7 @@ $route->add(
     }
 );
 
-// GET /api/exceptions[?sort=asc|desc&top=1000&skip=0&flowHash=<hash>]
+// GET /api/exceptions[?sort=asc|desc&top=1000&skip=0&flowHash=<hash>&from=ISO8601&to=ISO8601]
 $route->add(
     '/api/exceptions',
     MethodEnum::GET,
@@ -216,10 +222,16 @@ $route->add(
         $top = max(1, min(10000, (int) $request->query->get('top', 1000)));
         $skip = max(0, (int) $request->query->get('skip', 0));
         $flowHash = $request->query->get('flowHash');
+        $fromStr = $request->query->get('from');
+        $toStr = $request->query->get('to');
+        $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $fromStr) : null;
+        $to = is_string($toStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $toStr) : null;
+        $from = $from instanceof DateTimeImmutable ? $from : null;
+        $to = $to instanceof DateTimeImmutable ? $to : null;
 
         $exceptions = $flowHash !== null
-            ? $storage->findExceptionsByFlowHash($flowHash, $sort, $top + 1, $skip)
-            : $storage->findAllExceptions($sort, $top + 1, $skip);
+            ? $storage->findExceptionsByFlowHash($flowHash, $sort, $top + 1, $skip, $from, $to)
+            : $storage->findAllExceptions($sort, $top + 1, $skip, $from, $to);
 
         $items = array_values(iterator_to_array($exceptions));
         $hasMore = count($items) > $top;

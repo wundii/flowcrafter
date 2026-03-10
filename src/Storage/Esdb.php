@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Storage;
 
 use DateTimeImmutable;
+use DateTimeInterface;
 use Exception;
 use RuntimeException;
 use Thenativeweb\Eventsourcingdb\Bound;
@@ -636,14 +637,24 @@ class Esdb implements StorageInterface
      * @return FlowEntity[]
      * @throws Exception
      */
-    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         $skip = max(0, $skip);
         $top = max(1, $top);
 
+        $timeFilter = '';
+        if ($from instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time >= "' . $from->format(DateTimeInterface::ATOM) . '" ';
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time <= "' . $to->format(DateTimeInterface::ATOM) . '" ';
+        }
+
         $flowEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
+            $timeFilter .
             'ORDER BY e.id ' . $sortEnum->name . ' ' .
             'SKIP ' . $skip . ' ' .
             'TOP ' . $top . ' ' .
@@ -667,15 +678,25 @@ class Esdb implements StorageInterface
      * @return FlowEntity[]
      * @throws Exception
      */
-    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         $skip = max(0, $skip);
         $top = max(1, $top);
+
+        $timeFilter = '';
+        if ($from instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time >= "' . $from->format(DateTimeInterface::ATOM) . '" ';
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time <= "' . $to->format(DateTimeInterface::ATOM) . '" ';
+        }
 
         $flowEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'AND e.data.flowSource == "' . $flowSource . '" ' .
+            $timeFilter .
             'ORDER BY e.id ' . $sortEnum->name . ' ' .
             'SKIP ' . $skip . ' ' .
             'TOP ' . $top . ' ' .
@@ -699,14 +720,24 @@ class Esdb implements StorageInterface
      * @return FlowException[]
      * @throws Exception
      */
-    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         $skip = max(0, $skip);
         $top = max(1, $top);
 
+        $timeFilter = '';
+        if ($from instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time >= "' . $from->format(DateTimeInterface::ATOM) . '" ';
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time <= "' . $to->format(DateTimeInterface::ATOM) . '" ';
+        }
+
         $exceptionEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
+            $timeFilter .
             'ORDER BY e.id ' . $sortEnum->name . ' ' .
             'SKIP ' . $skip . ' ' .
             'TOP ' . $top . ' ' .
@@ -733,15 +764,25 @@ class Esdb implements StorageInterface
      * @return FlowException[]
      * @throws Exception
      */
-    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0): iterable
+    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         $skip = max(0, $skip);
         $top = max(1, $top);
+
+        $timeFilter = '';
+        if ($from instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time >= "' . $from->format(DateTimeInterface::ATOM) . '" ';
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time <= "' . $to->format(DateTimeInterface::ATOM) . '" ';
+        }
 
         $exceptionEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
             'AND e.data.flowHash == "' . $flowHash . '" ' .
+            $timeFilter .
             'ORDER BY e.id ' . $sortEnum->name . ' ' .
             'SKIP ' . $skip . ' ' .
             'TOP ' . $top . ' ' .
