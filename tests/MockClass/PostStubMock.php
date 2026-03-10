@@ -23,8 +23,8 @@ class PostStubMock extends AbstractStub
     {
         $dataMessages = $this->getDataMessages();
         $parts = [];
-        foreach ($dataMessages as $message) {
-            $parts[] = $message->getData();
+        foreach ($dataMessages as $dataMessage) {
+            $parts[] = $dataMessage->getData();
         }
 
         $summary = implode(' | ', $parts);

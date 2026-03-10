@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\MockClass;
 
 use Wundii\Flowcrafter\AbstractStub;
-use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 
 class NextStubMock extends AbstractStub
 {
