@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 use Throwable;
+use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
@@ -24,7 +25,8 @@ final class FlowServeCommand extends Command
     private string $pidFile;
 
     public function __construct(
-        private FlowcrafterConfig $flowcrafterConfig
+        private FlowcrafterConfig $flowcrafterConfig,
+        private BootstrapConfig $bootstrapConfig,
     ) {
         $this->pidFile = sys_get_temp_dir() . '/flowcrafter-observer.pid';
         parent::__construct();
@@ -33,10 +35,9 @@ final class FlowServeCommand extends Command
     protected function configure(): void
     {
         $this->setName('serve');
-        $this->setDescription('Start the API server and observer together');
+        $this->setDescription('Start the API server and observer process together');
         $this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Server host', '0.0.0.0');
         $this->addOption('port', null, InputOption::VALUE_REQUIRED, 'Server port', '8000');
-        $this->addOption('no-observer', null, InputOption::VALUE_NONE, 'Start only the API server without the observer');
     }
 
     /**
@@ -51,8 +52,6 @@ final class FlowServeCommand extends Command
         $host = $input->getOption('host');
         /** @var string $port */
         $port = $input->getOption('port');
-        $noObserver = (bool) $input->getOption('no-observer');
-
         $serviceIndex = dirname(__DIR__, 3) . '/service/index.php';
 
         $output->writeln(sprintf(
@@ -62,8 +61,16 @@ final class FlowServeCommand extends Command
             $port,
         ));
 
+        $env = [];
+        $configFile = $this->bootstrapConfig->getBootstrapConfigFile();
+        if ($configFile !== null) {
+            $env['FLOWCRAFTER_CONFIG'] = $configFile;
+        }
+
         $serverProcess = new Process(
             [PHP_BINARY, '-S', sprintf('%s:%s', $host, $port), $serviceIndex],
+            null,
+            $env,
         );
         $serverProcess->setTimeout(null);
         $serverProcess->start(function (string $type, string $data) use ($output): void {
@@ -80,18 +87,6 @@ final class FlowServeCommand extends Command
         register_shutdown_function(function (): void {
             $this->cleanup();
         });
-
-        if ($noObserver) {
-            $output->writeln(sprintf(
-                '<fg=%s>observer disabled — running API server only</>',
-                OutputColorEnum::YELLOW->value,
-            ));
-            $output->writeln('');
-
-            $serverProcess->wait();
-
-            return Command::SUCCESS;
-        }
 
         $output->writeln(sprintf(
             '<fg=%s>starting observer</>',

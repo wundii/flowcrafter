@@ -33,11 +33,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 $flowcrafterConfig = new FlowcrafterConfig();
-$configFile = __DIR__ . '/../flowcrafter.php';
-if (file_exists($configFile)) {
-    $configClosure = require $configFile;
-    $configClosure($flowcrafterConfig);
+$configFile = $_SERVER['FLOWCRAFTER_CONFIG'];
+if (!file_exists($configFile)) {
+    http_response_code(503);
+    header('Content-Type: application/json');
+    echo json_encode([
+        'error' => 'Config file not found',
+        'message' => 'The config file "' . $configFile . '" does not exist.',
+    ]);
+    exit;
 }
+
+$configClosure = require $configFile;
+$configClosure($flowcrafterConfig);
 
 try {
     $storage = $flowcrafterConfig->getStorage();

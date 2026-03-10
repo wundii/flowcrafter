@@ -26,7 +26,7 @@ final class FlowObserverCommand extends Command
     protected function configure(): void
     {
         $this->setName('observer');
-        $this->setDescription('Start the Flowcrafter observer process');
+        $this->setDescription('Start the observer process');
     }
 
     /**

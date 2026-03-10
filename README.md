@@ -75,19 +75,28 @@ vendor/bin/flowcrafter init
 
 Legt alle Tabellen / Indizes im konfigurierten Backend an.
 
-### 2. API-Server starten
+### 2. API-Server + Observer starten
 
 ```bash
-php -S localhost:8000 service/index.php
+vendor/bin/flowcrafter serve
 ```
 
-### 3. Observer starten (für asynchrone Queue)
+Startet den API-Server und den Observer zusammen in einem Kommando. Ctrl+C beendet beide Prozesse.
+
+| Option | Default | Beschreibung |
+| ------ | ------- | ------------ |
+| `--host` | `0.0.0.0` | Server-Host |
+| `--port` | `8000` | Server-Port |
+
+**Alternativ einzeln starten:**
 
 ```bash
+# Nur API-Server
+php -S localhost:8000 service/index.php
+
+# Nur Observer
 vendor/bin/flowcrafter observer
 ```
-
-Der Observer läuft als Daemon, pollt die Queue und verarbeitet Messages asynchron.
 
 ---
 
@@ -102,6 +111,7 @@ flowcrafter/
 │   │   ├── FlowInitCommand.php        # Storage initialisieren
 │   │   ├── FlowCreateCommand.php      # Flow registrieren
 │   │   ├── FlowObserverCommand.php    # Observer-Daemon starten
+│   │   ├── FlowServeCommand.php      # API-Server + Observer starten
 │   │   └── FlowMermaidCommand.php     # Mermaid-Diagramm erzeugen
 │   ├── Interface/
 │   │   ├── StorageInterface.php       # Backend-Abstraktion
@@ -245,7 +255,10 @@ vendor/bin/flowcrafter init
 # Flow-Schema registrieren
 vendor/bin/flowcrafter create App\\MyFlow
 
-# Observer-Daemon starten
+# API-Server + Observer zusammen starten
+vendor/bin/flowcrafter serve
+
+# Observer-Daemon einzeln starten
 vendor/bin/flowcrafter observer
 
 # Mermaid-Diagramm für einen Flow generieren
