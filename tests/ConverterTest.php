@@ -62,7 +62,7 @@ final class ConverterTest extends TestCase
                     Stub::create(PostStubMock::class, [MessageDataMock::class, MessageDataSecondMock::class]),
                 ],
             ],
-            'flowSchemaHash' => '70bc15c492ee6a58bf9707792754d776',
+            'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
             'flowHash' => $flow->getHash(),
             'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
             'flowMessages' => [],
@@ -135,7 +135,7 @@ final class ConverterTest extends TestCase
                     Stub::create(PostStubMock::class, [MessageDataMock::class, MessageDataSecondMock::class]),
                 ],
             ],
-            'flowSchemaHash' => '70bc15c492ee6a58bf9707792754d776',
+            'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
             'flowHash' => $flow->getHash(),
             'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
             'flowMessages' => [

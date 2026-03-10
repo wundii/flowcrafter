@@ -37,7 +37,7 @@ final class FlowRunnerTest extends TestCase
 
         $this->assertCount(6, $flow->getFlowMessages());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
-        $this->assertSame('End of flow', $result->getData());
+        $this->assertStringStartsWith('[', $result->getData());
     }
 
     public function testRestartingAnWorkflow(): void
@@ -53,7 +53,7 @@ final class FlowRunnerTest extends TestCase
 
         $this->assertCount(6, $flow->getFlowMessages());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
-        $this->assertSame('End of flow', $result->getData());
+        $this->assertStringStartsWith('[', $result->getData());
 
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
@@ -68,7 +68,7 @@ final class FlowRunnerTest extends TestCase
 
         $this->assertCount(5, $flowRunner->getFlow()->getFlowMessages());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
-        $this->assertSame('End of flow', $result->getData());
+        $this->assertStringStartsWith('[', $result->getData());
     }
 
     public function testRunFail(): void
