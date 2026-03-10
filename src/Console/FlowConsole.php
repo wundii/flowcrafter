@@ -18,6 +18,7 @@ use Wundii\Flowcrafter\Console\Commands\FlowCreateCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowInitCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowMermaidCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowObserverCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowServeCommand;
 
 final class FlowConsole extends BaseApplication
 {
@@ -36,6 +37,7 @@ final class FlowConsole extends BaseApplication
         FlowInitCommand $flowInitCommand,
         FlowMermaidCommand $flowMermaidCommand,
         FlowObserverCommand $flowObserverCommand,
+        FlowServeCommand $flowServeCommand,
     ) {
         parent::__construct(self::NAME, self::vendorVersion());
 
@@ -44,6 +46,7 @@ final class FlowConsole extends BaseApplication
             $flowInitCommand,
             $flowMermaidCommand,
             $flowObserverCommand,
+            $flowServeCommand,
         ]);
         $this->setDefaultCommand('list');
         $this->setDefinition($this->getInputDefinition());
