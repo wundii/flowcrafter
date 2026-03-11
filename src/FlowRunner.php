@@ -144,6 +144,7 @@ class FlowRunner
                 $flowException = FlowException::create(
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
+                    flowType: $flow->getType(),
                     stubSource: $stubSource,
                     code: $exception->getCode(),
                     message: $exception->getMessage(),

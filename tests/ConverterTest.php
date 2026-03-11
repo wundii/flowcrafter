@@ -65,7 +65,7 @@ final class ConverterTest extends TestCase
             ],
             'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
             'flowHash' => $flow->getHash(),
-            'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
+            'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => [],
             'flowExceptions' => [],
             'flowRuns' => [],
@@ -120,7 +120,7 @@ final class ConverterTest extends TestCase
                 hash: Uuid::uuid7($flow->getTime())->toString(),
             ),
         );
-        $flow->addRun();
+        $flow->addRun(datetime: $flow->getTime());
 
         $json = Converter::flowToJson($flow);
 
@@ -139,7 +139,7 @@ final class ConverterTest extends TestCase
             ],
             'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
             'flowHash' => $flow->getHash(),
-            'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
+            'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => [
                 [
                     'flowHash' => $flow->getHash(),
@@ -150,7 +150,7 @@ final class ConverterTest extends TestCase
                     'message' => [
                         'data' => 'test data',
                     ],
-                    'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
+                    'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
                     'hash' => Uuid::uuid7($flow->getTime())->toString(),
                     'predecessorHash' => null,
                 ],
@@ -165,7 +165,7 @@ final class ConverterTest extends TestCase
                     'file' => $file,
                     'line' => $line,
                     'traceString' => 'Stack trace',
-                    'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
+                    'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
                     'hash' => Uuid::uuid7($flow->getTime())->toString(),
                 ],
             ],
@@ -173,7 +173,7 @@ final class ConverterTest extends TestCase
                 [
                     'flowHash' => $flow->getHash(),
                     'flowRuntimeHash' => $flow->getRuntimeHash(),
-                    'time' => $flow->getTime()->format(DateTimeInterface::ATOM),
+                    'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
                     'queueId' => null,
                 ],
             ],
@@ -246,7 +246,7 @@ final class ConverterTest extends TestCase
                 ],
             ],
             'flowHash' => $hash,
-            'time' => $datetime->format(DateTimeInterface::ATOM),
+            'time' => $datetime->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => [],
             'flowExceptions' => [],
             'flowRuns' => [],
@@ -339,7 +339,7 @@ final class ConverterTest extends TestCase
                 ],
             ],
             'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
-            'time' => $datetime->format(DateTimeInterface::ATOM),
+            'time' => $datetime->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => [
                 [
                     'flowHash' => $hash,
@@ -350,7 +350,7 @@ final class ConverterTest extends TestCase
                     'message' => [
                         'data' => 'test data',
                     ],
-                    'time' => $datetime->format(DateTimeInterface::ATOM),
+                    'time' => $datetime->format(DateTimeInterface::RFC3339_EXTENDED),
                     'hash' => Uuid::uuid7($datetime)->toString(),
                     'predecessorHash' => null,
                 ],

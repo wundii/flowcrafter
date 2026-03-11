@@ -142,7 +142,7 @@ class FlowMessage implements JsonSerializable
             'messageType' => $this->messageTypeEnum->value,
             'messageSource' => $this->messageSource,
             'message' => $this->message,
-            'time' => $this->time->format(DateTimeInterface::ATOM),
+            'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
             'hash' => $this->hash,
             'predecessorHash' => $this->predecessorHash,
         ];

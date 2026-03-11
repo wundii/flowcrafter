@@ -249,6 +249,10 @@ class Redis implements StorageInterface
             'AS',
             'flowRuntimeHash',
             'TAG',
+            '$.flowType',
+            'AS',
+            'flowType',
+            'TAG',
             '$.stubSource',
             'AS',
             'stubSource',
@@ -320,7 +324,7 @@ class Redis implements StorageInterface
         $data = [
             'flowHash' => $flow->getHash(),
             'flowRuntimeHash' => $flow->getRuntimeHash(),
-            'time' => $flow->getTime()->format(DATE_ATOM),
+            'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
             'queueId' => $queueId,
         ];
 
@@ -669,6 +673,7 @@ class Redis implements StorageInterface
                 /** @phpstan-ignore-next-line */
                 flowHash: $event['flowHash'] ?? '',
                 flowRuntimeHash: $event['flowRuntimeHash'] ?? '',
+                flowType: $event['flowType'] ?? '',
                 stubSource: $event['stubSource'] ?? '',
                 code: $event['code'] ?? 0,
                 message: $event['message'] ?? '',
@@ -698,7 +703,7 @@ class Redis implements StorageInterface
 
         $schemaHash = is_string($flowArray['flowSchemaHash'] ?? null) ? $flowArray['flowSchemaHash'] : '';
         $flowArray['flowSchema'] = $this->findSchemaByHash($schemaHash);
-        $flowArray['time'] = $this->timestampToAtom($flowArray['time'] ?? 0);
+        $flowArray['time'] = $this->timestampToRFC3339Extended($flowArray['time'] ?? 0);
 
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $messageEvent) {
@@ -707,7 +712,7 @@ class Redis implements StorageInterface
 
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $exceptionEvent) {
-            $exceptionEvent['time'] = $this->timestampToAtom($exceptionEvent['time'] ?? 0);
+            $exceptionEvent['time'] = $this->timestampToRFC3339Extended($exceptionEvent['time'] ?? 0);
             $flowArray['flowExceptions'][] = $exceptionEvent;
         }
 
@@ -757,8 +762,8 @@ class Redis implements StorageInterface
         return $firstEntry;
     }
 
-    private function timestampToAtom(mixed $timestamp): string
+    private function timestampToRFC3339Extended(mixed $timestamp): string
     {
-        return (new DateTimeImmutable())->setTimestamp((int) (is_numeric($timestamp) ? $timestamp : 0))->format(DateTimeInterface::ATOM);
+        return (new DateTimeImmutable())->setTimestamp((int) (is_numeric($timestamp) ? $timestamp : 0))->format(DateTimeInterface::RFC3339_EXTENDED);
     }
 }

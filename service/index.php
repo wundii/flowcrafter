@@ -20,8 +20,8 @@ use Wundii\Flower\MethodEnum;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-ini_set('display_errors', '0');
-error_reporting(E_ALL);
+// ini_set('display_errors', '0');
+// error_reporting(E_ALL);
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
@@ -65,7 +65,7 @@ $serializeEntity = static fn (FlowEntity $flowEntity): array => [
     'flowType' => $flowEntity->flowType,
     'flowSource' => $flowEntity->flowSource,
     'flowSubject' => $flowEntity->flowSubject,
-    'time' => $flowEntity->time->format(DateTimeInterface::ATOM),
+    'time' => $flowEntity->time->format(DateTimeInterface::RFC3339_EXTENDED),
     'exceptionCount' => $flowEntity->exceptionCount,
 ];
 
@@ -157,8 +157,8 @@ $route->add(
         $type = $request->query->get('type');
         $fromStr = $request->query->get('from');
         $toStr = $request->query->get('to');
-        $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $fromStr) : null;
-        $to = is_string($toStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $toStr) : null;
+        $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $fromStr) : null;
+        $to = is_string($toStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $toStr) : null;
         $from = $from instanceof DateTimeImmutable ? $from : null;
         $to = $to instanceof DateTimeImmutable ? $to : null;
 
@@ -223,8 +223,8 @@ $route->add(
         $flowHash = $request->query->get('flowHash');
         $fromStr = $request->query->get('from');
         $toStr = $request->query->get('to');
-        $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $fromStr) : null;
-        $to = is_string($toStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $toStr) : null;
+        $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $fromStr) : null;
+        $to = is_string($toStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $toStr) : null;
         $from = $from instanceof DateTimeImmutable ? $from : null;
         $to = $to instanceof DateTimeImmutable ? $to : null;
 

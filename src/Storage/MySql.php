@@ -127,6 +127,7 @@ class MySql implements StorageInterface
                 hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 flow_hash VARCHAR(191) NOT NULL,
                 flow_runtime_hash VARCHAR(191) NOT NULL,
+                flow_type VARCHAR(191) NOT NULL,
                 stub_source VARCHAR(255) NOT NULL,
                 code INT(11) NOT NULL,
                 message VARCHAR(2000) NOT NULL,
@@ -590,6 +591,7 @@ class MySql implements StorageInterface
             yield new FlowException(
                 flowHash: $row['flow_hash'] ?? '',
                 flowRuntimeHash: $row['flow_runtime_hash'] ?? '',
+                flowType: $event['flow_type'] ?? '',
                 stubSource: $row['stub_source'] ?? '',
                 code: $row['code'] ?? 0,
                 message: $row['message'] ?? '',
@@ -648,6 +650,7 @@ class MySql implements StorageInterface
             yield new FlowException(
                 flowHash: $row['flow_hash'] ?? '',
                 flowRuntimeHash: $row['flow_runtime_hash'] ?? '',
+                flowType: $event['flow_type'] ?? '',
                 stubSource: $row['stub_source'] ?? '',
                 code: $row['code'] ?? 0,
                 message: $row['message'] ?? '',

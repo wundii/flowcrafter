@@ -118,7 +118,8 @@ final class Converter
 
                     return new FlowException(
                         Assert::string($exception['flowHash'] ?? null, 'Each Exception must have a string flowHash.'),
-                        Assert::string($exception['flowRuntimeHash'] ?? null, 'Each Exception must have a string runtimeHash.'),
+                        Assert::string($exception['flowRuntimeHash'] ?? null, 'Each Exception must have a string flowRuntimeHash.'),
+                        Assert::string($exception['flowType'] ?? null, 'Each Exception must have a string flowType.'),
                         Assert::string($exception['stubSource'] ?? null, 'Each Exception must have a string stubSource.'),
                         Assert::int($exception['code'] ?? null, 'Each Exception must have an integer code.'),
                         Assert::string($exception['message'] ?? null, 'Each Exception must have a string message.'),

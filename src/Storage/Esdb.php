@@ -236,6 +236,9 @@ class Esdb implements StorageInterface
                     'flowRuntimeHash' => [
                         'type' => 'string',
                     ],
+                    'flowType' => [
+                        'type' => 'string',
+                    ],
                     'stubSource' => [
                         'type' => 'string',
                     ],
@@ -264,6 +267,7 @@ class Esdb implements StorageInterface
                 'required' => [
                     'flowHash',
                     'flowRuntimeHash',
+                    'flowType',
                     'stubSource',
                     'code',
                     'message',
@@ -385,7 +389,7 @@ class Esdb implements StorageInterface
             data: [
                 'flowHash' => $flow->getHash(),
                 'flowRuntimeHash' => $flow->getRuntimeHash(),
-                'time' => $flow->getTime()->format(DATE_ATOM),
+                'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
                 'queueId' => $queueId,
             ],
         );
@@ -658,11 +662,11 @@ class Esdb implements StorageInterface
 
         $timeFilter = '';
         if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
         if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
         $flowEvents = $this->client->runEventQlQuery(
@@ -699,11 +703,11 @@ class Esdb implements StorageInterface
 
         $timeFilter = '';
         if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
         if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
         $flowEvents = $this->client->runEventQlQuery(
@@ -737,11 +741,11 @@ class Esdb implements StorageInterface
 
         $timeFilter = '';
         if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
         if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
         $flowEvents = $this->client->runEventQlQuery(
@@ -779,11 +783,11 @@ class Esdb implements StorageInterface
 
         $timeFilter = '';
         if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
         if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
         $exceptionEvents = $this->client->runEventQlQuery(
@@ -800,6 +804,7 @@ class Esdb implements StorageInterface
             yield new FlowException(
                 flowHash: $exceptionEvent['flowHash'] ?? '',
                 flowRuntimeHash: $exceptionEvent['flowRuntimeHash'] ?? '',
+                flowType: $event['flowType'] ?? '',
                 stubSource: $exceptionEvent['stubSource'] ?? '',
                 code: $exceptionEvent['code'] ?? 0,
                 message: $exceptionEvent['message'] ?? '',
@@ -823,11 +828,11 @@ class Esdb implements StorageInterface
 
         $timeFilter = '';
         if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
         if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
         $exceptionEvents = $this->client->runEventQlQuery(
@@ -845,6 +850,7 @@ class Esdb implements StorageInterface
             yield new FlowException(
                 flowHash: $exceptionEvent['flowHash'] ?? '',
                 flowRuntimeHash: $exceptionEvent['flowRuntimeHash'] ?? '',
+                flowType: $event['flowType'] ?? '',
                 stubSource: $exceptionEvent['stubSource'] ?? '',
                 code: $exceptionEvent['code'] ?? 0,
                 message: $exceptionEvent['message'] ?? '',
@@ -861,8 +867,8 @@ class Esdb implements StorageInterface
     {
         $flowArray = [];
         $flowEvents = $this->client->readEvents(
-            '/flow/' . $flowHash,
-            new ReadEventsOptions(
+            subject: '/flow/' . $flowHash,
+            readEventsOptions: new ReadEventsOptions(
                 recursive: true,
                 order: Order::CHRONOLOGICAL,
             ),
@@ -890,7 +896,10 @@ class Esdb implements StorageInterface
             return null;
         }
 
-        $flowEvents = $this->client->readEvents('/flow/schema/' . $flowArray['flowSchemaHash'], new ReadEventsOptions(false));
+        $flowEvents = $this->client->readEvents(
+            subject: '/flow/schema/' . $flowArray['flowSchemaHash'],
+            readEventsOptions: new ReadEventsOptions(recursive: false)
+        );
         foreach ($flowEvents as $flowEvent) {
             $flowArray['flowSchema'] = $flowEvent->data;
         }

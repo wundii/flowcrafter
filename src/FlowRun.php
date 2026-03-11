@@ -60,7 +60,7 @@ class FlowRun implements JsonSerializable
         return [
             'flowHash' => $this->flowHash,
             'flowRuntimeHash' => $this->flowRuntimeHash,
-            'time' => $this->time->format(DateTimeInterface::ATOM),
+            'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
             'queueId' => $this->queueId,
         ];
     }

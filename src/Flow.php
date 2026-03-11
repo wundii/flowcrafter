@@ -201,12 +201,12 @@ class Flow implements JsonSerializable
         return array_values($this->flowRuns);
     }
 
-    public function addRun(?string $queueId = null): void
+    public function addRun(?string $queueId = null, ?DateTimeInterface $datetime = null): void
     {
         $this->flowRuns[$this->getRuntimeHash()] = new FlowRun(
             $this->getHash(),
             $this->getRuntimeHash(),
-            new DateTimeImmutable('now'),
+            $datetime ?? new DateTimeImmutable('now'),
             $queueId,
         );
     }
@@ -281,7 +281,7 @@ class Flow implements JsonSerializable
             'flowSchema' => $this->flowSchema,
             'flowSchemaHash' => $this->flowSchemaHash,
             'flowHash' => $this->flowHash,
-            'time' => $this->time->format(DateTimeInterface::ATOM),
+            'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => $this->flowMessages,
             'flowExceptions' => $this->flowExceptions,
             'flowRuns' => $this->getFlowRuns(),

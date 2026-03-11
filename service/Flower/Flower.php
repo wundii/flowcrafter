@@ -40,15 +40,15 @@ class Flower
         $router = $flower->router();
         $response = null;
 
-        $publicPaths = ['/', '/metrics'];
-        if ($secret !== null && $secret !== '' && !in_array($request->getPathInfo(), $publicPaths, true)) {
-            $authHeader = (string) $request->headers->get('Authorization', '');
-            $provided = str_starts_with($authHeader, 'Bearer ') ? substr($authHeader, 7) : '';
-            if (!hash_equals($secret, $provided)) {
-                (new Response('Unauthorized', 401))->send();
-                return;
-            }
-        }
+        // $publicPaths = ['/', '/metrics'];
+        // if ($secret !== null && $secret !== '' && !in_array($request->getPathInfo(), $publicPaths, true)) {
+        //     $authHeader = (string) $request->headers->get('Authorization', '');
+        //     $provided = str_starts_with($authHeader, 'Bearer ') ? substr($authHeader, 7) : '';
+        //     if (!hash_equals($secret, $provided)) {
+        //         (new Response('Unauthorized', 401))->send();
+        //         return;
+        //     }
+        // }
 
         $requestContext = new RequestContext();
         $requestContext->fromRequest($request);

@@ -13,6 +13,7 @@ class FlowException implements JsonSerializable
     public function __construct(
         private readonly string $flowHash,
         private readonly string $flowRuntimeHash,
+        private readonly string $flowType,
         private readonly string $stubSource,
         private readonly int $code,
         private readonly string $message,
@@ -27,6 +28,7 @@ class FlowException implements JsonSerializable
     public static function create(
         string $flowHash,
         string $flowRuntimeHash,
+        string $flowType,
         string $stubSource,
         int $code,
         string $message,
@@ -39,6 +41,7 @@ class FlowException implements JsonSerializable
         return new self(
             flowHash: $flowHash,
             flowRuntimeHash: $flowRuntimeHash,
+            flowType: $flowType,
             stubSource: $stubSource,
             code: $code,
             message: $message,
@@ -58,6 +61,11 @@ class FlowException implements JsonSerializable
     public function getFlowRuntimeHash(): string
     {
         return $this->flowRuntimeHash;
+    }
+
+    public function getFlowType(): string
+    {
+        return $this->flowType;
     }
 
     public function getStubSource(): string
@@ -108,13 +116,14 @@ class FlowException implements JsonSerializable
         return [
             'flowHash' => $this->flowHash,
             'flowRuntimeHash' => $this->flowRuntimeHash,
+            'flowType' => $this->flowType,
             'stubSource' => $this->stubSource,
             'code' => $this->code,
             'message' => $this->message,
             'file' => $this->file,
             'line' => $this->line,
             'traceString' => $this->traceString,
-            'time' => $this->time->format(DateTimeInterface::ATOM),
+            'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
             'hash' => $this->hash,
         ];
     }
