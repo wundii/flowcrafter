@@ -60,6 +60,7 @@ class Redis implements StorageInterface
         return strtr($value, [
             '\\' => '\\\\',
             '-' => '\-',
+            '.' => '\.',
         ]);
     }
 
@@ -99,180 +100,190 @@ class Redis implements StorageInterface
 
     public function initializeDatabase(): void
     {
-        if (!$this->existIndex(self::INDEX_SCHEMA)) {
-            $this->client->rawCommand(
-                'FT.CREATE',
-                self::INDEX_SCHEMA,
-                'ON',
-                'JSON',
-                'PREFIX',
-                '1',
-                self::PREFIX_TYPE_SCHEMA,
-                'SCHEMA',
-                '$.type',
-                'AS',
-                'type',
-                'TAG',
-                '$.stubs[*].source',
-                'AS',
-                'stubSource',
-                'TAG'
-            );
+        if ($this->existIndex(self::INDEX_SCHEMA)) {
+            $this->client->rawCommand('FT.DROPINDEX', self::INDEX_SCHEMA);
         }
 
-        if (!$this->existIndex(self::INDEX_INSTANCE)) {
-            $this->client->rawCommand(
-                'FT.CREATE',
-                self::INDEX_INSTANCE,
-                'ON',
-                'JSON',
-                'PREFIX',
-                '1',
-                self::PREFIX_TYPE_INSTANCE,
-                'SCHEMA',
-                '$.flowType',
-                'AS',
-                'flowType',
-                'TEXT',
-                '$.flowSource',
-                'AS',
-                'flowSource',
-                'TAG',
-                '$.flowHash',
-                'AS',
-                'flowHash',
-                'TAG',
-                'SEPARATOR',
-                '|',
-                'SORTABLE',
-                '$.flowSchemaHash',
-                'AS',
-                'flowSchemaHash',
-                'TAG',
-                '$.time',
-                'AS',
-                'time',
-                'NUMERIC',
-                'SORTABLE',
-            );
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_SCHEMA,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_TYPE_SCHEMA,
+            'SCHEMA',
+            '$.type',
+            'AS',
+            'type',
+            'TAG',
+            '$.stubs[*].source',
+            'AS',
+            'stubSource',
+            'TAG'
+        );
+
+        if ($this->existIndex(self::INDEX_INSTANCE)) {
+            $this->client->rawCommand('FT.DROPINDEX', self::INDEX_INSTANCE);
         }
 
-        if (!$this->existIndex(self::INDEX_RUN)) {
-            $this->client->rawCommand(
-                'FT.CREATE',
-                self::INDEX_RUN,
-                'ON',
-                'JSON',
-                'PREFIX',
-                '1',
-                self::PREFIX_TYPE_RUN,
-                'SCHEMA',
-                '$.flowHash',
-                'AS',
-                'flowHash',
-                'TAG',
-                '$.flowRuntimeHash',
-                'AS',
-                'flowRuntimeHash',
-                'TAG',
-            );
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_INSTANCE,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_TYPE_INSTANCE,
+            'SCHEMA',
+            '$.flowType',
+            'AS',
+            'flowType',
+            'TAG',
+            '$.flowSource',
+            'AS',
+            'flowSource',
+            'TAG',
+            '$.flowHash',
+            'AS',
+            'flowHash',
+            'TAG',
+            'SEPARATOR',
+            '|',
+            'SORTABLE',
+            '$.flowSchemaHash',
+            'AS',
+            'flowSchemaHash',
+            'TAG',
+            '$.time',
+            'AS',
+            'time',
+            'NUMERIC',
+            'SORTABLE',
+        );
+
+        if ($this->existIndex(self::INDEX_RUN)) {
+            $this->client->rawCommand('FT.DROPINDEX', self::INDEX_RUN);
         }
 
-        if (!$this->existIndex(self::INDEX_MESSAGE)) {
-            $this->client->rawCommand(
-                'FT.CREATE',
-                self::INDEX_MESSAGE,
-                'ON',
-                'JSON',
-                'PREFIX',
-                '1',
-                self::PREFIX_TYPE_MESSAGE,
-                'SCHEMA',
-                '$.flowHash',
-                'AS',
-                'flowHash',
-                'TAG',
-                '$.flowRuntimeHash',
-                'AS',
-                'flowRuntimeHash',
-                'TAG',
-                '$.stubSource',
-                'AS',
-                'stubSource',
-                'TAG',
-                '$.messageType',
-                'AS',
-                'messageType',
-                'TAG',
-                '$.messageSource',
-                'AS',
-                'messageSource',
-                'TAG',
-                '$.hash',
-                'AS',
-                'hash',
-                'TAG',
-                '$.predecessorHash',
-                'AS',
-                'predecessorHash',
-                'TAG'
-            );
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_RUN,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_TYPE_RUN,
+            'SCHEMA',
+            '$.flowHash',
+            'AS',
+            'flowHash',
+            'TAG',
+            '$.flowRuntimeHash',
+            'AS',
+            'flowRuntimeHash',
+            'TAG',
+        );
+
+        if ($this->existIndex(self::INDEX_MESSAGE)) {
+            $this->client->rawCommand('FT.DROPINDEX', self::INDEX_MESSAGE);
         }
 
-        if (!$this->existIndex(self::INDEX_EXCEPTION)) {
-            $this->client->rawCommand(
-                'FT.CREATE',
-                self::INDEX_EXCEPTION,
-                'ON',
-                'JSON',
-                'PREFIX',
-                '1',
-                self::PREFIX_TYPE_EXCEPTION,
-                'SCHEMA',
-                '$.flowHash',
-                'AS',
-                'flowHash',
-                'TAG',
-                '$.flowRuntimeHash',
-                'AS',
-                'flowRuntimeHash',
-                'TAG',
-                '$.stubSource',
-                'AS',
-                'stubSource',
-                'TAG',
-                '$.code',
-                'AS',
-                'code',
-                'NUMERIC',
-                '$.message',
-                'AS',
-                'message',
-                'TAG',
-                '$.file',
-                'AS',
-                'file',
-                'TAG',
-                '$.line',
-                'AS',
-                'line',
-                'NUMERIC',
-                '$.traceString',
-                'AS',
-                'traceString',
-                'TEXT',
-                '$.time',
-                'AS',
-                'time',
-                'NUMERIC',
-                'SORTABLE',
-                '$.hash',
-                'AS',
-                'hash',
-                'TAG',
-                'SORTABLE',
-            );
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_MESSAGE,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_TYPE_MESSAGE,
+            'SCHEMA',
+            '$.flowHash',
+            'AS',
+            'flowHash',
+            'TAG',
+            '$.flowRuntimeHash',
+            'AS',
+            'flowRuntimeHash',
+            'TAG',
+            '$.stubSource',
+            'AS',
+            'stubSource',
+            'TAG',
+            '$.messageType',
+            'AS',
+            'messageType',
+            'TAG',
+            '$.messageSource',
+            'AS',
+            'messageSource',
+            'TAG',
+            '$.hash',
+            'AS',
+            'hash',
+            'TAG',
+            '$.predecessorHash',
+            'AS',
+            'predecessorHash',
+            'TAG'
+        );
+
+        if ($this->existIndex(self::INDEX_EXCEPTION)) {
+            $this->client->rawCommand('FT.DROPINDEX', self::INDEX_EXCEPTION);
         }
+
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_EXCEPTION,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_TYPE_EXCEPTION,
+            'SCHEMA',
+            '$.flowHash',
+            'AS',
+            'flowHash',
+            'TAG',
+            '$.flowRuntimeHash',
+            'AS',
+            'flowRuntimeHash',
+            'TAG',
+            '$.stubSource',
+            'AS',
+            'stubSource',
+            'TAG',
+            '$.code',
+            'AS',
+            'code',
+            'NUMERIC',
+            '$.message',
+            'AS',
+            'message',
+            'TAG',
+            '$.file',
+            'AS',
+            'file',
+            'TAG',
+            '$.line',
+            'AS',
+            'line',
+            'NUMERIC',
+            '$.traceString',
+            'AS',
+            'traceString',
+            'TEXT',
+            '$.time',
+            'AS',
+            'time',
+            'NUMERIC',
+            'SORTABLE',
+            '$.hash',
+            'AS',
+            'hash',
+            'TAG',
+            'SORTABLE',
+        );
     }
 
     public function registerFlowSchema(FlowSchema $flowSchema): void
@@ -480,6 +491,18 @@ class Redis implements StorageInterface
         return is_array($result) && is_int($result[0] ?? null) ? $result[0] : 0;
     }
 
+    public function countFlowsByType(string $flowType = ''): int
+    {
+        $flowType = self::escapeValue($flowType);
+        $value = match ($flowType) {
+            '*', '' => '*',
+            default => '@flowType:{' . $flowType . '\.v*}',
+        };
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_INSTANCE, $value, 'LIMIT', '0', '0');
+
+        return is_array($result) && is_int($result[0] ?? null) ? $result[0] : 0;
+    }
+
     public function countExceptions(): int
     {
         return $this->countExceptionsByFlowHash('*');
@@ -515,6 +538,54 @@ class Redis implements StorageInterface
         $value = match ($flowSource) {
             '*', '' => '*',
             default => '@flowSource:{' . $flowSource . '}',
+        };
+
+        $args = ['FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', $skip, $top];
+        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
+            $args[] = 'FILTER';
+            $args[] = 'time';
+            $args[] = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
+            $args[] = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
+        }
+
+        $args[] = 'RETURN';
+        $args[] = '1';
+        $args[] = '$';
+
+        $result = $this->client->rawcommand(...$args);
+        $events = self::fetchData($result);
+
+        if ($events === []) {
+            return [];
+        }
+
+        foreach ($events as $event) {
+            /** @var string $flowHash */
+            $flowHash = $event['flowHash'] ?? '';
+            yield new FlowEntity(
+                flowHash: $flowHash,
+                flowType: $event['flowType'] ?? '',
+                flowSource: $event['flowSource'] ?? '',
+                flowSubject: $event['flowSubject'] ?? '',
+                time: (new DateTimeImmutable())->setTimestamp((int) ($event['time'] ?? 0)),
+                exceptionCount: $this->countExceptionsByFlowHash($flowHash),
+            );
+        }
+    }
+
+    /**
+     * @return FlowEntity[]
+     * @throws Exception
+     */
+    public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
+    {
+        $flowType = self::escapeValue($flowType);
+        $skip = max(0, $skip);
+        $top = max(1, $top);
+
+        $value = match ($flowType) {
+            '*', '' => '*',
+            default => '@flowType:{' . $flowType . '\.v*}',
         };
 
         $args = ['FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', $skip, $top];

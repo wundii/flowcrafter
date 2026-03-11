@@ -50,6 +50,8 @@ interface StorageInterface
 
     public function countFlowsBySource(string $flowSource = ''): int;
 
+    public function countFlowsByType(string $flowType = ''): int;
+
     public function countExceptions(): int;
 
     public function countExceptionsByFlowHash(string $flowHash = ''): int;
@@ -63,6 +65,11 @@ interface StorageInterface
      * @return FlowEntity[]
      */
     public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
+
+    /**
+     * @return FlowEntity[]
+     */
+    public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
 
     /**
      * @return FlowException[]

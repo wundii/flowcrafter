@@ -301,6 +301,110 @@ final class FlowStorageMySqlTest extends TestCase
     /**
      * @throws Exception
      */
+    public function testFindFlowsByTypeASC(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+        $flowRunner->run(new MessageInitMock('test data2'));
+
+        $flows = iterator_to_array($storage->findFlowsByType('flow.workflow', SortEnum::ASC));
+        $this->assertCount(2, $flows);
+        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertGreaterThan($flows[0]->flowHash, $flows[1]->flowHash);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindFlowsByTypeDESC(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+        $flowRunner->run(new MessageInitMock('test data2'));
+
+        $flows = iterator_to_array($storage->findFlowsByType('flow.workflow'));
+        $this->assertCount(2, $flows);
+        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertLessThan($flows[0]->flowHash, $flows[1]->flowHash);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testCountFlowsByType(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+        $flowRunner->run(new MessageInitMock('test data2'));
+
+        $this->assertSame(2, $storage->countFlowsByType('flow.workflow'));
+        $this->assertSame(0, $storage->countFlowsByType('flow.nonexistent'));
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindFlowsByTypeWithFromToMatching(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+        $flowRunner->run(new MessageInitMock('test data2'));
+
+        $from = new DateTimeImmutable('-1 day');
+        $to = new DateTimeImmutable('+1 day');
+
+        $flows = iterator_to_array($storage->findFlowsByType('flow.workflow', SortEnum::DESC, 1000, 0, $from, $to));
+        $this->assertCount(2, $flows);
+        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindFlowsByTypeWithFromToOutOfRange(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+        $flowRunner->run(new MessageInitMock('test data2'));
+
+        $from = new DateTimeImmutable('2020-01-01');
+        $to = new DateTimeImmutable('2020-01-02');
+
+        $flows = iterator_to_array($storage->findFlowsByType('flow.workflow', SortEnum::DESC, 1000, 0, $from, $to));
+        $this->assertCount(0, $flows);
+    }
+
+    /**
+     * @throws Exception
+     */
     public function testFindAllExceptionsWithFromToMatching(): void
     {
         $storage = $this->storage();

@@ -611,6 +611,18 @@ class Esdb implements StorageInterface
         return $flowEvents[0] ?? 0;
     }
 
+    public function countFlowsByType(string $flowType = ''): int
+    {
+        $flowEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
+            'AND STARTSWITH(e.data.flowType, "' . $flowType . '.v") ' .
+            'PROJECT INTO COUNT()'
+        );
+        $flowEvents = iterator_to_array($flowEvents);
+        return $flowEvents[0] ?? 0;
+    }
+
     public function countExceptions(): int
     {
         $flowEvents = $this->client->runEventQlQuery(
@@ -697,6 +709,44 @@ class Esdb implements StorageInterface
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'AND e.data.flowSource == "' . $flowSource . '" ' .
+            $timeFilter .
+            'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'SKIP ' . $skip . ' ' .
+            'TOP ' . $top . ' ' .
+            'PROJECT INTO e.data'
+        );
+
+        foreach ($flowEvents as $flowEvent) {
+            $flowHash = $flowEvent['flowHash'] ?? '';
+            yield new FlowEntity(
+                flowHash: $flowHash,
+                flowType: $flowEvent['flowType'] ?? '',
+                flowSource: $flowEvent['flowSource'] ?? '',
+                flowSubject: $flowEvent['flowSubject'] ?? '',
+                time: new DateTimeImmutable($flowEvent['time'] ?? 'now'),
+                exceptionCount: $this->countExceptionsByFlowHash($flowHash),
+            );
+        }
+    }
+
+    public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
+    {
+        $skip = max(0, $skip);
+        $top = max(1, $top);
+
+        $timeFilter = '';
+        if ($from instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
+        }
+
+        $flowEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
+            'AND STARTSWITH(e.data.flowType, "' . $flowType . '.v") ' .
             $timeFilter .
             'ORDER BY e.id ' . $sortEnum->name . ' ' .
             'SKIP ' . $skip . ' ' .

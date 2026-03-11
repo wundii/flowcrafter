@@ -147,7 +147,7 @@ $route->add(
     }
 );
 
-// GET /api/flows[?sort=asc|desc&top=1000&skip=0&source=App\YourFlow&from=ISO8601&to=ISO8601]
+// GET /api/flows[?sort=asc|desc&top=1000&skip=0&type=flow.example&from=ISO8601&to=ISO8601]
 $route->add(
     '/api/flows',
     MethodEnum::GET,
@@ -155,7 +155,7 @@ $route->add(
         $sort = $request->query->get('sort', 'desc') === 'asc' ? SortEnum::ASC : SortEnum::DESC;
         $top = max(1, min(10000, (int) $request->query->get('top', 1000)));
         $skip = max(0, (int) $request->query->get('skip', 0));
-        $source = $request->query->get('source');
+        $type = $request->query->get('type');
         $fromStr = $request->query->get('from');
         $toStr = $request->query->get('to');
         $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $fromStr) : null;
@@ -163,8 +163,8 @@ $route->add(
         $from = $from instanceof DateTimeImmutable ? $from : null;
         $to = $to instanceof DateTimeImmutable ? $to : null;
 
-        $flows = $source !== null
-            ? $storage->findFlowsBySource($source, $sort, $top + 1, $skip, $from, $to)
+        $flows = $type !== null
+            ? $storage->findFlowsByType($type, $sort, $top + 1, $skip, $from, $to)
             : $storage->findAllFlows($sort, $top + 1, $skip, $from, $to);
 
         $items = array_map($serializeEntity, iterator_to_array($flows));
@@ -173,8 +173,8 @@ $route->add(
             array_pop($items);
         }
 
-        $total = $source !== null
-            ? $storage->countFlowsBySource($source)
+        $total = $type !== null
+            ? $storage->countFlowsByType($type)
             : $storage->countFlows();
 
         return new JsonResponse([

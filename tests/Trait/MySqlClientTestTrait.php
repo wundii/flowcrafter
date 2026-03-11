@@ -6,6 +6,7 @@ namespace Tests\Trait;
 
 use PDO as Client;
 use Testcontainers\Container\StartedGenericContainer;
+use Testcontainers\Modules\MariaDBContainer;
 use Testcontainers\Modules\MySQLContainer;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\MySql;
@@ -67,9 +68,9 @@ trait MySqlClientTestTrait
 
     protected function startContainer(int $port, string $database, string $username, string $password): StartedGenericContainer
     {
-        return (new MySQLContainer())
-            ->withMySQLDatabase($database)
-            ->withMySQLUser($username, $password)
+        return (new MariaDBContainer())
+            ->withMariaDBDatabase($database)
+            ->withMariaDBUser($database, $password)
             ->withExposedPorts($port)
             ->start();
     }
