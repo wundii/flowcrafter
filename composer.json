@@ -60,6 +60,9 @@
     ],
     "test": "vendor/bin/phpunit"
   },
+  "bin": [
+    "bin/flowcrafter"
+  ],
   "minimum-stability": "stable",
   "prefer-stable": true,
   "config": {

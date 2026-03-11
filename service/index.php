@@ -18,7 +18,7 @@ use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flower\Flower;
 use Wundii\Flower\MethodEnum;
 
-require __DIR__ . '/../vendor/autoload.php';
+require getcwd() . '/vendor/autoload.php';
 
 // ini_set('display_errors', '0');
 // error_reporting(E_ALL);

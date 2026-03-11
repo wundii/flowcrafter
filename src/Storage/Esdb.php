@@ -804,7 +804,7 @@ class Esdb implements StorageInterface
             yield new FlowException(
                 flowHash: $exceptionEvent['flowHash'] ?? '',
                 flowRuntimeHash: $exceptionEvent['flowRuntimeHash'] ?? '',
-                flowType: $event['flowType'] ?? '',
+                flowType: $exceptionEvent['flowType'] ?? '',
                 stubSource: $exceptionEvent['stubSource'] ?? '',
                 code: $exceptionEvent['code'] ?? 0,
                 message: $exceptionEvent['message'] ?? '',
@@ -850,7 +850,7 @@ class Esdb implements StorageInterface
             yield new FlowException(
                 flowHash: $exceptionEvent['flowHash'] ?? '',
                 flowRuntimeHash: $exceptionEvent['flowRuntimeHash'] ?? '',
-                flowType: $event['flowType'] ?? '',
+                flowType: $exceptionEvent['flowType'] ?? '',
                 stubSource: $exceptionEvent['stubSource'] ?? '',
                 code: $exceptionEvent['code'] ?? 0,
                 message: $exceptionEvent['message'] ?? '',

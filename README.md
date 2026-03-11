@@ -15,11 +15,12 @@ PHP-Bibliothek zur Definition, Ausführung und Überwachung nachrichtengetrieben
 ## Features
 
 - Typsichere Workflow-Definitionen via PHP-Interfaces
-- Drei Storage-Backends: **MySQL**, **Redis**, **EventSourceDB**
+- Drei Storage-Backends: **MySQL**, **Redis**, **EventSourcingDB**
 - Synchrone Ausführung (`FlowRunner`) und asynchrone Queue-Verarbeitung (`FlowObserver`)
 - Vollständiges Message- und Exception-Logging pro Flow-Instanz
 - REST-API über den integrierten Flower-Micro-Router
-- Symfony Console Commands für Init, Observer und Mermaid-Diagramme
+- Prometheus / OpenMetrics Monitoring (`/metrics`)
+- Symfony Console Commands für Init, Observer, Serve und Mermaid-Diagramme
 - PHPStan Level 10, ECS Code Style, vollständige Integration-Tests mit Testcontainers
 
 ---
@@ -34,34 +35,38 @@ composer require wundii/flowcrafter
 
 ## Konfiguration
 
-Erstelle eine `flowcrafter.php` im Projektstamm:
+Erstelle eine `flowcrafter.php` im Projektstamm (oder via `vendor/bin/flowcrafter create`):
 
 ```php
 <?php
 
+declare(strict_types=1);
+
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 
-return static function (FlowcrafterConfig $config): void {
-    $config->setStorageClass('Wundii\Flowcrafter\Storage\MySql');
-    $config->setStorageHost('localhost');
-    $config->setStoragePort(3306);
-    $config->setStorageDatabase('flowcrafter');
-    $config->setStorageUsername('user');
-    $config->setStoragePassword('password');
-    $config->setServerSecret('bearer-token-secret');
-    $config->setServerDescription('Mein FlowCrafter Service');
+return static function (FlowcrafterConfig $flowcrafterConfig): void {
+    $flowcrafterConfig->setStorageClass('Wundii\Flowcrafter\Storage\Redis');
+    $flowcrafterConfig->setStorageUrl();
+    $flowcrafterConfig->setStorageApiToken();
+    $flowcrafterConfig->setStorageHost('localhost');
+    $flowcrafterConfig->setStoragePort(6379);
+    $flowcrafterConfig->setStorageUsername();
+    $flowcrafterConfig->setStoragePassword();
+    $flowcrafterConfig->setStorageDatabase();
+    $flowcrafterConfig->setServerSecret();
+    $flowcrafterConfig->setServerDescription();
 };
 ```
 
-Beispiele für alle Backends liegen unter `flowcrafter-redis.php` und `flowcrafter-esdb.php`.
+Beispiele für alle Backends liegen unter `flowcrafter-mysql.php`, `flowcrafter-redis.php` und `flowcrafter-esdb.php`.
 
 ### Storage-Backends im Überblick
 
-| Backend       | Klasse | Besonderheit |
-|---------------| ------ | ------------ |
-| MySQL         | `Storage\MySql` | Relationales Schema, Transaktionen, PDO |
-| Redis         | `Storage\Redis` | In-Memory, RediSearch-Indizes |
-| EventSourceDB | `Storage\Esdb` | Event Sourcing, Append-Only |
+| Backend        | Klasse          | Besonderheit                      |
+| -------------- | --------------- | --------------------------------- |
+| MySQL          | `Storage\MySql` | Relationales Schema, Transaktionen, PDO |
+| Redis          | `Storage\Redis` | In-Memory, RediSearch-Indizes     |
+| EventSourcingDB | `Storage\Esdb` | Event Sourcing, Append-Only       |
 
 ---
 
@@ -104,15 +109,21 @@ vendor/bin/flowcrafter observer
 
 ```
 flowcrafter/
+├── bin/
+│   └── flowcrafter                    # CLI-Einstiegspunkt (Symfony Console)
 ├── src/
+│   ├── Bootstrap/                     # Config-Auflösung & Initialisierung
 │   ├── Config/
 │   │   └── FlowcrafterConfig.php      # Konfigurationsklasse
-│   ├── Console/Commands/
-│   │   ├── FlowInitCommand.php        # Storage initialisieren
-│   │   ├── FlowCreateCommand.php      # Flow registrieren
-│   │   ├── FlowObserverCommand.php    # Observer-Daemon starten
-│   │   ├── FlowServeCommand.php      # API-Server + Observer starten
-│   │   └── FlowMermaidCommand.php     # Mermaid-Diagramm erzeugen
+│   ├── Console/
+│   │   ├── Commands/
+│   │   │   ├── FlowCreateCommand.php  # Konfigurationsdatei erzeugen
+│   │   │   ├── FlowInitCommand.php    # Storage initialisieren
+│   │   │   ├── FlowMermaidCommand.php # Mermaid-Diagramm erzeugen
+│   │   │   ├── FlowObserverCommand.php # Observer-Daemon starten
+│   │   │   └── FlowServeCommand.php   # API-Server + Observer starten
+│   │   └── Output/                    # Console-Output-Helfer
+│   ├── Enum/                          # Message- und Sort-Enums
 │   ├── Interface/
 │   │   ├── StorageInterface.php       # Backend-Abstraktion
 │   │   ├── FlowInterface.php          # Flow-Implementierungsvertrag
@@ -124,14 +135,17 @@ flowcrafter/
 │   ├── Storage/
 │   │   ├── MySql.php                  # MySQL-Implementierung
 │   │   ├── Redis.php                  # Redis-Implementierung
-│   │   └── Esdb.php                   # EventStore DB-Implementierung
+│   │   └── Esdb.php                   # EventSourcingDB-Implementierung
+│   ├── AbstractStub.php               # Basis-Stub mit Hilfsmethoden
 │   ├── Flow.php                       # Flow-Instanz (Domain Model)
+│   ├── FlowBuilder.php               # Builder für Flow-Konstruktion
 │   ├── FlowSchema.php                 # Workflow-Definition (Blueprint)
 │   ├── FlowRunner.php                 # Synchrone Ausführungs-Engine
 │   ├── FlowObserver.php               # Asynchroner Queue-Prozessor
 │   ├── FlowMessage.php                # Nachrichtenobjekt
 │   ├── FlowException.php              # Exception-Objekt mit Kontext
 │   ├── FlowRun.php                    # Ausführungsprotokoll
+│   ├── ObserveItem.php                # Queue-Eintrag
 │   └── Stub.php                       # Prozessor-Unit
 ├── service/
 │   ├── Flower/                        # Flower Micro-Router
@@ -139,6 +153,8 @@ flowcrafter/
 │   │   ├── Router.php                 # Routen-Registry (Symfony Routing)
 │   │   └── MethodEnum.php             # GET, POST, PUT, DELETE, …
 │   └── index.php                      # API-Einstiegspunkt
+├── templates/
+│   └── flowcrafter.php.dist           # Vorlage für flowcrafter create
 ├── tests/                             # PHPUnit + Testcontainers
 └── composer.json
 ```
@@ -184,16 +200,17 @@ Die REST-API wird über `service/index.php` bereitgestellt (Flower Micro-Router)
 | ------- | ---- | --------- | ------------ |
 | GET | `/api/ping` | — | Verbindungstest (`pong`) |
 | GET | `/api/info` | — | Server-Info + Observer-Status |
-| GET | `/api/flows` | `sort`, `top`, `source` | Alle Flow-Instanzen |
+| GET | `/api/flows` | `sort`, `top`, `skip`, `type`, `from`, `to` | Flow-Instanzen (paginiert, filterbar) |
 | GET | `/api/flows/detail` | `hash` oder `runtimeHash` | Flow mit Messages & Exceptions |
-| GET | `/api/exceptions` | `sort`, `top`, `flowHash` | Alle Exceptions |
+| GET | `/api/exceptions` | `sort`, `top`, `skip`, `flowHash`, `from`, `to` | Exceptions (paginiert, filterbar) |
 
 ### Ausführung & Queue
 
-| Methode | Pfad | Body | Beschreibung |
-| ------- | ---- | ---- | ------------ |
+| Methode | Pfad | Body / Parameter | Beschreibung |
+| ------- | ---- | ---------------- | ------------ |
 | POST | `/api/flows/run` | `{ flowHash, messageSource, message }` | Flow synchron ausführen |
-| POST | `/api/queue` | `{ flowHash, messageSource, message }` | Flow in die Queue stellen |
+| POST | `/api/queue` | `{ flowHash, messageSource, message, type, flowSource }` | Flow in die Queue stellen |
+| GET | `/api/queues` | `sort` | Alle Queue-Einträge mit Details |
 | GET | `/api/queue/count` | — | Aktuelle Queue-Größe |
 
 ### Monitoring
@@ -249,14 +266,14 @@ In CheckMK den **Prometheus Special Agent** oder einen **HTTP-Check** auf `/metr
 ## Console Commands
 
 ```bash
+# Konfigurationsdatei (flowcrafter.php) erzeugen
+vendor/bin/flowcrafter create
+
 # Storage-Tabellen / -Indizes anlegen
 vendor/bin/flowcrafter init
 
-# Flow-Schema registrieren
-vendor/bin/flowcrafter create App\\MyFlow
-
 # API-Server + Observer zusammen starten
-vendor/bin/flowcrafter serve
+vendor/bin/flowcrafter serve [--host=0.0.0.0] [--port=8000]
 
 # Observer-Daemon einzeln starten
 vendor/bin/flowcrafter observer
