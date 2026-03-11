@@ -68,6 +68,7 @@ final class ConverterTest extends TestCase
             'flowMessages' => [],
             'flowExceptions' => [],
             'flowRuns' => [],
+            'isExecutable' => true,
         ]);
 
         $this->assertSame($expectedJson, $json);
@@ -175,6 +176,7 @@ final class ConverterTest extends TestCase
                     'queueId' => null,
                 ],
             ],
+            'isExecutable' => true,
         ]);
 
         $this->assertSame($expectedJson, $json);
@@ -197,6 +199,45 @@ final class ConverterTest extends TestCase
             'flowSource' => WorkflowMock::class,
             'flowSubject' => '/workflow/1',
             'flowType' => 'flow.workflow.v1',
+            'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
+            'flowSchema' => [
+                'type' => 'flow.workflow.v1',
+                'stubs' => [
+                    [
+                        'source' => StubMock::class,
+                        'messages' => [
+                            MessageInitMock::class,
+                        ],
+                        'returnTypes' => [],
+                        'messageEnum' => 'init',
+                    ],
+                    [
+                        'source' => NextStubMock::class,
+                        'messages' => [
+                            MessageDataMock::class,
+                        ],
+                        'returnTypes' => [],
+                        'messageEnum' => 'stub',
+                    ],
+                    [
+                        'source' => OtherStubMock::class,
+                        'messages' => [
+                            MessageDataMock::class,
+                        ],
+                        'returnTypes' => [],
+                        'messageEnum' => 'stub',
+                    ],
+                    [
+                        'source' => PostStubMock::class,
+                        'messages' => [
+                            MessageDataMock::class,
+                            MessageDataSecondMock::class,
+                        ],
+                        'returnTypes' => [],
+                        'messageEnum' => 'stub',
+                    ],
+                ],
+            ],
             'flowHash' => $hash,
             'time' => $datetime->format(DateTimeInterface::ATOM),
             'flowMessages' => [],
@@ -210,6 +251,7 @@ final class ConverterTest extends TestCase
             flowType: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowSchema: FlowSchema::create(WorkflowMock::class),
+            flowSchemaHash: '03ff7ff98280189b9a356e81cb9b362c',
             time: $flow->getTime(),
             flowHash: $hash,
             flowSubject: '/workflow/1',
@@ -245,6 +287,45 @@ final class ConverterTest extends TestCase
             'flowSubject' => '/workflow/1',
             'flowType' => 'flow.workflow.v1',
             'flowHash' => $hash,
+            'flowSchema' => [
+                'type' => 'flow.workflow.v1',
+                'stubs' => [
+                    [
+                        'source' => StubMock::class,
+                        'messages' => [
+                            MessageInitMock::class,
+                        ],
+                        'returnTypes' => [],
+                        'messageEnum' => 'init',
+                    ],
+                    [
+                        'source' => NextStubMock::class,
+                        'messages' => [
+                            MessageDataMock::class,
+                        ],
+                        'returnTypes' => [],
+                        'messageEnum' => 'stub',
+                    ],
+                    [
+                        'source' => OtherStubMock::class,
+                        'messages' => [
+                            MessageDataMock::class,
+                        ],
+                        'returnTypes' => [],
+                        'messageEnum' => 'stub',
+                    ],
+                    [
+                        'source' => PostStubMock::class,
+                        'messages' => [
+                            MessageDataMock::class,
+                            MessageDataSecondMock::class,
+                        ],
+                        'returnTypes' => [],
+                        'messageEnum' => 'stub',
+                    ],
+                ],
+            ],
+            'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
             'time' => $datetime->format(DateTimeInterface::ATOM),
             'flowMessages' => [
                 [
@@ -269,6 +350,7 @@ final class ConverterTest extends TestCase
             flowType: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowSchema: FlowSchema::create(WorkflowMock::class),
+            flowSchemaHash: '03ff7ff98280189b9a356e81cb9b362c',
             time: $flow->getTime(),
             flowHash: $hash,
             flowSubject: '/workflow/1',

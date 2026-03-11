@@ -62,11 +62,26 @@ final class Converter
             classMap: $messageClassMap,
         );
         $dataMapper = new DataMapper($dataConfig);
+        $flowSchema = Assert::array($flow['flowSchema'] ?? null, 'Decoded JSON is not an array.');
 
         return new Flow(
             Assert::string($flow['flowType'] ?? null, 'Type must be a string.'),
             Assert::classString($flow['flowSource'] ?? null, FlowInterface::class, 'FlowSource must be a string.'),
-            FlowSchema::create(Assert::classString($flow['flowSource'] ?? null, FlowInterface::class)),
+            new FlowSchema(
+                $flowSchema['type'] ?? null,
+                array_map(
+                    static function (mixed $array): Stub {
+                        return new Stub(
+                            Assert::string($array['source'] ?? null, 'Each Source must be a string.'),
+                            Assert::array($array['messages'] ?? null, 'Each Messages must be an array.'),
+                            Assert::array($array['returnTypes'] ?? null, 'Each ReturnTypes must be an array.'),
+                            MessageEnum::from(Assert::string($array['messageEnum'] ?? null, 'Each MessageEnum must have a string messageEnum.')),
+                        );
+                    },
+                    Assert::array($flowSchema['stubs'] ?? [], 'Stubs must be an array.'),
+                )
+            ),
+            Assert::string($flow['flowSchemaHash'] ?? null, 'FlowSchemaHash must be a string.'),
             Assert::datetimeImmutable($flow['time'] ?? null, 'Time must be a valid date string.'),
             Assert::string($flow['flowHash'] ?? null, 'Hash must be a string.'),
             Assert::nullOrString($flow['flowSubject'] ?? null, 'Subject must be null or string.'),

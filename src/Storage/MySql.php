@@ -621,6 +621,24 @@ class MySql implements StorageInterface
         ];
 
         $stmt = $this->client->prepare(
+            'SELECT * FROM flow_schema ' .
+            'WHERE flow_schema_hash = :flow_schema_hash'
+        );
+        $stmt->execute([
+            ':flow_schema_hash' => $flowArray['flowSchemaHash'],
+        ]);
+
+        $flowSchema = $stmt->fetch()['flow_schema'] ?? null;
+        if (!json_validate($flowSchema)) {
+            throw new RuntimeException('Invalid flow schema from Database');
+        }
+
+        $flowArray['flowSchema'] = json_decode($flowSchema, true);
+        if (!is_array($flowArray['flowSchema'])) {
+            throw new RuntimeException('Invalid flow schema');
+        }
+
+        $stmt = $this->client->prepare(
             'SELECT * FROM flow_message ' .
             'WHERE flow_hash = :flow_hash'
         );
@@ -716,101 +734,7 @@ class MySql implements StorageInterface
             return null;
         }
 
-        $stmt = $this->client->prepare(
-            'SELECT * FROM flow_instance ' .
-            'WHERE flow_hash = :flow_hash LIMIT 1'
-        );
-        $stmt->execute([
-            ':flow_hash' => $flowHash,
-        ]);
-
-        $instance = $stmt->fetch();
-        if (!is_array($instance)) {
-            return null;
-        }
-
-        $flowArray = [
-            'flowHash' => $instance['flow_hash'] ?? '',
-            'flowSchemaHash' => $instance['flow_schema_hash'] ?? '',
-            'flowSource' => $instance['flow_source'] ?? '',
-            'flowSubject' => $instance['flow_subject'] ?? '',
-            'flowType' => $instance['flow_type'] ?? '',
-            'time' => $instance['time'] ?? 'now',
-        ];
-
-        $stmt = $this->client->prepare(
-            'SELECT * FROM flow_message ' .
-            'WHERE flow_runtime_hash = :flow_runtime_hash'
-        );
-        $stmt->execute([
-            ':flow_runtime_hash' => $flowRuntimeHash,
-        ]);
-
-        foreach ($stmt->fetchAll() as $message) {
-            $messageJson = $message['message'] ?? '';
-            if (!json_validate($messageJson)) {
-                throw new RuntimeException('Could not validate flow message payload.');
-            }
-
-            $messageArray = json_decode($messageJson, true);
-            if (!is_array($messageArray)) {
-                throw new RuntimeException('Could not validate flow message payload.');
-            }
-
-            $flowArray['flowMessages'][] = [
-                'hash' => $message['hash'] ?? '',
-                'flowHash' => $message['flow_hash'] ?? '',
-                'flowRuntimeHash' => $message['flow_runtime_hash'] ?? '',
-                'stubSource' => $message['stub_source'] ?? '',
-                'messageType' => $message['message_type'] ?? '',
-                'messageSource' => $message['message_source'] ?? '',
-                'message' => $messageArray,
-                'predecessor' => $message['predecessor'] ?? '',
-                'time' => $message['time'] ?? 'now',
-            ];
-        }
-
-        $stmt = $this->client->prepare(
-            'SELECT * FROM flow_exception ' .
-            'WHERE flow_runtime_hash = :flow_runtime_hash'
-        );
-        $stmt->execute([
-            ':flow_runtime_hash' => $flowRuntimeHash,
-        ]);
-
-        foreach ($stmt->fetchAll() as $exception) {
-            $flowArray['flowExceptions'][] = [
-                'hash' => $exception['hash'] ?? '',
-                'flowHash' => $exception['flow_hash'] ?? '',
-                'flowRuntimeHash' => $exception['flow_runtime_hash'] ?? '',
-                'stubSource' => $exception['stub_source'] ?? '',
-                'code' => $exception['code'] ?? 0,
-                'message' => $exception['message'] ?? '',
-                'file' => $exception['file'] ?? '',
-                'line' => $exception['line'] ?? 0,
-                'traceString' => $exception['traceString'] ?? '',
-                'time' => $exception['time'] ?? 'now',
-            ];
-        }
-
-        $stmt = $this->client->prepare(
-            'SELECT * FROM flow_run ' .
-            'WHERE flow_runtime_hash = :flow_runtime_hash'
-        );
-        $stmt->execute([
-            ':flow_runtime_hash' => $flowRuntimeHash,
-        ]);
-
-        foreach ($stmt->fetchAll() as $run) {
-            $flowArray['flowRuns'][] = [
-                'flowHash' => $run['flow_hash'] ?? '',
-                'flowRuntimeHash' => $run['flow_runtime_hash'] ?? '',
-                'time' => $run['time'] ?? 'now',
-                'queueId' => $run['queueId'] ?? '',
-            ];
-        }
-
-        return Converter::arrayToFlow($flowArray);
+        return $this->findFlowByHash($flowHash);
     }
 
     private function takeQueueItem(): ?ObserveItem

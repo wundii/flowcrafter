@@ -353,6 +353,7 @@ class Esdb implements StorageInterface
         unset($data['flowMessages']);
         unset($data['flowExceptions']);
         unset($data['flowRuns']);
+        unset($data['isExecutable']);
 
         $subjectSchema = '/flow/schema/' . $flow->getSchema()->getHash();
         $eventCandidate = new EventCandidate(
@@ -837,6 +838,11 @@ class Esdb implements StorageInterface
             }
         }
 
+        $flowEvents = $this->client->readEvents('/flow/schema/' . $flowArray['flowSchemaHash'], new ReadEventsOptions(false));
+        foreach ($flowEvents as $flowEvent) {
+            $flowArray['flowSchema'] = $flowEvent->data;
+        }
+
         if ($flowArray === []) {
             return null;
         }
@@ -855,53 +861,6 @@ class Esdb implements StorageInterface
 
         $flowHash = iterator_to_array($flowHashIter)[0] ?? '';
 
-        $flowArray = [];
-        $flowEvents = $this->client->readEvents('/flow/' . $flowHash, new ReadEventsOptions());
-
-        foreach ($flowEvents as $flowEvent) {
-            if ($flowEvent->type === self::TYPE_INSTANCE) {
-                $flowArray = $flowEvent->data;
-                break;
-            }
-        }
-
-        if ($flowArray === []) {
-            return null;
-        }
-
-        $messageEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_MESSAGE . '" ' .
-            'AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '" ' .
-            'PROJECT INTO e.data'
-        );
-
-        foreach ($messageEvents as $messageEvent) {
-            $flowArray['flowMessages'][] = $messageEvent;
-        }
-
-        $exceptionEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
-            'AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '" ' .
-            'PROJECT INTO e.data'
-        );
-
-        foreach ($exceptionEvents as $exceptionEvent) {
-            $flowArray['flowExceptions'][] = $exceptionEvent;
-        }
-
-        $runEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
-            'AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '" ' .
-            'PROJECT INTO e.data'
-        );
-
-        foreach ($runEvents as $runEvent) {
-            $flowArray['flowRuns'][] = $runEvent;
-        }
-
-        return Converter::arrayToFlow($flowArray);
+        return $this->findFlowByHash($flowHash);
     }
 }

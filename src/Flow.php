@@ -27,6 +27,7 @@ class Flow implements JsonSerializable
         private readonly string $flowType,
         private readonly string $flowSource,
         private readonly FlowSchema $flowSchema,
+        private readonly string $flowSchemaHash,
         private readonly DateTimeImmutable $time,
         private readonly string $flowHash,
         private readonly ?string $flowSubject = null,
@@ -47,6 +48,13 @@ class Flow implements JsonSerializable
             ));
         }
 
+        if (!preg_match('/^flow\..+\.v\d+$/', $flowType)) {
+            throw new InvalidArgumentException(sprintf(
+                'Flow type "%s" must start with "flow." and end with ".v" followed by a number (e.g. "flow.example.v1").',
+                $flowType,
+            ));
+        }
+
         if ($flowType !== $this->flowSchema->type()) {
             throw new InvalidArgumentException(sprintf(
                 'Flow type "%s" does not match the schema type "%s".',
@@ -64,16 +72,20 @@ class Flow implements JsonSerializable
     public static function create(
         string $flowType,
         string $flowSource,
+        ?string $flowSchemaHash = null,
         ?string $flowSubject = null,
         ?string $flowHash = null,
         ?DateTimeImmutable $time = null,
     ): self {
+        $flowSchema = FlowSchema::create($flowSource);
+        $flowSchemaHash = $flowSchemaHash ?? $flowSchema->getHash();
         $time = $time ?? new DateTimeImmutable();
 
         return new self(
             flowType: $flowType,
             flowSource: $flowSource,
-            flowSchema: FlowSchema::create($flowSource),
+            flowSchema: $flowSchema,
+            flowSchemaHash: $flowSchemaHash,
             time: $time,
             flowHash: $flowHash ?? Uuid::uuid7($time)->toString(),
             flowSubject: $flowSubject,
@@ -101,6 +113,11 @@ class Flow implements JsonSerializable
     public function getSchema(): FlowSchema
     {
         return $this->flowSchema;
+    }
+
+    public function getSchemaHash(): string
+    {
+        return $this->flowSchemaHash;
     }
 
     public function getHash(): string
@@ -245,8 +262,15 @@ class Flow implements JsonSerializable
         return $flowMessages;
     }
 
+    public function isExecutable(): bool
+    {
+        $flowSchema = FlowSchema::create($this->flowSource);
+
+        return $this->flowSchemaHash === $flowSchema->getHash();
+    }
+
     /**
-     * @return array<string, null|string|array<FlowMessage|FlowException|FlowRun>|FlowSchema>
+     * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowRun>|FlowSchema>
      */
     public function jsonSerialize(): array
     {
@@ -255,12 +279,13 @@ class Flow implements JsonSerializable
             'flowSubject' => $this->flowSubject,
             'flowType' => $this->flowType,
             'flowSchema' => $this->flowSchema,
-            'flowSchemaHash' => $this->flowSchema->getHash(),
+            'flowSchemaHash' => $this->flowSchemaHash,
             'flowHash' => $this->flowHash,
             'time' => $this->time->format(DateTimeInterface::ATOM),
             'flowMessages' => $this->flowMessages,
             'flowExceptions' => $this->flowExceptions,
             'flowRuns' => $this->getFlowRuns(),
+            'isExecutable' => $this->isExecutable(),
         ];
     }
 }

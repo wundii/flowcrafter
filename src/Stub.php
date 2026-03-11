@@ -21,10 +21,13 @@ class Stub implements JsonSerializable
     /**
      * @param class-string<StubInterface> $source
      * @param class-string<MessageInterface>[] $messages
+     * @param class-string<MessageDataInterface|MessageReturnInterface>[] $returnTypes
      */
     public function __construct(
         private readonly string $source,
         private readonly array $messages,
+        private readonly array $returnTypes,
+        ?MessageEnum $messageEnum = null,
     ) {
         Assert::classString(
             $source,
@@ -44,6 +47,11 @@ class Stub implements JsonSerializable
             );
 
             $interfaces = class_implements($message);
+            if ($messageEnum instanceof MessageEnum) {
+                $this->messageEnum = $messageEnum;
+                continue;
+            }
+
             $this->messageEnum = match (true) {
                 in_array(MessageEnum::INIT->interface(), $interfaces, true) => MessageEnum::INIT,
                 in_array(MessageEnum::DATA->interface(), $interfaces, true) => MessageEnum::DATA,
@@ -61,9 +69,19 @@ class Stub implements JsonSerializable
         string $source,
         array $messages,
     ): self {
+
+        try {
+            $reflectionClass = new ReflectionClass($source);
+            $instance = $reflectionClass->newInstanceWithoutConstructor();
+            $returnTypes = $instance->returnTypes();
+        } catch (Exception) {
+            $returnTypes = [];
+        }
+
         return new self(
             source: $source,
             messages: $messages,
+            returnTypes: $returnTypes,
         );
     }
 
@@ -104,14 +122,7 @@ class Stub implements JsonSerializable
      */
     public function getReturnTypes(): array
     {
-        try {
-            $reflectionClass = new ReflectionClass($this->source);
-            $instance = $reflectionClass->newInstanceWithoutConstructor();
-        } catch (Exception) {
-            return [];
-        }
-
-        return $instance->returnTypes();
+        return $this->returnTypes;
     }
 
     /**

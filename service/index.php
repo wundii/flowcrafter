@@ -320,6 +320,12 @@ $route->add(
             ], 404);
         }
 
+        if (!$existingFlow->isExecutable()) {
+            return new JsonResponse([
+                'error' => 'Flow is not executable',
+            ], 400);
+        }
+
         try {
             $dataConfig = new DataConfig(approachEnum: ApproachEnum::CONSTRUCTOR);
             $dataMapper = new DataMapper($dataConfig);

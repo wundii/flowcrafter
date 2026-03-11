@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use RuntimeException;
 use Throwable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
@@ -53,12 +54,22 @@ class FlowRunner
         ?string $flowHash = null,
         ?string $queueId = null,
     ): bool|MessageReturnInterface {
+        $storedFlow = $this->storage?->findFlowByHash((string) $flowHash);
+
+        $flowSchemaHash = $storedFlow instanceof Flow ? $storedFlow->getSchemaHash() : null;
+
         $this->flow = Flow::create(
-            $this->type,
-            $this->flowSource,
-            $this->flowSubject,
-            $flowHash,
+            flowType: $this->type,
+            flowSource: $this->flowSource,
+            flowSchemaHash: $flowSchemaHash,
+            flowSubject: $this->flowSubject,
+            flowHash: $flowHash,
         );
+
+        if (!$this->flow->isExecutable()) {
+            throw new RuntimeException('Flow is not executable, because the flowSchemaHash is different from the stored version');
+        }
+
         $this->flow->addRun($queueId);
 
         $flowSchema = $this->flow->getSchema();

@@ -297,6 +297,7 @@ class Redis implements StorageInterface
         unset($data['flowMessages']);
         unset($data['flowExceptions']);
         unset($data['flowRuns']);
+        unset($data['isExecutable']);
         $data['time'] = $flow->getTime()->getTimestamp();
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
@@ -611,7 +612,12 @@ class Redis implements StorageInterface
 
     public function findFlowByHash(string $flowHash): ?Flow
     {
+        if ($flowHash === '' || $flowHash === '*') {
+            return null;
+        }
+
         $flowHash = self::escapeValue($flowHash);
+
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_INSTANCE, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
         $flowArray = self::fetchData($result)[0] ?? [];
 
@@ -619,6 +625,7 @@ class Redis implements StorageInterface
             return null;
         }
 
+        $flowArray['flowSchema'] = $this->findSchemaByHash($flowArray['flowSchemaHash'] ?? '');
         $flowArray['time'] = $this->timestampToAtom($flowArray['time'] ?? 0);
 
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
@@ -649,34 +656,31 @@ class Redis implements StorageInterface
             $flowHash = '';
         }
 
-        $flowHash = self::escapeValue($flowHash);
+        return $this->findFlowByHash($flowHash);
+    }
 
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_INSTANCE, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
-        $flowArray = self::fetchData($result)[0] ?? [];
-
-        if ($flowArray === []) {
-            return null;
+    /**
+     * @return list<array<mixed, mixed>>
+     */
+    private function findSchemaByHash(string $hash): array
+    {
+        $key = self::PREFIX_TYPE_SCHEMA . $hash;
+        if (!$this->client->exists($key)) {
+            throw new RuntimeException('Schema ' . $hash . ' does not exist.');
         }
 
-        $flowArray['time'] = $this->timestampToAtom($flowArray['time'] ?? 0);
+        $result = $this->client->rawCommand('JSON.GET', $key, '$');
 
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
-        foreach (self::fetchData($result) as $messageEvent) {
-            $flowArray['flowMessages'][] = $messageEvent;
+        if (!json_decode($result, true)) {
+            throw new RuntimeException('Schema ' . $hash . ' does not return a valid JSON.');
         }
 
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
-        foreach (self::fetchData($result) as $exceptionEvent) {
-            $exceptionEvent['time'] = $this->timestampToAtom($exceptionEvent['time'] ?? 0);
-            $flowArray['flowExceptions'][] = $exceptionEvent;
+        $flowSchema = json_decode($result, true);
+        if (!is_array($flowSchema)) {
+            throw new RuntimeException('Schema ' . $hash . ' does not return a valid JSON.');
         }
 
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowRuntimeHash:{' . $flowRuntimeHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
-        foreach (self::fetchData($result) as $runEvent) {
-            $flowArray['flowRuns'][] = $runEvent;
-        }
-
-        return Converter::arrayToFlow($flowArray);
+        return $flowSchema[0] ?? [];
     }
 
     private function timestampToAtom(mixed $timestamp): string
