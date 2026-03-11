@@ -49,7 +49,6 @@ $configClosure($flowcrafterConfig);
 
 try {
     $storage = $flowcrafterConfig->getStorage();
-    $storage->initializeDatabase();
 } catch (Throwable $throwable) {
     http_response_code(503);
     header('Content-Type: application/json');

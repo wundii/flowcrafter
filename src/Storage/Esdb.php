@@ -16,6 +16,7 @@ use Thenativeweb\Eventsourcingdb\IsEventQlQueryTrue;
 use Thenativeweb\Eventsourcingdb\IsSubjectPopulated;
 use Thenativeweb\Eventsourcingdb\IsSubjectPristine;
 use Thenativeweb\Eventsourcingdb\ObserveEventsOptions;
+use Thenativeweb\Eventsourcingdb\Order;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
@@ -859,7 +860,13 @@ class Esdb implements StorageInterface
     public function findFlowByHash(string $flowHash): ?Flow
     {
         $flowArray = [];
-        $flowEvents = $this->client->readEvents('/flow/' . $flowHash, new ReadEventsOptions(true));
+        $flowEvents = $this->client->readEvents(
+            '/flow/' . $flowHash,
+            new ReadEventsOptions(
+                recursive: true,
+                order: Order::CHRONOLOGICAL,
+            ),
+        );
 
         foreach ($flowEvents as $flowEvent) {
             if ($flowEvent->type === self::TYPE_INSTANCE) {

@@ -705,7 +705,8 @@ class MySql implements StorageInterface
 
         $stmt = $this->client->prepare(
             'SELECT * FROM flow_message ' .
-            'WHERE flow_hash = :flow_hash'
+            'WHERE flow_hash = :flow_hash ' .
+            'ORDER BY time ASC'
         );
         $stmt->execute([
             ':flow_hash' => $flowHash,
@@ -737,7 +738,8 @@ class MySql implements StorageInterface
 
         $stmt = $this->client->prepare(
             'SELECT * FROM flow_exception ' .
-            'WHERE flow_hash = :flow_hash'
+            'WHERE flow_hash = :flow_hash ' .
+            'ORDER BY time ASC'
         );
         $stmt->execute([
             ':flow_hash' => $flowHash,
@@ -760,7 +762,8 @@ class MySql implements StorageInterface
 
         $stmt = $this->client->prepare(
             'SELECT * FROM flow_run ' .
-            'WHERE flow_hash = :flow_hash'
+            'WHERE flow_hash = :flow_hash ' .
+            'ORDER BY `time` ASC'
         );
         $stmt->execute([
             ':flow_hash' => $flowHash,
