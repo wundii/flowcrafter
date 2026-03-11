@@ -625,7 +625,8 @@ class Redis implements StorageInterface
             return null;
         }
 
-        $flowArray['flowSchema'] = $this->findSchemaByHash($flowArray['flowSchemaHash'] ?? '');
+        $schemaHash = is_string($flowArray['flowSchemaHash'] ?? null) ? $flowArray['flowSchemaHash'] : '';
+        $flowArray['flowSchema'] = $this->findSchemaByHash($schemaHash);
         $flowArray['time'] = $this->timestampToAtom($flowArray['time'] ?? 0);
 
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
@@ -670,8 +671,7 @@ class Redis implements StorageInterface
         }
 
         $result = $this->client->rawCommand('JSON.GET', $key, '$');
-
-        if (!json_decode($result, true)) {
+        if (!is_string($result)) {
             throw new RuntimeException('Schema ' . $hash . ' does not return a valid JSON.');
         }
 
@@ -680,7 +680,10 @@ class Redis implements StorageInterface
             throw new RuntimeException('Schema ' . $hash . ' does not return a valid JSON.');
         }
 
-        return $flowSchema[0] ?? [];
+        /** @var list<array<mixed>> $firstEntry */
+        $firstEntry = $flowSchema[0] ?? [];
+
+        return $firstEntry;
     }
 
     private function timestampToAtom(mixed $timestamp): string

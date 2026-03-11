@@ -779,15 +779,6 @@ class Esdb implements StorageInterface
             $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::ATOM) . '" AS DATETIME ';
         }
 
-        dump('FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
-            'AND e.data.flowHash == "' . $flowHash . '" ' .
-            $timeFilter .
-            'ORDER BY e.id ' . $sortEnum->name . ' ' .
-            'SKIP ' . $skip . ' ' .
-            'TOP ' . $top . ' ' .
-            'PROJECT INTO e.data');
-
         $exceptionEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
@@ -838,13 +829,13 @@ class Esdb implements StorageInterface
             }
         }
 
+        if ($flowArray === []) {
+            return null;
+        }
+
         $flowEvents = $this->client->readEvents('/flow/schema/' . $flowArray['flowSchemaHash'], new ReadEventsOptions(false));
         foreach ($flowEvents as $flowEvent) {
             $flowArray['flowSchema'] = $flowEvent->data;
-        }
-
-        if ($flowArray === []) {
-            return null;
         }
 
         return Converter::arrayToFlow($flowArray);

@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
+use Tests\MockClass\MessageReturnMock;
 use Tests\MockClass\NextStubMock;
 use Tests\MockClass\OtherStubMock;
 use Tests\MockClass\PostStubMock;
@@ -208,7 +209,9 @@ final class ConverterTest extends TestCase
                         'messages' => [
                             MessageInitMock::class,
                         ],
-                        'returnTypes' => [],
+                        'returnTypes' => [
+                            MessageDataMock::class,
+                        ],
                         'messageEnum' => 'init',
                     ],
                     [
@@ -224,7 +227,9 @@ final class ConverterTest extends TestCase
                         'messages' => [
                             MessageDataMock::class,
                         ],
-                        'returnTypes' => [],
+                        'returnTypes' => [
+                            MessageDataSecondMock::class,
+                        ],
                         'messageEnum' => 'stub',
                     ],
                     [
@@ -233,7 +238,9 @@ final class ConverterTest extends TestCase
                             MessageDataMock::class,
                             MessageDataSecondMock::class,
                         ],
-                        'returnTypes' => [],
+                        'returnTypes' => [
+                            MessageReturnMock::class,
+                        ],
                         'messageEnum' => 'stub',
                     ],
                 ],
@@ -295,7 +302,9 @@ final class ConverterTest extends TestCase
                         'messages' => [
                             MessageInitMock::class,
                         ],
-                        'returnTypes' => [],
+                        'returnTypes' => [
+                            MessageDataMock::class,
+                        ],
                         'messageEnum' => 'init',
                     ],
                     [
@@ -311,7 +320,9 @@ final class ConverterTest extends TestCase
                         'messages' => [
                             MessageDataMock::class,
                         ],
-                        'returnTypes' => [],
+                        'returnTypes' => [
+                            MessageDataSecondMock::class,
+                        ],
                         'messageEnum' => 'stub',
                     ],
                     [
@@ -320,7 +331,9 @@ final class ConverterTest extends TestCase
                             MessageDataMock::class,
                             MessageDataSecondMock::class,
                         ],
-                        'returnTypes' => [],
+                        'returnTypes' => [
+                            MessageReturnMock::class,
+                        ],
                         'messageEnum' => 'stub',
                     ],
                 ],

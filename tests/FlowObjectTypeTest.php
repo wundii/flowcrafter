@@ -48,8 +48,13 @@ final class FlowObjectTypeTest extends TestCase
         try {
             $flowRunner->run(new MessageInitMock('test'));
         } catch (InvalidArgumentException $invalidArgumentException) {
+            // schema type mismatch is expected for types != 'flow.workflow.v1'
             $this->assertStringNotContainsString('must start with "flow."', $invalidArgumentException->getMessage());
+
+            return;
         }
+
+        $this->assertTrue(true);
     }
 
     #[DataProvider('invalidFlowTypeProvider')]

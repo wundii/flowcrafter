@@ -68,14 +68,18 @@ final class Converter
             Assert::string($flow['flowType'] ?? null, 'Type must be a string.'),
             Assert::classString($flow['flowSource'] ?? null, FlowInterface::class, 'FlowSource must be a string.'),
             new FlowSchema(
-                $flowSchema['type'] ?? null,
+                Assert::string($flowSchema['type'] ?? null, 'Schema type must be a string.'),
                 array_map(
                     static function (mixed $array): Stub {
+                        $stubArray = Assert::array($array, 'Each stub must be an array.');
+
                         return new Stub(
-                            Assert::string($array['source'] ?? null, 'Each Source must be a string.'),
-                            Assert::array($array['messages'] ?? null, 'Each Messages must be an array.'),
-                            Assert::array($array['returnTypes'] ?? null, 'Each ReturnTypes must be an array.'),
-                            MessageEnum::from(Assert::string($array['messageEnum'] ?? null, 'Each MessageEnum must have a string messageEnum.')),
+                            Assert::classString($stubArray['source'] ?? null, StubInterface::class, 'Each Source must be a string.'),
+                            /** @phpstan-ignore-next-line */
+                            Assert::array($stubArray['messages'] ?? null, 'Each Messages must be an array.'),
+                            /** @phpstan-ignore-next-line */
+                            Assert::array($stubArray['returnTypes'] ?? null, 'Each ReturnTypes must be an array.'),
+                            MessageEnum::from(Assert::string($stubArray['messageEnum'] ?? null, 'Each MessageEnum must have a string messageEnum.')),
                         );
                     },
                     Assert::array($flowSchema['stubs'] ?? [], 'Stubs must be an array.'),

@@ -628,8 +628,9 @@ class MySql implements StorageInterface
             ':flow_schema_hash' => $flowArray['flowSchemaHash'],
         ]);
 
-        $flowSchema = $stmt->fetch()['flow_schema'] ?? null;
-        if (!json_validate($flowSchema)) {
+        $row = $stmt->fetch();
+        $flowSchema = is_array($row) ? ($row['flow_schema'] ?? null) : null;
+        if (!is_string($flowSchema) || !json_validate($flowSchema)) {
             throw new RuntimeException('Invalid flow schema from Database');
         }
 
@@ -728,8 +729,8 @@ class MySql implements StorageInterface
             return null;
         }
 
-        /** @phpstan-ignore-next-line */
-        $flowHash = $run['flow_hash'] ?? '';
+        /** @var array<string, mixed> $run */
+        $flowHash = isset($run['flow_hash']) && is_string($run['flow_hash']) ? $run['flow_hash'] : '';
         if ($flowHash === '') {
             return null;
         }
