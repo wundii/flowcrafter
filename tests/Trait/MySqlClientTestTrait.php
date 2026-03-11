@@ -7,7 +7,6 @@ namespace Tests\Trait;
 use PDO as Client;
 use Testcontainers\Container\StartedGenericContainer;
 use Testcontainers\Modules\MariaDBContainer;
-use Testcontainers\Modules\MySQLContainer;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\MySql;
 
