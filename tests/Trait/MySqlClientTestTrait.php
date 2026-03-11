@@ -41,7 +41,6 @@ trait MySqlClientTestTrait
         $this->client = new Client($dsn, $username, $password, [
             Client::ATTR_ERRMODE => Client::ERRMODE_EXCEPTION,
             Client::ATTR_DEFAULT_FETCH_MODE => Client::FETCH_ASSOC,
-            Client::ATTR_EMULATE_PREPARES => false,
         ]);
     }
 
@@ -69,7 +68,7 @@ trait MySqlClientTestTrait
     {
         return (new MariaDBContainer())
             ->withMariaDBDatabase($database)
-            ->withMariaDBUser($database, $password)
+            ->withMariaDBUser($username, $password)
             ->withExposedPorts($port)
             ->start();
     }

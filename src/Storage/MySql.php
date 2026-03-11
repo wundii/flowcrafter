@@ -168,7 +168,7 @@ class MySql implements StorageInterface
 
         $stmt = $this->client->prepare(
             'INSERT IGNORE INTO flow_schema (flow_schema_hash, flow_schema, created_at) ' .
-            'VALUES (:hash, CAST(:flow_schema AS JSON), :created_at)'
+            'VALUES (:hash, :flow_schema, :created_at)'
         );
         $stmt->execute([
             ':hash' => $flowSchema->getHash(),
@@ -218,7 +218,7 @@ class MySql implements StorageInterface
 
         $stmt = $this->client->prepare(
             'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, stub_source, message_type, message_source, predecessor_hash, time, message) ' .
-            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :message_type, :message_source, :predecessor_hash, :time, CAST(:message AS JSON))'
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :message_type, :message_source, :predecessor_hash, :time, :message)'
         );
 
         $stmt->execute([
@@ -282,7 +282,7 @@ class MySql implements StorageInterface
 
         $stmt = $this->client->prepare(
             'INSERT INTO flow_queue (type, flow_source, flow_hash, message_source, message, created_at)' .
-            ' VALUES (:type, :flow_source, :flow_hash, :message_source, CAST(:message AS JSON), :created_at)'
+            ' VALUES (:type, :flow_source, :flow_hash, :message_source, :message, :created_at)'
         );
 
         $stmt->execute([
