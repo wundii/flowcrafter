@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Config;
 
+use InvalidArgumentException;
 use RuntimeException;
 use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
@@ -25,6 +26,7 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::STORAGE_DATABASE, null);
         $this->setParameter(OptionEnum::SERVER_SECRET, null);
         $this->setParameter(OptionEnum::SERVER_DESCRIPTION, null);
+        $this->setParameter(OptionEnum::SERVER_WORKER_COUNT, 1);
     }
 
     public function setStorageClass(string $storageClass): void
@@ -85,6 +87,20 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
     public function getServerDescription(): ?string
     {
         return $this->getNullOrString(OptionEnum::SERVER_DESCRIPTION);
+    }
+
+    public function setServerWorkerCount(int $int): void
+    {
+        if ($int < 1) {
+            throw new InvalidArgumentException('Server worker Count must be greater equal than 1');
+        }
+
+        $this->setParameter(OptionEnum::SERVER_WORKER_COUNT, $int);
+    }
+
+    public function getServerWorkerCount(): int
+    {
+        return $this->getInteger(OptionEnum::SERVER_WORKER_COUNT);
     }
 
     /**

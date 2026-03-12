@@ -38,7 +38,6 @@ readonly class FlowObserver
             classMap: $messageClassMap,
         );
         $dataMapper = new DataMapper($dataConfig);
-        $startExecutionTime = microtime(true);
 
         foreach ($this->storage->observeQueue($maxExecutionTimeInSeconds) as $observeItem) {
             $flowSource = Assert::classString($observeItem->getFlowSource(), FlowInterface::class, 'Each Flow must have a string source.');
@@ -69,10 +68,6 @@ readonly class FlowObserver
                 flowHash: $observeItem->getFlowHash(),
                 queueId: $observeItem->getQueueId(),
             );
-
-            if ($maxExecutionTimeInSeconds > 0.0 && (microtime(true) - $startExecutionTime) >= $maxExecutionTimeInSeconds) {
-                break;
-            }
         }
     }
 }

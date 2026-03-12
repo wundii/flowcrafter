@@ -55,4 +55,6 @@ enum OptionEnum: string
      * @internal
      */
     case SERVER_DESCRIPTION = 'server_description';
+
+    case SERVER_WORKER_COUNT = 'server_worker_count';
 }
