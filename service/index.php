@@ -9,6 +9,8 @@ use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
 use Wundii\DataMapper\Enum\ApproachEnum;
 use Wundii\Flowcrafter\Assert;
+use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
+use Wundii\Flowcrafter\Bootstrap\BootstrapConfigRequirer;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
@@ -31,20 +33,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-$flowcrafterConfig = new FlowcrafterConfig();
-$configFile = $_ENV['FLOWCRAFTER_CONFIG'] ?? null;
-if (!is_string($configFile) || !file_exists($configFile)) {
+try {
+    $flowcrafterConfigFile = $_ENV['FLOWCRAFTER_CONFIG'] ?? null;
+    $bootstrapConfig = new BootstrapConfig(is_string($flowcrafterConfigFile) ? $flowcrafterConfigFile : null);
+    $bootstrapConfigRequirer = new BootstrapConfigRequirer($bootstrapConfig);
+    $flowcrafterConfig = $bootstrapConfigRequirer->loadConfigFile(new FlowcrafterConfig());
+} catch (Throwable $throwable) {
     http_response_code(503);
     header('Content-Type: application/json');
     echo json_encode([
-        'error' => 'Config file not found',
-        'message' => 'The config file "' . (is_string($configFile) ? $configFile : '') . '" does not exist.',
+        'error' => $throwable->getMessage(),
     ]);
     exit;
 }
-
-$configClosure = require $configFile;
-$configClosure($flowcrafterConfig);
 
 try {
     $storage = $flowcrafterConfig->getStorage();
