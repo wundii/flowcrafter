@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Config;
 
-use InvalidArgumentException;
 use RuntimeException;
 use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
@@ -26,7 +25,6 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::STORAGE_DATABASE, null);
         $this->setParameter(OptionEnum::SERVER_SECRET, null);
         $this->setParameter(OptionEnum::SERVER_DESCRIPTION, null);
-        $this->setParameter(OptionEnum::SERVER_WORKER_COUNT, 1);
     }
 
     public function setStorageClass(string $storageClass): void
