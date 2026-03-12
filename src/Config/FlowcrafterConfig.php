@@ -89,20 +89,6 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         return $this->getNullOrString(OptionEnum::SERVER_DESCRIPTION);
     }
 
-    public function setServerWorkerCount(int $int): void
-    {
-        if ($int < 1) {
-            throw new InvalidArgumentException('Server worker Count must be greater equal than 1');
-        }
-
-        $this->setParameter(OptionEnum::SERVER_WORKER_COUNT, $int);
-    }
-
-    public function getServerWorkerCount(): int
-    {
-        return $this->getInteger(OptionEnum::SERVER_WORKER_COUNT);
-    }
-
     /**
      * @return mixed[]
      */
