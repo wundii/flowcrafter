@@ -47,9 +47,8 @@ class FlowBuilder
 
     /**
      * @param class-string<StubInterface> $stub
-     * @param class-string<MessageInterface> ...$messages
      */
-    public function addStub(string $stub, string ...$messages): void
+    public function addStub(string $stub): void
     {
         Assert::classString(
             $stub,
@@ -57,22 +56,10 @@ class FlowBuilder
             'Stub must be an instance of StubInterface'
         );
 
-        foreach ($messages as $message) {
-            $this->messages[] = Assert::classString(
-                $message,
-                MessageInterface::class,
-                sprintf(
-                    '%s: Message "%s" must be an instance of MessageInterface',
-                    $stub,
-                    $message,
-                ),
-            );
-        }
+        $stub = Stub::create($stub);
 
-        $this->stubs[] = Stub::create(
-            source: $stub,
-            messages: $messages,
-        );
+        $this->messages = array_merge($this->messages, $stub->getMessages());
+        $this->stubs[] = $stub;
     }
 
     public function build(): FlowSchema

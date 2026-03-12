@@ -199,13 +199,15 @@ Die REST-API wird über `service/index.php` bereitgestellt (Flower Micro-Router)
 
 ### Flows & Exceptions
 
-| Methode | Pfad | Parameter | Beschreibung |
-| ------- | ---- | --------- | ------------ |
-| GET | `/api/ping` | — | Verbindungstest (`pong`) |
-| GET | `/api/info` | — | Server-Info + Observer-Status |
-| GET | `/api/flows` | `sort`, `top`, `skip`, `type`, `from`, `to` | Flow-Instanzen (paginiert, filterbar) |
-| GET | `/api/flows/detail` | `hash` oder `runtimeHash` | Flow mit Messages & Exceptions |
-| GET | `/api/exceptions` | `sort`, `top`, `skip`, `flowHash`, `from`, `to` | Exceptions (paginiert, filterbar) |
+| Methode | Pfad | Parameter                                      | Beschreibung                          |
+| ------- | ---- |------------------------------------------------|---------------------------------------|
+| GET | `/api/ping` | —                                              | Verbindungstest (`pong`)              |
+| GET | `/api/info` | —                                              | Server-Info + Observer-Status         |
+| GET | `/api/flows` | `sort`, `top`, `skip`, `type`, `from`, `to`    | Flow-Instanzen (paginiert, filterbar) |
+| GET | `/api/flows/detail` | `hash` oder `runtimeHash`                      | Flow mit Messages & Exceptions        |
+| GET | `/api/exceptions` | `sort`, `top`, `skip`, `flowHash`, `from`, `to` | Exceptions (paginiert, filterbar)     |
+| GET | `/api/schemas` |                                    | Flow Schemas                          |
+| GET | `/api/schema/stub-source` | `className`                                    | Stub Source                           |
 
 ### Ausführung & Queue
 

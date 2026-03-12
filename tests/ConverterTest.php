@@ -57,10 +57,10 @@ final class ConverterTest extends TestCase
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
                 'stubs' => [
-                    Stub::create(StubMock::class, [MessageInitMock::class]),
-                    Stub::create(NextStubMock::class, [MessageDataMock::class]),
-                    Stub::create(OtherStubMock::class, [MessageDataMock::class]),
-                    Stub::create(PostStubMock::class, [MessageDataMock::class, MessageDataSecondMock::class]),
+                    Stub::create(StubMock::class),
+                    Stub::create(NextStubMock::class),
+                    Stub::create(OtherStubMock::class),
+                    Stub::create(PostStubMock::class),
                 ],
             ],
             'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
@@ -132,10 +132,10 @@ final class ConverterTest extends TestCase
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
                 'stubs' => [
-                    Stub::create(StubMock::class, [MessageInitMock::class]),
-                    Stub::create(NextStubMock::class, [MessageDataMock::class]),
-                    Stub::create(OtherStubMock::class, [MessageDataMock::class]),
-                    Stub::create(PostStubMock::class, [MessageDataMock::class, MessageDataSecondMock::class]),
+                    Stub::create(StubMock::class),
+                    Stub::create(NextStubMock::class),
+                    Stub::create(OtherStubMock::class),
+                    Stub::create(PostStubMock::class),
                 ],
             ],
             'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',

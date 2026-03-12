@@ -8,6 +8,9 @@ use Exception;
 use InvalidArgumentException;
 use JsonSerializable;
 use ReflectionClass;
+use ReflectionException;
+use ReflectionMethod;
+use RuntimeException;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -63,11 +66,9 @@ class Stub implements JsonSerializable
 
     /**
      * @param class-string<StubInterface> $source
-     * @param class-string<MessageInterface>[] $messages
      */
     public static function create(
         string $source,
-        array $messages,
     ): self {
 
         try {
@@ -76,6 +77,25 @@ class Stub implements JsonSerializable
             $returnTypes = $instance->returnTypes();
         } catch (Exception) {
             $returnTypes = [];
+        }
+
+        $reflectionClass = new ReflectionClass($source);
+        $constructor = $reflectionClass->getConstructor();
+
+        if (!$constructor instanceof ReflectionMethod) {
+            throw new InvalidArgumentException('The source class must have a constructor.');
+        }
+
+        $constructorParams = $constructor->getParameters();
+
+        $messages = [];
+        foreach ($constructorParams as $constructorParam) {
+            $type = $constructorParam->getType()->getName();
+            if (!is_subclass_of($type, MessageInterface::class)) {
+                continue;
+            }
+
+            $messages[] = $type;
         }
 
         return new self(

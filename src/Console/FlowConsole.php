@@ -30,7 +30,7 @@ final class FlowConsole extends BaseApplication
     /**
      * @var string
      */
-    public const VERSION = '0.4';
+    public const VERSION = '0.6';
 
     public function __construct(
         FlowCreateCommand $flowCreateCommand,
