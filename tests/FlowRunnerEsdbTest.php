@@ -133,6 +133,6 @@ final class FlowRunnerEsdbTest extends TestCase
         $this->assertSame($flow->getHash(), $exception->getFlowHash());
         $this->assertSame($flow->getRuntimeHash(), $exception->getFlowRuntimeHash());
         $this->assertSame(FailStubMock::class, $exception->getStubSource());
-        $this->assertSame('Test Exception', $exception->getMessage());
+        $this->assertStringStartsWith('Test Exception', $exception->getMessage());
     }
 }

@@ -42,7 +42,7 @@ final class FlowContainerFactory
             ->setPublic(true);
 
         $phpFileLoader = new PhpFileLoader($containerBuilder, new FileLocator(__DIR__));
-        $phpFileLoader->load(__DIR__ . '/../../bin/config.php');
+        $phpFileLoader->load(dirname(__DIR__, 2) . '/bin/config.php');
 
         $containerBuilder->compile();
 

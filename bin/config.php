@@ -19,7 +19,7 @@ return static function (ContainerConfigurator $container) {
         ->autoconfigure()
     ;
 
-    $services->load('Wundii\\Flowcrafter\\Console\\', __DIR__ . '/../src/Console/')
+    $services->load('Wundii\\Flowcrafter\\Console\\', dirname(__DIR__) . '/src/Console/')
         ->public()
         ->autowire();
 

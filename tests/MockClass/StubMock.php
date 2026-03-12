@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\MockClass;
 
-use Wundii\Flowcrafter\AbstractStub;
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
-class StubMock extends AbstractStub
+class StubMock implements StubInterface
 {
+    public function __construct(
+        private readonly MessageInitMock $messageInitMock
+    ) {
+    }
+
     /**
      * @return class-string[]
      */
@@ -21,7 +26,7 @@ class StubMock extends AbstractStub
 
     public function process(): MessageDataInterface
     {
-        $initMessage = $this->getInitMessage();
+        $initMessage = $this->messageInitMock;
         $input = $initMessage?->getData() ?? 'unknown';
 
         $ingredients = ['Tomaten', 'Knoblauch', 'Basilikum', 'Zwiebeln', 'Pilze', 'Paprika'];

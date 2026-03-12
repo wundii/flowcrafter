@@ -140,7 +140,6 @@ flowcrafter/
 │   │   ├── MySql.php                  # MySQL-Implementierung
 │   │   ├── Redis.php                  # Redis-Implementierung
 │   │   └── Esdb.php                   # EventSourcingDB-Implementierung
-│   ├── AbstractStub.php               # Basis-Stub mit Hilfsmethoden
 │   ├── Flow.php                       # Flow-Instanz (Domain Model)
 │   ├── FlowBuilder.php               # Builder für Flow-Konstruktion
 │   ├── FlowSchema.php                 # Workflow-Definition (Blueprint)

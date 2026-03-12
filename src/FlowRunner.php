@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use Exception;
 use RuntimeException;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Throwable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
 class FlowRunner
 {
@@ -86,6 +90,46 @@ class FlowRunner
     }
 
     /**
+     * @param class-string<StubInterface> $stubSource
+     * @param FlowMessage[] $flowMessages
+     * @throws Exception
+     */
+    public function createInstance(string $stubSource, array $flowMessages): StubInterface
+    {
+        $messages = array_map(
+            static fn (FlowMessage $flowMessage): MessageInterface => $flowMessage->getMessage(),
+            $flowMessages,
+        );
+
+        $containerBuilder = new ContainerBuilder();
+        foreach ($messages as $message) {
+            $id = get_class($message);
+
+            $definition = new Definition($id);
+            $definition->setSynthetic(true);
+            $definition->setPublic(true);
+
+            $containerBuilder->setDefinition($id, $definition);
+        }
+
+        $containerBuilder->autowire($stubSource)
+            ->setPublic(true);
+
+        $containerBuilder->compile();
+
+        foreach ($messages as $message) {
+            $containerBuilder->set(get_class($message), $message);
+        }
+
+        $stubInstance = $containerBuilder->get($stubSource);
+        if (!$stubInstance instanceof StubInterface) {
+            throw new RuntimeException('');
+        }
+
+        return $stubInstance;
+    }
+
+    /**
      * @throws Throwable
      */
     private function executeStubsRecursive(MessageInterface $message, ?string $flowMessageHash = null): void
@@ -125,15 +169,10 @@ class FlowRunner
                 continue;
             }
 
-            $messages = array_map(
-                static fn (FlowMessage $flowMessage): MessageInterface => $flowMessage->getMessage(),
-                $flowMessages,
-            );
-
             $this->executedStubKey[] = $stubKey;
 
             try {
-                $stubInstance = new $stubSource($stub->getMessageEnum()->value, reset($messages));
+                $stubInstance = $this->createInstance($stubSource, $flowMessages);
                 $processResult = $stubInstance->process();
             } catch (Throwable $exception) {
                 foreach ($flowMessages as $flowMessage) {

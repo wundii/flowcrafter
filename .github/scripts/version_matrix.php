@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-$composerJsonFile = __DIR__ . '/../../composer.json';
+$composerJsonFile = dirname(__DIR__, 2) . '/composer.json';
 $composerJsonData = file_get_contents($composerJsonFile);
 if ($composerJsonData === false) {
     throw new RuntimeException('Failed to read composer.json file');

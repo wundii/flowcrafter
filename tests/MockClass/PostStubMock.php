@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\MockClass;
 
-use Wundii\Flowcrafter\AbstractStub;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
-class PostStubMock extends AbstractStub
+class PostStubMock implements StubInterface
 {
+    public function __construct(
+        private readonly MessageDataMock $messageDataMock,
+        private readonly MessageDataSecondMock $messageDataSecondMock,
+    ) {
+    }
+
     /**
      * @return class-string[]
      */
@@ -21,11 +27,10 @@ class PostStubMock extends AbstractStub
 
     public function process(): MessageReturnInterface
     {
-        $dataMessages = $this->getDataMessages();
-        $parts = [];
-        foreach ($dataMessages as $dataMessage) {
-            $parts[] = $dataMessage->getData();
-        }
+        $parts = [
+            $this->messageDataMock->getData(),
+            $this->messageDataSecondMock->getData(),
+        ];
 
         $summary = implode(' | ', $parts);
 

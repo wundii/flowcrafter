@@ -5,11 +5,16 @@ declare(strict_types=1);
 namespace Tests\MockClass;
 
 use RuntimeException;
-use Wundii\Flowcrafter\AbstractStub;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
-class FailStubMock extends AbstractStub
+class FailStubMock implements StubInterface
 {
+    public function __construct(
+        private readonly MessageDataMock $messageDataMock,
+    ) {
+    }
+
     /**
      * @return class-string[]
      */
@@ -22,6 +27,6 @@ class FailStubMock extends AbstractStub
 
     public function process(): MessageReturnInterface
     {
-        throw new RuntimeException('Test Exception');
+        throw new RuntimeException('Test Exception ' . $this->messageDataMock->getData());
     }
 }

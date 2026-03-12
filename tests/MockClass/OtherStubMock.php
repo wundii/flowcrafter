@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\MockClass;
 
-use Wundii\Flowcrafter\AbstractStub;
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
-class OtherStubMock extends AbstractStub
+class OtherStubMock implements StubInterface
 {
+    public function __construct(
+        private readonly MessageDataMock $messageDataMock,
+    ) {
+    }
+
     /**
      * @return class-string[]
      */
@@ -21,8 +26,7 @@ class OtherStubMock extends AbstractStub
 
     public function process(): MessageDataInterface
     {
-        $dataMessages = $this->getDataMessages();
-        $input = $dataMessages[0]?->getData() ?? 'nichts';
+        $input = $this->messageDataMock->getData();
 
         $methods = ['gebraten', 'gegrillt', 'gedaempft', 'flammbiert', 'mariniert'];
         $method = $methods[array_rand($methods)];

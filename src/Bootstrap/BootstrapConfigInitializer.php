@@ -33,7 +33,7 @@ readonly class BootstrapConfigInitializer
         }
 
         try {
-            $this->filesystem->copy(__DIR__ . '/../../templates/flowcrafter.php.dist', $configFile);
+            $this->filesystem->copy(dirname(__DIR__, 2) . '/templates/flowcrafter.php.dist', $configFile);
         } catch (Exception $exception) {
             $this->symfonyStyle->error($exception->getMessage());
             return null;
