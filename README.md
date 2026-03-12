@@ -58,8 +58,6 @@ return static function (FlowcrafterConfig $flowcrafterConfig): void {
 };
 ```
 
-Beispiele für alle Backends liegen unter `flowcrafter-mysql.php`, `flowcrafter-redis.php` und `flowcrafter-esdb.php`.
-
 ### Storage-Backends im Überblick
 
 | Backend        | Klasse          | Besonderheit                      |
@@ -72,7 +70,13 @@ Beispiele für alle Backends liegen unter `flowcrafter-mysql.php`, `flowcrafter-
 
 ## Inbetriebnahme
 
-### 1. Storage initialisieren
+### 1. Config Datei erstellen und konfigurieren
+
+```bash
+vendor/bin/flowcrafter create
+```
+
+### 2. Storage initialisieren
 
 ```bash
 vendor/bin/flowcrafter init
@@ -80,7 +84,7 @@ vendor/bin/flowcrafter init
 
 Legt alle Tabellen / Indizes im konfigurierten Backend an.
 
-### 2. API-Server + Observer starten
+### 3. API-Server + Observer starten
 
 ```bash
 vendor/bin/flowcrafter serve

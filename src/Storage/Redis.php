@@ -7,6 +7,7 @@ namespace Wundii\Flowcrafter\Storage;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Exception;
+use InvalidArgumentException;
 use Redis as Client;
 use RuntimeException;
 use Wundii\Flowcrafter\Assert;
@@ -297,6 +298,17 @@ class Redis implements StorageInterface
             return;
         }
 
+        $type = $flowSchema->type();
+        $type = self::escapeValue($type);
+
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SCHEMA, '@type:{' . $type . '}');
+
+        $events = self::fetchData($result);
+
+        if ($events !== []) {
+            throw new InvalidArgumentException('The flow type "' . $flowSchema->type() . '" already exists.');
+        }
+
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($flowSchema));
     }
 
@@ -352,29 +364,6 @@ class Redis implements StorageInterface
         $data['time'] = $flowException->getTime()->getTimestamp();
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
-    }
-
-    /**
-     * @return array<mixed>
-     */
-    public function getFlowMessagesByFlowHash(string $flowHash): array
-    {
-        $flowHash = self::escapeValue($flowHash);
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
-        if ($result === false || !is_array($result)) {
-            return [];
-        }
-
-        $messages = [];
-        $counter = count($result);
-        for ($i = 1; $i < $counter; $i += 2) {
-            $json = $result[$i + 1][1] ?? null;
-            if ($json !== null) {
-                $messages[] = json_decode($json, true);
-            }
-        }
-
-        return $messages;
     }
 
     public function openQueues(): int
@@ -439,6 +428,20 @@ class Redis implements StorageInterface
                 messageSource: $payload['messageSource'] ?? '',
                 message: $payload['message'] ?? [],
             );
+        }
+    }
+
+    /**
+     * @return iterable<array<mixed>>
+     */
+    public function findAllSchemas(): iterable
+    {
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SCHEMA, '*');
+
+        $events = self::fetchData($result);
+
+        foreach ($events as $event) {
+            yield $event;
         }
     }
 

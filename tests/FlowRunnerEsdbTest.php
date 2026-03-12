@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use Exception;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tests\MockClass\FailStubMock;
@@ -48,6 +49,23 @@ final class FlowRunnerEsdbTest extends TestCase
         $flowMessageEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.message.v1" PROJECT INTO e');
         $this->assertCount(6, iterator_to_array($flowMessageEvents));
     }
+
+    // public function testRunTryRewriteSchema(): void
+    // {
+    //     $storage = $this->storage();
+    //
+    //     $flowRunner = new FlowRunner(
+    //         type: 'flow.workflow.v1',
+    //         flowSource: WorkflowMock::class,
+    //         storage: $storage,
+    //     );
+    //     $flowRunner->run(new MessageInitMock('test data'));
+    //
+    //     $this->expectException(InvalidArgumentException::class);
+    //
+    //     $flow = $flowRunner->getFlow();
+    //     $storage->registerFlowSchema($flow->getSchema());
+    // }
 
     public function testRestartingAnWorkflow(): void
     {

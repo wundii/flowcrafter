@@ -14,6 +14,8 @@ use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flower\Flower;
 use Wundii\Flower\MethodEnum;
@@ -189,18 +191,18 @@ $route->add(
     '/api/flows/detail',
     MethodEnum::GET,
     function (Request $request) use ($storage): JsonResponse {
-        $hash = $request->query->get('hash');
-        $runtimeHash = $request->query->get('runtimeHash');
+        $hash = Assert::string($request->query->get('hash') ?? '');
+        $runtimeHash = Assert::string($request->query->get('runtimeHash') ?? '');
 
-        if ($runtimeHash !== null && $runtimeHash !== '') {
-            $flow = $storage->findFlowByRuntimeHash($runtimeHash);
-        } elseif ($hash !== null && $hash !== '') {
-            $flow = $storage->findFlowByHash($hash);
-        } else {
+        if ($hash === '' && $runtimeHash === '') {
             return new JsonResponse([
                 'error' => 'hash or runtimeHash parameter required',
             ], 400);
         }
+
+        $flow = $hash > ''
+            ? $storage->findFlowByHash($hash)
+            : $storage->findFlowByRuntimeHash($runtimeHash);
 
         if (!$flow instanceof Flow) {
             return new JsonResponse([
@@ -209,6 +211,59 @@ $route->add(
         }
 
         return new JsonResponse($flow);
+    }
+);
+
+// GET /api/flows/schema
+$route->add(
+    '/api/schemas',
+    MethodEnum::GET,
+    function () use ($storage): JsonResponse {
+        $schemas = $storage->findAllSchemas();
+
+        return new JsonResponse(iterator_to_array($schemas));
+    }
+);
+
+// GET /api/flows/schema?className=object
+$route->add(
+    '/api/schema/stub-source',
+    MethodEnum::GET,
+    function (Request $request): JsonResponse {
+        $className = $request->query->get('className', '');
+        $className = str_starts_with($className, '\\') ? $className : '\\' . $className;
+
+        if (!class_exists($className)) {
+            return new JsonResponse([
+                'error' => 'The class not found',
+            ], 404);
+        }
+
+        if (!is_subclass_of($className, StubInterface::class)) {
+            return new JsonResponse([
+                'error' => 'The class does not implement StubInterface',
+            ], 400);
+        }
+
+        $ref = new ReflectionClass($className);
+        $file = (string) $ref->getFileName();
+
+        if (!file_exists($file)) {
+            return new JsonResponse([
+                'error' => 'The file not found',
+            ], 400);
+        }
+
+        $content = file_get_contents($file);
+        if (!is_string($content)) {
+            return new JsonResponse([
+                'error' => 'The file could not be read.',
+            ], 400);
+        }
+
+        return new JsonResponse([
+            'source' => $content,
+        ]);
     }
 );
 
@@ -299,6 +354,7 @@ $route->add(
         $flowHash = Assert::string($body['flowHash'] ?? '');
         $messageSource = Assert::string($body['messageSource'] ?? '');
         $message = Assert::array($body['message'] ?? []);
+        $messageReturn = null;
 
         if ($flowHash === '' || $messageSource === '' || $message === []) {
             return new JsonResponse([
@@ -348,7 +404,7 @@ $route->add(
         }
 
         try {
-            $flowRunner->run($messageInstance, $flowHash);
+            $messageReturn = $flowRunner->run($messageInstance, $flowHash);
         } catch (Throwable $throwable) {
             // the exception is recorded in storage
         }
@@ -356,6 +412,7 @@ $route->add(
         return new JsonResponse([
             'success' => true,
             'runtimeHash' => $flowRunner->getFlow()?->getRuntimeHash(),
+            'messageReturn' => $messageReturn instanceof MessageReturnInterface ? $messageReturn : null,
         ]);
     }
 );

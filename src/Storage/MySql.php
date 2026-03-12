@@ -7,6 +7,7 @@ namespace Wundii\Flowcrafter\Storage;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Exception;
+use InvalidArgumentException;
 use PDO as Client;
 use PDOException;
 use RuntimeException;
@@ -60,8 +61,10 @@ class MySql implements StorageInterface
             <<<'SQL'
             CREATE TABLE IF NOT EXISTS flow_schema (
                 flow_schema_hash VARCHAR(191) NOT NULL PRIMARY KEY,
+                flow_schema_type VARCHAR(191) NOT NULL,
                 flow_schema JSON NOT NULL,
                 created_at DATETIME NOT NULL,
+                UNIQUE INDEX flow_schema_type_unique (flow_schema_type),
                 INDEX flow_schema_hash (flow_schema_hash)
             )
             SQL
@@ -168,11 +171,30 @@ class MySql implements StorageInterface
         }
 
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_schema (flow_schema_hash, flow_schema, created_at) ' .
-            'VALUES (:hash, :flow_schema, :created_at)'
+            'SELECT * FROM flow_schema ' .
+            'WHERE flow_schema_hash != :flow_schema_hash ' .
+            'AND flow_schema_type = :flow_schema_type '
+        );
+        $stmt->execute([
+            ':flow_schema_hash' => $flowSchema->getHash(),
+            ':flow_schema_type' => $flowSchema->type(),
+        ]);
+
+        if ($stmt === false) {
+            throw new RuntimeException('Could not prepare query.');
+        }
+
+        if ($stmt->fetch() !== false) {
+            throw new InvalidArgumentException('The flow type "' . $flowSchema->type() . '" already exists.');
+        }
+
+        $stmt = $this->client->prepare(
+            'INSERT IGNORE INTO flow_schema (flow_schema_hash, flow_schema_type, flow_schema, created_at) ' .
+            'VALUES (:hash, :type, :flow_schema, :created_at)'
         );
         $stmt->execute([
             ':hash' => $flowSchema->getHash(),
+            ':type' => $flowSchema->type(),
             ':flow_schema' => $flowSchemaJson,
             ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.u'),
         ]);
@@ -315,6 +337,24 @@ class MySql implements StorageInterface
             }
 
             usleep(200_000);
+        }
+    }
+
+    /**
+     * @return iterable<array<mixed>>
+     */
+    public function findAllSchemas(): iterable
+    {
+        $stmt = $this->client->query(
+            'SELECT * FROM flow_schema'
+        );
+
+        if ($stmt === false) {
+            return [];
+        }
+
+        foreach ($stmt->fetchAll() as $row) {
+            yield $row['flow_schema'];
         }
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use Exception;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tests\MockClass\FailStubMock;
@@ -43,6 +44,23 @@ final class FlowRunnerMySqlTest extends TestCase
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_MESSAGE);
         $this->assertCount(6, iterator_to_array($stmt->fetchAll()));
     }
+
+    // public function testRunTryRewriteSchema(): void
+    // {
+    //     $storage = $this->storage();
+    //
+    //     $flowRunner = new FlowRunner(
+    //         type: 'flow.workflow.v1',
+    //         flowSource: WorkflowMock::class,
+    //         storage: $storage,
+    //     );
+    //     $flowRunner->run(new MessageInitMock('test data'));
+    //
+    //     $this->expectException(InvalidArgumentException::class);
+    //
+    //     $flow = $flowRunner->getFlow();
+    //     $storage->registerFlowSchema($flow->getSchema());
+    // }
 
     public function testRunFail(): void
     {

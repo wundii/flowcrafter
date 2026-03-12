@@ -110,6 +110,7 @@ final class ConverterTest extends TestCase
             FlowException::create(
                 flowHash: $flow->getHash(),
                 flowRuntimeHash: $flow->getRuntimeHash(),
+                flowType: $flow->getType(),
                 stubSource: StubMock::class,
                 code: 1,
                 message: 'Exception message',
@@ -159,6 +160,7 @@ final class ConverterTest extends TestCase
                 [
                     'flowHash' => $flow->getHash(),
                     'flowRuntimeHash' => $flow->getRuntimeHash(),
+                    'flowType' => 'flow.workflow.v1',
                     'stubSource' => StubMock::class,
                     'code' => 1,
                     'message' => 'Exception message',

@@ -340,6 +340,12 @@ class Esdb implements StorageInterface
             ],
             [
                 new IsSubjectPristine($subject),
+                new IsEventQlQueryTrue(
+                    'FROM e IN events ' .
+                    'WHERE e.data.type == "' . $flowSchema->type() . '" ' .
+                    'AND e.type == "' . self::TYPE_SCHEMA . '" ' .
+                    'PROJECT INTO COUNT() == 0'
+                ),
             ]
         );
     }
@@ -543,6 +549,21 @@ class Esdb implements StorageInterface
                 messageSource: $event->data['messageSource'] ?? '',
                 message: $event->data['message'] ?? [],
             );
+        }
+    }
+
+    /**
+     * @return iterable<array<mixed>>
+     */
+    public function findAllSchemas(): iterable
+    {
+        $schemaEvents = $this->client->readEvents(
+            subject: '/flow/schema',
+            readEventsOptions: new ReadEventsOptions(true),
+        );
+
+        foreach ($schemaEvents as $schemaEvent) {
+            yield $schemaEvent->data;
         }
     }
 
