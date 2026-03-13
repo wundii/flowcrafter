@@ -30,6 +30,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Stub;
 
 class Esdb implements StorageInterface
 {
@@ -48,6 +49,8 @@ class Esdb implements StorageInterface
     public const TYPE_RUN = 'flowcrafter.flow.run.v1';
 
     public const TYPE_SCHEMA = 'flowcrafter.flow.schema.v1';
+
+    public const TYPE_SOURCE_STUB = 'flowcrafter.flow.source.stub.v1';
 
     protected Client $client;
 
@@ -177,6 +180,32 @@ class Esdb implements StorageInterface
             $this->client->registerEventSchema($eventType, $registerEventSchema);
         }
 
+        if (!in_array(self::TYPE_SOURCE_STUB, $eventTypes, true)) {
+            $eventType = self::TYPE_SOURCE_STUB;
+            $registerEventSchema = [
+                'type' => 'object',
+                'properties' => [
+                    'stubHash' => [
+                        'type' => 'string',
+                    ],
+                    'stubSource' => [
+                        'type' => 'string',
+                    ],
+                    'sourceBase64' => [
+                        'type' => 'string',
+                    ],
+                ],
+                'required' => [
+                    'stubHash',
+                    'stubSource',
+                    'sourceBase64',
+                ],
+                'additionalProperties' => false,
+            ];
+
+            $this->client->registerEventSchema($eventType, $registerEventSchema);
+        }
+
         if (!in_array(self::TYPE_MESSAGE, $eventTypes, true)) {
             $eventType = self::TYPE_MESSAGE;
             $registerEventSchema = [
@@ -189,6 +218,9 @@ class Esdb implements StorageInterface
                         'type' => 'string',
                     ],
                     'stubSource' => [
+                        'type' => 'string',
+                    ],
+                    'stubHash' => [
                         'type' => 'string',
                     ],
                     'messageType' => [
@@ -214,10 +246,13 @@ class Esdb implements StorageInterface
                     'flowHash',
                     'flowRuntimeHash',
                     'stubSource',
+                    'stubHash',
                     'messageType',
                     'messageSource',
+                    'message',
                     'time',
                     'hash',
+                    'predecessorHash',
                 ],
                 'additionalProperties' => false,
             ];
@@ -240,6 +275,9 @@ class Esdb implements StorageInterface
                         'type' => 'string',
                     ],
                     'stubSource' => [
+                        'type' => 'string',
+                    ],
+                    'stubHash' => [
                         'type' => 'string',
                     ],
                     'code' => [
@@ -269,6 +307,7 @@ class Esdb implements StorageInterface
                     'flowRuntimeHash',
                     'flowType',
                     'stubSource',
+                    'stubHash',
                     'code',
                     'message',
                     'file',
@@ -348,6 +387,39 @@ class Esdb implements StorageInterface
                 ),
             ]
         );
+    }
+
+    /**
+     * @param class-string $stubSource
+     */
+    public function registerStubSource(string $stubSource): string
+    {
+        $stubSource = Stub::source($stubSource);
+
+        $subject = '/flow/source/stub/' . $stubSource['stubHash'];
+
+        $readEventsOptions = new ReadEventsOptions(false);
+        if (iterator_to_array($this->client->readEvents($subject, $readEventsOptions)) !== []) {
+            return $stubSource['stubHash'];
+        }
+
+        $eventCandidate = new EventCandidate(
+            source: self::SOURCE,
+            subject: $subject,
+            type: self::TYPE_SOURCE_STUB,
+            data: $stubSource,
+        );
+
+        $this->client->writeEvents(
+            [
+                $eventCandidate,
+            ],
+            [
+                new IsSubjectPristine($subject),
+            ]
+        );
+
+        return $stubSource['stubHash'];
     }
 
     public function registerFlowInstance(Flow $flow): void
@@ -827,6 +899,7 @@ class Esdb implements StorageInterface
                 flowRuntimeHash: $exceptionEvent['flowRuntimeHash'] ?? '',
                 flowType: $exceptionEvent['flowType'] ?? '',
                 stubSource: $exceptionEvent['stubSource'] ?? '',
+                stubHash: $exceptionEvent['stubHash'] ?? null,
                 code: $exceptionEvent['code'] ?? 0,
                 message: $exceptionEvent['message'] ?? '',
                 file: $exceptionEvent['file'] ?? '',
@@ -873,6 +946,7 @@ class Esdb implements StorageInterface
                 flowRuntimeHash: $exceptionEvent['flowRuntimeHash'] ?? '',
                 flowType: $exceptionEvent['flowType'] ?? '',
                 stubSource: $exceptionEvent['stubSource'] ?? '',
+                stubHash: $exceptionEvent['stubHash'] ?? null,
                 code: $exceptionEvent['code'] ?? 0,
                 message: $exceptionEvent['message'] ?? '',
                 file: $exceptionEvent['file'] ?? '',

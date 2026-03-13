@@ -22,6 +22,7 @@ class FlowMessage implements JsonSerializable
         private readonly string $flowHash,
         private readonly string $flowRuntimeHash,
         private readonly string $stubSource,
+        private ?string $stubHash,
         private MessageTypeEnum $messageTypeEnum,
         private readonly string $messageSource,
         private readonly MessageInterface $message,
@@ -48,6 +49,7 @@ class FlowMessage implements JsonSerializable
         string $flowHash,
         string $flowRuntimeHash,
         string $stubSource,
+        ?string $stubHash,
         MessageTypeEnum $messageTypeEnum,
         ?string $predecessorHash,
         MessageInterface $message,
@@ -58,6 +60,7 @@ class FlowMessage implements JsonSerializable
             flowHash: $flowHash,
             flowRuntimeHash: $flowRuntimeHash,
             stubSource: $stubSource,
+            stubHash: $stubHash,
             messageTypeEnum: $messageTypeEnum,
             messageSource: get_class($message),
             message: $message,
@@ -76,8 +79,10 @@ class FlowMessage implements JsonSerializable
         $this->messageTypeEnum = MessageTypeEnum::PROCESS;
     }
 
-    public function setFinish(): void
+    public function setFinish(?string $stubHash): void
     {
+        $this->stubHash = $stubHash;
+
         if ($this->messageTypeEnum === MessageTypeEnum::FINISH) {
             throw new InvalidArgumentException('FlowMessage is already marked as FINISH.');
         }
@@ -98,6 +103,11 @@ class FlowMessage implements JsonSerializable
     public function getStubSource(): string
     {
         return $this->stubSource;
+    }
+
+    public function getStubHash(): ?string
+    {
+        return $this->stubHash;
     }
 
     public function getMessageType(): MessageTypeEnum
@@ -139,6 +149,7 @@ class FlowMessage implements JsonSerializable
             'flowHash' => $this->flowHash,
             'flowRuntimeHash' => $this->flowRuntimeHash,
             'stubSource' => $this->stubSource,
+            'stubHash' => $this->stubHash,
             'messageType' => $this->messageTypeEnum->value,
             'messageSource' => $this->messageSource,
             'message' => $this->message,

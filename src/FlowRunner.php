@@ -179,6 +179,7 @@ class FlowRunner
                 flowHash: $flow->getHash(),
                 flowRuntimeHash: $flow->getRuntimeHash(),
                 stubSource: $stubSource,
+                stubHash: null,
                 messageTypeEnum: MessageTypeEnum::WAIT,
                 predecessorHash: $flowMessageHash,
                 message: $message,
@@ -193,12 +194,14 @@ class FlowRunner
 
             $this->executedStubKey[] = $stubKey;
 
+            $stubHash = $this->storage?->registerStubSource($stubSource);
+
             try {
                 $stubInstance = $this->createInstance($stubSource, $flowMessages);
                 $processResult = $stubInstance->process();
             } catch (Throwable $exception) {
                 foreach ($flowMessages as $flowMessage) {
-                    $flowMessage->setFinish();
+                    $flowMessage->setFinish($stubHash);
                     $this->storage?->appendFlowMessage($flowMessage);
                 }
 
@@ -207,6 +210,7 @@ class FlowRunner
                     flowRuntimeHash: $flow->getRuntimeHash(),
                     flowType: $flow->getType(),
                     stubSource: $stubSource,
+                    stubHash: $stubHash,
                     code: $exception->getCode(),
                     message: $exception->getMessage(),
                     file: $exception->getFile(),
@@ -220,7 +224,7 @@ class FlowRunner
             }
 
             foreach ($flowMessages as $flowMessage) {
-                $flowMessage->setFinish();
+                $flowMessage->setFinish($stubHash);
                 $this->storage?->appendFlowMessage($flowMessage);
             }
 
@@ -240,6 +244,7 @@ class FlowRunner
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
                     stubSource: $stubSource,
+                    stubHash: $stubHash,
                     messageTypeEnum: MessageTypeEnum::FINISH,
                     predecessorHash: $flowMessage->getHash(),
                     message: $processResult,

@@ -43,6 +43,9 @@ final class FlowRunnerMySqlTest extends TestCase
 
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_MESSAGE);
         $this->assertCount(6, iterator_to_array($stmt->fetchAll()));
+
+        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_STUB);
+        $this->assertCount(4, iterator_to_array($stmt->fetchAll()));
     }
 
     // public function testRunTryRewriteSchema(): void

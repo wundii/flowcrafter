@@ -32,7 +32,7 @@ final class FlowRunnerRedisTest extends TestCase
         $this->assertCount(6, $flowRunner->getFlow()->getFlowMessages());
 
         $events = $this->client->keys('flow:*');
-        $this->assertCount(9, $events);
+        $this->assertCount(13, $events);
 
         $flowSchemaEvents = $this->client->keys('flow:schema:*');
         $this->assertCount(1, $flowSchemaEvents);
@@ -45,6 +45,9 @@ final class FlowRunnerRedisTest extends TestCase
 
         $flowMessageEvents = $this->client->keys('flow:message:*');
         $this->assertCount(6, $flowMessageEvents);
+
+        $flowMessageEvents = $this->client->keys('flow:source:stub:*');
+        $this->assertCount(4, $flowMessageEvents);
     }
 
     // public function testRunTryRewriteSchema(): void

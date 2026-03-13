@@ -22,6 +22,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Stub;
 use Wundii\Flowcrafter\Uuid;
 
 class Redis implements StorageInterface
@@ -36,6 +37,8 @@ class Redis implements StorageInterface
 
     public const PREFIX_TYPE_SCHEMA = 'flow:schema:';
 
+    public const PREFIX_TYPE_SOURCE_STUB = 'flow:source:stub:';
+
     private const INDEX_INSTANCE = 'idx:flow';
 
     private const INDEX_MESSAGE = 'idx:flow:message';
@@ -45,6 +48,8 @@ class Redis implements StorageInterface
     private const INDEX_RUN = 'idx:flow:run';
 
     private const INDEX_SCHEMA = 'idx:flow:schema';
+
+    private const INDEX_SOURCE_STUB = 'idx:flow:source:stub';
 
     protected Client $client;
 
@@ -121,6 +126,29 @@ class Redis implements StorageInterface
             '$.stubs[*].source',
             'AS',
             'stubSource',
+            'TAG'
+        );
+
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_SOURCE_STUB,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_TYPE_SOURCE_STUB,
+            'SCHEMA',
+            '$.stubHash',
+            'AS',
+            'stubHash',
+            'TAG',
+            '$.stubSource',
+            'AS',
+            'stubSource',
+            'TAG',
+            '$.sourceBase64',
+            'AS',
+            'stubBase64',
             'TAG'
         );
 
@@ -211,6 +239,10 @@ class Redis implements StorageInterface
             'AS',
             'stubSource',
             'TAG',
+            '$.stubHash',
+            'AS',
+            'stubHash',
+            'TAG',
             '$.messageType',
             'AS',
             'messageType',
@@ -257,6 +289,10 @@ class Redis implements StorageInterface
             '$.stubSource',
             'AS',
             'stubSource',
+            'TAG',
+            '$.stubHash',
+            'AS',
+            'stubHash',
             'TAG',
             '$.code',
             'AS',
@@ -310,6 +346,23 @@ class Redis implements StorageInterface
         }
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($flowSchema));
+    }
+
+    /**
+     * @param class-string $stubSource
+     */
+    public function registerStubSource(string $stubSource): string
+    {
+        $stubSource = Stub::source($stubSource);
+
+        $key = self::PREFIX_TYPE_SOURCE_STUB . $stubSource['stubHash'];
+        if ($this->client->exists($key)) {
+            return $stubSource['stubHash'];
+        }
+
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($stubSource));
+
+        return $stubSource['stubHash'];
     }
 
     public function registerFlowInstance(Flow $flow): void
@@ -678,6 +731,7 @@ class Redis implements StorageInterface
                 flowRuntimeHash: $event['flowRuntimeHash'] ?? '',
                 flowType: $event['flowType'] ?? '',
                 stubSource: $event['stubSource'] ?? '',
+                stubHash: $event['stubHash'] ?? null,
                 code: $event['code'] ?? 0,
                 message: $event['message'] ?? '',
                 file: $event['file'] ?? '',

@@ -23,6 +23,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Stub;
 
 class MySql implements StorageInterface
 {
@@ -37,6 +38,8 @@ class MySql implements StorageInterface
     public const TYPE_RUN = 'flow_run';
 
     public const TYPE_SCHEMA = 'flow_schema';
+
+    public const TYPE_SOURCE_STUB = 'flow_source_stub';
 
     protected Client $client;
 
@@ -66,6 +69,18 @@ class MySql implements StorageInterface
                 created_at DATETIME NOT NULL,
                 UNIQUE INDEX flow_schema_type_unique (flow_schema_type),
                 INDEX flow_schema_hash (flow_schema_hash)
+            )
+            SQL
+        );
+
+        $this->client->exec(
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS flow_source_stub (
+                stub_hash VARCHAR(191) NOT NULL PRIMARY KEY,
+                stub_source VARCHAR(191) NOT NULL,
+                source_base64 TEXT NOT NULL,
+                created_at DATETIME NOT NULL,
+                INDEX flow_source_stub_hash (stub_hash)
             )
             SQL
         );
@@ -109,6 +124,7 @@ class MySql implements StorageInterface
                 flow_hash VARCHAR(191) NOT NULL,
                 flow_runtime_hash VARCHAR(191) NOT NULL,
                 stub_source VARCHAR(255) NOT NULL,
+                stub_hash VARCHAR(191) NOT NULL,
                 message_type VARCHAR(64) NOT NULL,
                 message_source VARCHAR(255) NOT NULL,
                 message JSON NOT NULL,
@@ -119,7 +135,8 @@ class MySql implements StorageInterface
                 INDEX idx_flow_message_message_source (message_source),
                 INDEX idx_flow_message_message_type (message_type),
                 FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
-                FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash)
+                FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash),
+                FOREIGN KEY (stub_hash) REFERENCES flow_source_stub(stub_hash)
             )
             SQL
         );
@@ -132,6 +149,7 @@ class MySql implements StorageInterface
                 flow_runtime_hash VARCHAR(191) NOT NULL,
                 flow_type VARCHAR(191) NOT NULL,
                 stub_source VARCHAR(255) NOT NULL,
+                stub_hash VARCHAR(191) NOT NULL,
                 code INT(11) NOT NULL,
                 message VARCHAR(2000) NOT NULL,
                 file VARCHAR(2000) NOT NULL,
@@ -142,7 +160,8 @@ class MySql implements StorageInterface
                 INDEX idx_flow_exception_flow_runtime_hash (flow_runtime_hash),
                 INDEX idx_flow_exception_stub_source (stub_source),
                 FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
-                FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash)
+                FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash),
+                FOREIGN KEY (stub_hash) REFERENCES flow_source_stub(stub_hash)
             )
             SQL
         );
@@ -200,6 +219,27 @@ class MySql implements StorageInterface
         ]);
     }
 
+    /**
+     * @param class-string $stubSource
+     */
+    public function registerStubSource(string $stubSource): string
+    {
+        $stubSource = Stub::source($stubSource);
+
+        $stmt = $this->client->prepare(
+            'INSERT IGNORE INTO flow_source_stub (stub_hash, stub_source, source_base64, created_at) ' .
+            'VALUES (:stub_hash, :stub_source, :source_base64, :created_at)'
+        );
+        $stmt->execute([
+            ':stub_hash' => $stubSource['stubHash'],
+            ':stub_source' => $stubSource['stubSource'],
+            ':source_base64' => $stubSource['sourceBase64'],
+            ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.u'),
+        ]);
+
+        return $stubSource['stubHash'];
+    }
+
     public function registerFlowInstance(Flow $flow): void
     {
         $stmt = $this->client->prepare(
@@ -240,8 +280,8 @@ class MySql implements StorageInterface
         }
 
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, stub_source, message_type, message_source, predecessor_hash, time, message) ' .
-            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :message_type, :message_source, :predecessor_hash, :time, :message)'
+            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, stub_source, stub_hash, message_type, message_source, predecessor_hash, time, message) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :stub_hash, :message_type, :message_source, :predecessor_hash, :time, :message)'
         );
 
         $stmt->execute([
@@ -249,6 +289,7 @@ class MySql implements StorageInterface
             ':flow_hash' => $flowMessage->getFlowHash(),
             ':flow_runtime_hash' => $flowMessage->getFlowRuntimeHash(),
             ':stub_source' => $flowMessage->getStubSource(),
+            ':stub_hash' => $flowMessage->getStubHash(),
             ':message_type' => $flowMessage->getMessageType()->value,
             ':message_source' => $flowMessage->getMessageSource(),
             ':predecessor_hash' => $flowMessage->getPredecessorHash(),
@@ -260,8 +301,8 @@ class MySql implements StorageInterface
     public function appendFlowException(FlowException $flowException): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_exception (hash, flow_hash, flow_runtime_hash, stub_source, code, message, file, line, traceString, time) ' .
-            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :code, :message, :file, :line, :traceString, :time)'
+            'INSERT IGNORE INTO flow_exception (hash, flow_hash, flow_runtime_hash, stub_source, stub_hash, code, message, file, line, traceString, time) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :stub_hash, :code, :message, :file, :line, :traceString, :time)'
         );
 
         $stmt->execute([
@@ -269,6 +310,7 @@ class MySql implements StorageInterface
             ':flow_hash' => $flowException->getFlowHash(),
             ':flow_runtime_hash' => $flowException->getFlowRuntimeHash(),
             ':stub_source' => $flowException->getStubSource(),
+            ':stub_hash' => $flowException->getStubHash(),
             ':code' => $flowException->getCode(),
             ':message' => $flowException->getMessage(),
             ':file' => $flowException->getFile(),
@@ -633,6 +675,7 @@ class MySql implements StorageInterface
                 flowRuntimeHash: $row['flow_runtime_hash'] ?? '',
                 flowType: $row['flow_type'] ?? '',
                 stubSource: $row['stub_source'] ?? '',
+                stubHash: $row['stub_hash'] ?? null,
                 code: $row['code'] ?? 0,
                 message: $row['message'] ?? '',
                 file: $row['file'] ?? '',
@@ -692,6 +735,7 @@ class MySql implements StorageInterface
                 flowRuntimeHash: $row['flow_runtime_hash'] ?? '',
                 flowType: $row['flow_type'] ?? '',
                 stubSource: $row['stub_source'] ?? '',
+                stubHash: $row['stub_hash'] ?? null,
                 code: $row['code'] ?? 0,
                 message: $row['message'] ?? '',
                 file: $row['file'] ?? '',

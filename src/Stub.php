@@ -110,6 +110,38 @@ class Stub implements JsonSerializable
     }
 
     /**
+     * @param class-string $source
+     * @return array<string, string>
+     */
+    public static function source(string $source): array
+    {
+        if (!class_exists($source)) {
+            throw new InvalidArgumentException(sprintf('Source class "%s" does not exist.', $source));
+        }
+
+        if (!is_subclass_of($source, StubInterface::class)) {
+            throw new InvalidArgumentException(sprintf('Source class "%s" does not implement stub interface.', $source));
+        }
+
+        $reflectionClass = new ReflectionClass($source);
+        $file = $reflectionClass->getFileName();
+        if ($file === false) {
+            throw new InvalidArgumentException(sprintf('Source class "%s" is not your class.', $source));
+        }
+
+        $fileContent = file_get_contents($file);
+        if ($fileContent === false) {
+            throw new InvalidArgumentException(sprintf('Source class "%s" is unreadable', $source));
+        }
+
+        return [
+            'stubHash' => md5($fileContent),
+            'stubSource' => $source,
+            'sourceBase64' => base64_encode($fileContent),
+        ];
+    }
+
+    /**
      * @return class-string<StubInterface>
      */
     public function getSource(): string

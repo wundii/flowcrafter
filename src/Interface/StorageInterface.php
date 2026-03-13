@@ -19,6 +19,11 @@ interface StorageInterface
 
     public function registerFlowSchema(FlowSchema $flowSchema): void;
 
+    /**
+     * @param class-string $stubSource
+     */
+    public function registerStubSource(string $stubSource): string;
+
     public function registerFlowInstance(Flow $flow): void;
 
     public function appendFlowRun(Flow $flow, ?string $queueId = null): void;

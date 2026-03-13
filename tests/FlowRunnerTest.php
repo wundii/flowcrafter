@@ -123,5 +123,6 @@ final class FlowRunnerTest extends TestCase
         $this->assertCount(6, $flow->getFlowMessages());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
         $this->assertSame(strtoupper($result->getData()), $result->getData());
+        $this->assertStringEndsWith('THE END', $result->getData());
     }
 }
