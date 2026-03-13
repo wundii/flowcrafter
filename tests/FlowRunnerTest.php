@@ -7,6 +7,8 @@ namespace Tests;
 use Exception;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Tests\MockClass\DependencyConstructMock;
+use Tests\MockClass\DependencyMock;
 use Tests\MockClass\FailStubMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageInitMock;
@@ -96,5 +98,30 @@ final class FlowRunnerTest extends TestCase
         $this->assertSame($flow->getRuntimeHash(), $exception->getFlowRuntimeHash());
         $this->assertSame(FailStubMock::class, $exception->getStubSource());
         $this->assertStringStartsWith('Test Exception', $exception->getMessage());
+    }
+
+    public function testRunWithDependencyInjection(): void
+    {
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            dependenciesInjection: [
+                DependencyMock::class,
+                new DependencyConstructMock(' the end'),
+            ]
+        );
+        $result = $flowRunner->run(new MessageInitMock('test data'));
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+
+        $exceptions = $flow->getFlowExceptions();
+        $runs = $flow->getFlowRuns();
+        $this->assertCount(0, $exceptions);
+        $this->assertCount(1, $runs);
+
+        $this->assertCount(6, $flow->getFlowMessages());
+        $this->assertInstanceOf(MessageReturnInterface::class, $result);
+        $this->assertSame(strtoupper($result->getData()), $result->getData());
     }
 }

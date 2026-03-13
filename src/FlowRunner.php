@@ -34,7 +34,7 @@ class FlowRunner
 
     /**
      * @param class-string<FlowInterface> $flowSource
-     * @param class-string[] $dependenciesInjection
+     * @param array<class-string|object> $dependenciesInjection
      */
     public function __construct(
         private readonly string $type,
@@ -115,11 +115,15 @@ class FlowRunner
         }
 
         foreach ($this->dependenciesInjection as $dependencyInjection) {
-            $definition = new Definition($dependencyInjection);
-            $definition->setSynthetic(true);
+            $className = is_object($dependencyInjection)
+                ? get_class($dependencyInjection)
+                : $dependencyInjection;
+
+            $definition = new Definition($className);
+            $definition->setSynthetic(is_object($dependencyInjection));
             $definition->setPublic(true);
 
-            $containerBuilder->setDefinition($dependencyInjection, $definition);
+            $containerBuilder->setDefinition($className, $definition);
         }
 
         $containerBuilder->autowire($stubSource)
@@ -129,6 +133,14 @@ class FlowRunner
 
         foreach ($messages as $message) {
             $containerBuilder->set(get_class($message), $message);
+        }
+
+        foreach ($this->dependenciesInjection as $dependencyInjection) {
+            if (!is_object($dependencyInjection)) {
+                continue;
+            }
+
+            $containerBuilder->set(get_class($dependencyInjection), $dependencyInjection);
         }
 
         $stubInstance = $containerBuilder->get($stubSource);

@@ -12,6 +12,8 @@ class PostStubMock implements StubInterface
     public function __construct(
         private readonly MessageDataMock $messageDataMock,
         private readonly MessageDataSecondMock $messageDataSecondMock,
+        private readonly ?DependencyMock $dependencyMock = null,
+        private readonly ?DependencyConstructMock $dependencyConstructMock = null,
     ) {
     }
 
@@ -33,12 +35,15 @@ class PostStubMock implements StubInterface
         ];
 
         $summary = implode(' | ', $parts);
+        $summary .= $this->dependencyConstructMock?->value;
 
         $emojis = ['Chef-Kuss', 'Meisterwerk', 'Sterneküche', 'Gaumenschmaus', 'Kulinarik-Genie'];
         $emoji = $emojis[array_rand($emojis)];
+        $data = sprintf('[%s] %s', $emoji, $summary);
+        $data = $this->dependencyMock?->strToUpper($data) ?? $data;
 
         return new MessageReturnMock(
-            sprintf('[%s] %s', $emoji, $summary),
+            $data,
             sprintf('Zubereitet in %d Minuten', random_int(5, 45)),
         );
     }

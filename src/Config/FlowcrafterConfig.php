@@ -89,7 +89,7 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
     }
 
     /**
-     * @param class-string[] $dependenciesInjection
+     * @param array<class-string|object> $dependenciesInjection
      */
     public function setDependenciesInjection(array $dependenciesInjection = []): void
     {
@@ -97,7 +97,7 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
     }
 
     /**
-     * @return class-string[]
+     * @return array<class-string|object>
      */
     public function getDependencyInjections(): array
     {
