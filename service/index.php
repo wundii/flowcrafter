@@ -341,7 +341,7 @@ $route->add(
 $route->add(
     '/api/flows/run',
     MethodEnum::POST,
-    function (Request $request) use ($storage): JsonResponse {
+    function (Request $request) use ($storage, $flowcrafterConfig): JsonResponse {
         $body = json_decode($request->getContent(), true);
         if (!is_array($body)) {
             return new JsonResponse([
@@ -394,6 +394,7 @@ $route->add(
                 type: $existingFlow->getType(),
                 flowSource: $existingFlow->getSource(),
                 storage: $storage,
+                dependenciesInjection: $flowcrafterConfig->getDependencyInjections(),
             );
         } catch (Throwable $throwable) {
             return new JsonResponse([

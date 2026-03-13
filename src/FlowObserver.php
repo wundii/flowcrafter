@@ -17,8 +17,12 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 
 readonly class FlowObserver
 {
+    /**
+     * @param class-string[] $dependenciesInjection
+     */
     public function __construct(
         private StorageInterface $storage,
+        private array $dependenciesInjection,
     ) {
     }
 
@@ -61,6 +65,7 @@ readonly class FlowObserver
                 type: $observeItem->getType(),
                 flowSource: $observeItem->getFlowSource(),
                 storage: $this->storage,
+                dependenciesInjection: $this->dependenciesInjection,
             );
 
             $flowRunner->run(

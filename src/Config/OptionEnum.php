@@ -55,4 +55,9 @@ enum OptionEnum: string
      * @internal
      */
     case SERVER_DESCRIPTION = 'server_description';
+
+    /**
+     * @internal
+     */
+    case DEPENDENCIES_INJECTION = 'dependencies_injections';
 }

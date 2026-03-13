@@ -25,6 +25,7 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::STORAGE_DATABASE, null);
         $this->setParameter(OptionEnum::SERVER_SECRET, null);
         $this->setParameter(OptionEnum::SERVER_DESCRIPTION, null);
+        $this->setParameter(OptionEnum::DEPENDENCIES_INJECTION, []);
     }
 
     public function setStorageClass(string $storageClass): void
@@ -85,6 +86,25 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
     public function getServerDescription(): ?string
     {
         return $this->getNullOrString(OptionEnum::SERVER_DESCRIPTION);
+    }
+
+    /**
+     * @param class-string[] $dependenciesInjection
+     */
+    public function setDependenciesInjection(array $dependenciesInjection = []): void
+    {
+        $this->setParameter(OptionEnum::DEPENDENCIES_INJECTION, $dependenciesInjection);
+    }
+
+    /**
+     * @return class-string[]
+     */
+    public function getDependencyInjections(): array
+    {
+        /** @var class-string[] $dependencies */
+        $dependencies = $this->getArrayWithStrings(OptionEnum::DEPENDENCIES_INJECTION);
+
+        return $dependencies;
     }
 
     /**

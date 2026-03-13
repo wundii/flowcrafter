@@ -15,4 +15,5 @@ return static function (FlowcrafterConfig $flowcrafterConfig): void {
     $flowcrafterConfig->setStorageDatabase();
     $flowcrafterConfig->setServerSecret();
     $flowcrafterConfig->setServerDescription();
+    $flowcrafterConfig->setDependenciesInjection();
 };

@@ -52,7 +52,8 @@ final class FlowObserverCommand extends Command
         });
 
         $storage = $this->flowcrafterConfig->getStorage();
-        $flowObserver = new FlowObserver($storage);
+        $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
+        $flowObserver = new FlowObserver($storage, $dependencyInjections);
 
         $logger = static function (string $message) use ($output): void {
             $output->writeln($message);

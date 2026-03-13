@@ -17,7 +17,7 @@ final class FlowObserverRedisTest extends TestCase
     public function testRunObserverWithoutMessages(): void
     {
         $storage = $this->storage();
-        $flowObserver = new FlowObserver($storage);
+        $flowObserver = new FlowObserver($storage, []);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->keys('flow:*');
@@ -38,7 +38,7 @@ final class FlowObserverRedisTest extends TestCase
             ]
         );
 
-        $flowObserver = new FlowObserver($storage);
+        $flowObserver = new FlowObserver($storage, []);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->keys('flow:*');

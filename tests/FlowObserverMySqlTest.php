@@ -18,7 +18,7 @@ final class FlowObserverMySqlTest extends TestCase
     public function testRunObserverWithoutMessages(): void
     {
         $storage = $this->storage();
-        $flowObserver = new FlowObserver($storage);
+        $flowObserver = new FlowObserver($storage, []);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_QUEUE);
@@ -39,7 +39,7 @@ final class FlowObserverMySqlTest extends TestCase
             ]
         );
 
-        $flowObserver = new FlowObserver($storage);
+        $flowObserver = new FlowObserver($storage, []);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SCHEMA);

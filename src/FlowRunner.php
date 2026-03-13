@@ -34,12 +34,14 @@ class FlowRunner
 
     /**
      * @param class-string<FlowInterface> $flowSource
+     * @param class-string[] $dependenciesInjection
      */
     public function __construct(
         private readonly string $type,
         private readonly string $flowSource,
         private readonly ?string $flowSubject = null,
         private readonly ?StorageInterface $storage = null,
+        private readonly array $dependenciesInjection = [],
     ) {
         Assert::classString(
             $flowSource,
@@ -103,13 +105,21 @@ class FlowRunner
 
         $containerBuilder = new ContainerBuilder();
         foreach ($messages as $message) {
-            $id = get_class($message);
+            $className = get_class($message);
 
-            $definition = new Definition($id);
+            $definition = new Definition($className);
             $definition->setSynthetic(true);
             $definition->setPublic(true);
 
-            $containerBuilder->setDefinition($id, $definition);
+            $containerBuilder->setDefinition($className, $definition);
+        }
+
+        foreach ($this->dependenciesInjection as $dependencyInjection) {
+            $definition = new Definition($dependencyInjection);
+            $definition->setSynthetic(true);
+            $definition->setPublic(true);
+
+            $containerBuilder->setDefinition($dependencyInjection, $definition);
         }
 
         $containerBuilder->autowire($stubSource)

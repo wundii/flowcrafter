@@ -8,9 +8,7 @@ use Exception;
 use InvalidArgumentException;
 use JsonSerializable;
 use ReflectionClass;
-use ReflectionException;
 use ReflectionMethod;
-use RuntimeException;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -90,12 +88,18 @@ class Stub implements JsonSerializable
 
         $messages = [];
         foreach ($constructorParams as $constructorParam) {
-            $type = $constructorParam->getType()->getName();
-            if (!is_subclass_of($type, MessageInterface::class)) {
+            $type = $constructorParam->getType();
+            if (!$type instanceof \ReflectionNamedType) {
                 continue;
             }
 
-            $messages[] = $type;
+            $typeName = $type->getName();
+
+            if (!is_subclass_of($typeName, MessageInterface::class)) {
+                continue;
+            }
+
+            $messages[] = $typeName;
         }
 
         return new self(
