@@ -30,6 +30,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Stub;
 
 class Esdb implements StorageInterface
@@ -194,11 +195,15 @@ class Esdb implements StorageInterface
                     'sourceBase64' => [
                         'type' => 'string',
                     ],
+                    'time' => [
+                        'type' => 'string',
+                    ],
                 ],
                 'required' => [
                     'stubHash',
                     'stubSource',
                     'sourceBase64',
+                    'time',
                 ],
                 'additionalProperties' => false,
             ];
@@ -396,18 +401,18 @@ class Esdb implements StorageInterface
     {
         $stubSource = Stub::source($stubSource);
 
-        $subject = '/flow/source/stub/' . $stubSource['stubHash'];
+        $subject = '/flow/source/stub/' . $stubSource->stubHash;
 
         $readEventsOptions = new ReadEventsOptions(false);
         if (iterator_to_array($this->client->readEvents($subject, $readEventsOptions)) !== []) {
-            return $stubSource['stubHash'];
+            return $stubSource->stubHash;
         }
 
         $eventCandidate = new EventCandidate(
             source: self::SOURCE,
             subject: $subject,
             type: self::TYPE_SOURCE_STUB,
-            data: $stubSource,
+            data: $stubSource->jsonSerialize(),
         );
 
         $this->client->writeEvents(
@@ -419,7 +424,7 @@ class Esdb implements StorageInterface
             ]
         );
 
-        return $stubSource['stubHash'];
+        return $stubSource->stubHash;
     }
 
     public function registerFlowInstance(Flow $flow): void
@@ -1014,5 +1019,49 @@ class Esdb implements StorageInterface
         $flowHash = iterator_to_array($flowHashIter)[0] ?? '';
 
         return $this->findFlowByHash($flowHash);
+    }
+
+    public function findStubSourceByHash(string $stubHash): ?StubSourceEntity
+    {
+        $stubSourceEvents = $this->client->readEvents(
+            subject: '/flow/source/stub/' . $stubHash,
+            readEventsOptions: new ReadEventsOptions(recursive: false)
+        );
+        $stubSourceEvent = iterator_to_array($stubSourceEvents)[0] ?? null;
+
+        if ($stubSourceEvent === null) {
+            return null;
+        }
+
+        return new StubSourceEntity(
+            stubHash: $stubSourceEvent->data['stubHash'] ?? '',
+            stubSource: $stubSourceEvent->data['stubSource'] ?? '',
+            sourceBase64: $stubSourceEvent->data['sourceBase64'] ?? '',
+            time: new DateTimeImmutable($stubSourceEvent->data['time'] ?? 'now'),
+        );
+    }
+
+    /**
+     * @param class-string $stubSource
+     * @return iterable<StubSourceEntity>
+     */
+    public function findStubSourcesByStubSource(string $stubSource): iterable
+    {
+        $stubSourceEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_SOURCE_STUB . '" ' .
+            'AND e.data.stubSource == "' . $stubSource . '" ' .
+            'ORDER by e.id ASC ' .
+            'PROJECT INTO e.data'
+        );
+
+        foreach ($stubSourceEvents as $stubSourceEvent) {
+            yield new StubSourceEntity(
+                stubHash: $stubSourceEvent['stubHash'] ?? '',
+                stubSource: $stubSourceEvent['stubSource'] ?? '',
+                sourceBase64: $stubSourceEvent['sourceBase64'] ?? '',
+                time: new DateTimeImmutable($stubSourceEvent['time'] ?? 'now'),
+            );
+        }
     }
 }

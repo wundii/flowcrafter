@@ -19,6 +19,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flower\Flower;
 use Wundii\Flower\MethodEnum;
 
@@ -223,45 +224,102 @@ $route->add(
     }
 );
 
-// GET /api/flows/schema?className=object
+// GET /api/flows/schema?className=object | ?stubHash=hash
 $route->add(
     '/api/schema/stub-source',
     MethodEnum::GET,
-    function (Request $request): JsonResponse {
-        $className = $request->query->get('className', '');
-        $className = str_starts_with($className, '\\') ? $className : '\\' . $className;
+    function (Request $request) use ($storage): JsonResponse {
+        $className = $request->query->get('className');
+        if (is_string($className)) {
+            $className = str_starts_with($className, '\\') ? $className : '\\' . $className;
 
-        if (!class_exists($className)) {
+            if (!class_exists($className)) {
+                return new JsonResponse([
+                    'error' => 'The class not found',
+                ], 404);
+            }
+
+            if (!is_subclass_of($className, StubInterface::class)) {
+                return new JsonResponse([
+                    'error' => 'The class does not implement StubInterface',
+                ], 400);
+            }
+
+            $ref = new ReflectionClass($className);
+            $file = (string) $ref->getFileName();
+
+            if (!file_exists($file)) {
+                return new JsonResponse([
+                    'error' => 'The file not found',
+                ], 400);
+            }
+
+            $content = file_get_contents($file);
+            if (!is_string($content)) {
+                return new JsonResponse([
+                    'error' => 'The file could not be read.',
+                ], 400);
+            }
+
             return new JsonResponse([
-                'error' => 'The class not found',
-            ], 404);
+                'source' => $content,
+            ]);
         }
 
-        if (!is_subclass_of($className, StubInterface::class)) {
+        $stubHash = $request->query->get('stubHash', '');
+
+        $stubSourceEntity = $storage->findStubSourceByHash($stubHash);
+
+        if (!$stubSourceEntity instanceof StubSourceEntity) {
             return new JsonResponse([
-                'error' => 'The class does not implement StubInterface',
-            ], 400);
+                'error' => 'Stub source not found',
+            ]);
         }
 
-        $ref = new ReflectionClass($className);
+        $current = class_exists($stubSourceEntity->stubSource);
+
+        $ref = new ReflectionClass($stubSourceEntity->stubSource);
         $file = (string) $ref->getFileName();
 
-        if (!file_exists($file)) {
-            return new JsonResponse([
-                'error' => 'The file not found',
-            ], 400);
-        }
-
-        $content = file_get_contents($file);
-        if (!is_string($content)) {
-            return new JsonResponse([
-                'error' => 'The file could not be read.',
-            ], 400);
-        }
+        $current = $current && file_exists($file);
+        $current = $current && is_string(file_get_contents($file));
 
         return new JsonResponse([
-            'source' => $content,
+            'current' => $current,
+            'source' => $stubSourceEntity,
         ]);
+    }
+);
+
+// GET /api/flows/schema?stubSource=className
+$route->add(
+    '/api/schema/stub-sources',
+    MethodEnum::GET,
+    function (Request $request) use ($storage): JsonResponse {
+        $stubSource = $request->query->get('stubSource', '');
+
+        /** @var class-string $stubSource */
+        $stubSource = str_starts_with($stubSource, '\\') ? $stubSource : '\\' . $stubSource;
+
+        $stubSources = $storage->findStubSourcesByStubSource($stubSource);
+
+        $result = [];
+        foreach ($stubSources as $stubSource) {
+            $current = class_exists($stubSource->stubSource);
+
+            $ref = new ReflectionClass($stubSource->stubSource);
+            $file = (string) $ref->getFileName();
+
+            $current = $current && file_exists($file);
+            $current = $current && is_string(file_get_contents($file));
+
+            $result[] = [
+                'current' => $current,
+                'source' => $stubSource,
+            ];
+        }
+
+        return new JsonResponse($result);
     }
 );
 

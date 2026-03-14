@@ -12,6 +12,7 @@ use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 interface StorageInterface
 {
@@ -94,4 +95,12 @@ interface StorageInterface
     public function findFlowByHash(string $flowHash): ?Flow;
 
     public function findFlowByRuntimeHash(string $flowRuntimeHash): ?Flow;
+
+    public function findStubSourceByHash(string $stubHash): ?StubSourceEntity;
+
+    /**
+     * @param class-string $stubSource
+     * @return iterable<StubSourceEntity>
+     */
+    public function findStubSourcesByStubSource(string $stubSource): iterable;
 }

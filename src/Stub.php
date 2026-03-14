@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use DateTimeImmutable;
 use Exception;
 use InvalidArgumentException;
 use JsonSerializable;
@@ -14,6 +15,7 @@ use Wundii\Flowcrafter\Interface\MessageDataInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 class Stub implements JsonSerializable
 {
@@ -111,9 +113,8 @@ class Stub implements JsonSerializable
 
     /**
      * @param class-string $source
-     * @return array<string, string>
      */
-    public static function source(string $source): array
+    public static function source(string $source): StubSourceEntity
     {
         if (!class_exists($source)) {
             throw new InvalidArgumentException(sprintf('Source class "%s" does not exist.', $source));
@@ -134,11 +135,12 @@ class Stub implements JsonSerializable
             throw new InvalidArgumentException(sprintf('Source class "%s" is unreadable', $source));
         }
 
-        return [
-            'stubHash' => md5($fileContent),
-            'stubSource' => $source,
-            'sourceBase64' => base64_encode($fileContent),
-        ];
+        return new StubSourceEntity(
+            stubHash: md5($fileContent),
+            stubSource: $source,
+            sourceBase64: base64_encode($fileContent),
+            time: new DateTimeImmutable('now'),
+        );
     }
 
     /**

@@ -23,6 +23,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Stub;
 
 class MySql implements StorageInterface
@@ -79,7 +80,7 @@ class MySql implements StorageInterface
                 stub_hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 stub_source VARCHAR(191) NOT NULL,
                 source_base64 TEXT NOT NULL,
-                created_at DATETIME NOT NULL,
+                time DATETIME NOT NULL,
                 INDEX flow_source_stub_hash (stub_hash)
             )
             SQL
@@ -227,17 +228,17 @@ class MySql implements StorageInterface
         $stubSource = Stub::source($stubSource);
 
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_source_stub (stub_hash, stub_source, source_base64, created_at) ' .
-            'VALUES (:stub_hash, :stub_source, :source_base64, :created_at)'
+            'INSERT IGNORE INTO flow_source_stub (stub_hash, stub_source, source_base64, time) ' .
+            'VALUES (:stub_hash, :stub_source, :source_base64, :time)'
         );
         $stmt->execute([
-            ':stub_hash' => $stubSource['stubHash'],
-            ':stub_source' => $stubSource['stubSource'],
-            ':source_base64' => $stubSource['sourceBase64'],
-            ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.u'),
+            ':stub_hash' => $stubSource->stubHash,
+            ':stub_source' => $stubSource->stubSource,
+            ':source_base64' => $stubSource->sourceBase64,
+            ':time' => $stubSource->time->format('Y-m-d H:i:s.u'),
         ]);
 
-        return $stubSource['stubHash'];
+        return $stubSource->stubHash;
     }
 
     public function registerFlowInstance(Flow $flow): void
@@ -890,6 +891,61 @@ class MySql implements StorageInterface
         }
 
         return $this->findFlowByHash($flowHash);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function findStubSourceByHash(string $stubHash): ?StubSourceEntity
+    {
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_source_stub ' .
+            'WHERE stub_hash = :stub_hash'
+        );
+        $stmt->execute([
+            ':stub_hash' => $stubHash,
+        ]);
+
+        $stubSource = $stmt->fetch();
+        if ($stubSource === false) {
+            return null;
+        }
+
+        return new StubSourceEntity(
+            /** @phpstan-ignore-next-line */
+            stubHash: $stubSource['stub_hash'] ?? '',
+            /** @phpstan-ignore-next-line */
+            stubSource: $stubSource['stub_source'] ?? '',
+            /** @phpstan-ignore-next-line */
+            sourceBase64: $stubSource['source_base64'] ?? '',
+            /** @phpstan-ignore-next-line */
+            time: new DateTimeImmutable($stubSource['time'] ?? 'now'),
+        );
+    }
+
+    /**
+     * @param class-string $stubSource
+     * @return iterable<StubSourceEntity>
+     */
+    public function findStubSourcesByStubSource(string $stubSource): iterable
+    {
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_source_stub ' .
+            'WHERE stub_source = :stub_source ' .
+            'ORDER BY `time` ASC'
+        );
+        $stmt->execute([
+            ':stub_source' => $stubSource,
+        ]);
+
+        foreach ($stmt->fetchAll() as $stubSource) {
+            yield new StubSourceEntity(
+                stubHash: $stubSource['stub_hash'] ?? '',
+                stubSource: $stubSource['stub_source'] ?? '',
+                sourceBase64: $stubSource['source_base64'] ?? '',
+                time: new DateTimeImmutable($stubSource['time'] ?? 'now'),
+            );
+        }
     }
 
     private function takeQueueItem(): ?ObserveItem

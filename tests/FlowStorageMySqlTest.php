@@ -17,6 +17,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 final class FlowStorageMySqlTest extends TestCase
 {
@@ -521,5 +522,38 @@ final class FlowStorageMySqlTest extends TestCase
 
         $exceptions = iterator_to_array($storage->findExceptionsByFlowHash($flow->getHash(), SortEnum::DESC, 1000, 0, $from, $to));
         $this->assertCount(0, $exceptions);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindStubSource(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+
+        $flowRunner->run(new MessageInitMock('test data'));
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+        $flowMessage = $flow->getFlowMessages()[0];
+
+        $stubSource = $storage->findStubSourceByHash($flowMessage->getStubHash());
+        $this->assertInstanceOf(StubSourceEntity::class, $stubSource);
+        $this->assertSame($flowMessage->getStubHash(), $stubSource->stubHash);
+        $this->assertSame($flowMessage->getStubSource(), $stubSource->stubSource);
+        $this->assertNotEmpty($stubSource->sourceBase64);
+
+        $stubSources = $storage->findStubSourcesByStubSource($flowMessage->getStubSource());
+        $stubSources = iterator_to_array($stubSources);
+        $this->assertCount(1, $stubSources);
+        $this->assertInstanceOf(StubSourceEntity::class, $stubSources[0]);
+        $this->assertSame($flowMessage->getStubHash(), $stubSources[0]->stubHash);
+        $this->assertSame($flowMessage->getStubSource(), $stubSources[0]->stubSource);
+        $this->assertNotEmpty($stubSources[0]->sourceBase64);
     }
 }

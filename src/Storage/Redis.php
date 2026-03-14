@@ -22,6 +22,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Stub;
 use Wundii\Flowcrafter\Uuid;
 
@@ -126,7 +127,7 @@ class Redis implements StorageInterface
             '$.stubs[*].source',
             'AS',
             'stubSource',
-            'TAG'
+            'TAG',
         );
 
         $this->client->rawCommand(
@@ -149,7 +150,12 @@ class Redis implements StorageInterface
             '$.sourceBase64',
             'AS',
             'stubBase64',
-            'TAG'
+            'TAG',
+            '$.time',
+            'AS',
+            'time',
+            'NUMERIC',
+            'SORTABLE',
         );
 
         if ($this->existIndex(self::INDEX_INSTANCE)) {
@@ -258,7 +264,7 @@ class Redis implements StorageInterface
             '$.predecessorHash',
             'AS',
             'predecessorHash',
-            'TAG'
+            'TAG',
         );
 
         if ($this->existIndex(self::INDEX_EXCEPTION)) {
@@ -355,14 +361,17 @@ class Redis implements StorageInterface
     {
         $stubSource = Stub::source($stubSource);
 
-        $key = self::PREFIX_TYPE_SOURCE_STUB . $stubSource['stubHash'];
+        $key = self::PREFIX_TYPE_SOURCE_STUB . $stubSource->stubHash;
         if ($this->client->exists($key)) {
-            return $stubSource['stubHash'];
+            return $stubSource->stubHash;
         }
 
-        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($stubSource));
+        $data = $stubSource->jsonSerialize();
+        $data['time'] = $stubSource->time->getTimestamp();
 
-        return $stubSource['stubHash'];
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
+
+        return $stubSource->stubHash;
     }
 
     public function registerFlowInstance(Flow $flow): void
@@ -490,10 +499,7 @@ class Redis implements StorageInterface
     public function findAllSchemas(): iterable
     {
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SCHEMA, '*');
-
-        $events = self::fetchData($result);
-
-        foreach ($events as $event) {
+        foreach (self::fetchData($result) as $event) {
             yield $event;
         }
     }
@@ -613,13 +619,7 @@ class Redis implements StorageInterface
         $args[] = '$';
 
         $result = $this->client->rawcommand(...$args);
-        $events = self::fetchData($result);
-
-        if ($events === []) {
-            return [];
-        }
-
-        foreach ($events as $event) {
+        foreach (self::fetchData($result) as $event) {
             /** @var string $flowHash */
             $flowHash = $event['flowHash'] ?? '';
             yield new FlowEntity(
@@ -661,13 +661,7 @@ class Redis implements StorageInterface
         $args[] = '$';
 
         $result = $this->client->rawcommand(...$args);
-        $events = self::fetchData($result);
-
-        if ($events === []) {
-            return [];
-        }
-
-        foreach ($events as $event) {
+        foreach (self::fetchData($result) as $event) {
             /** @var string $flowHash */
             $flowHash = $event['flowHash'] ?? '';
             yield new FlowEntity(
@@ -718,13 +712,8 @@ class Redis implements StorageInterface
         $args[] = '$';
 
         $result = $this->client->rawcommand(...$args);
-        $events = self::fetchData($result);
 
-        if ($events === []) {
-            return [];
-        }
-
-        foreach ($events as $event) {
+        foreach (self::fetchData($result) as $event) {
             yield new FlowException(
                 /** @phpstan-ignore-next-line */
                 flowHash: $event['flowHash'] ?? '',
@@ -791,6 +780,49 @@ class Redis implements StorageInterface
         }
 
         return $this->findFlowByHash($flowHash);
+    }
+
+    public function findStubSourceByHash(string $stubHash): ?StubSourceEntity
+    {
+        if ($stubHash === '' || $stubHash === '*') {
+            return null;
+        }
+
+        $stubHash = self::escapeValue($stubHash);
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SOURCE_STUB, '@stubHash:{' . $stubHash . '}', 'RETURN', '1', '$');
+        $stubSourceArray = self::fetchData($result)[0] ?? [];
+
+        if ($stubSourceArray === []) {
+            return null;
+        }
+
+        return new StubSourceEntity(
+            /** @phpstan-ignore-next-line */
+            stubHash: $stubSourceArray['stubHash'] ?? '',
+            stubSource: $stubSourceArray['stubSource'] ?? '',
+            sourceBase64: $stubSourceArray['sourceBase64'] ?? '',
+            time: (new DateTimeImmutable())->setTimestamp((int) ($stubSourceArray['time'] ?? 0)),
+        );
+    }
+
+    /**
+     * @param class-string $stubSource
+     * @return iterable<StubSourceEntity>
+     */
+    public function findStubSourcesByStubSource(string $stubSource): iterable
+    {
+        $stubSource = self::escapeValue($stubSource);
+
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SOURCE_STUB, '@stubSource:{' . $stubSource . '}', 'RETURN', '1', '$');
+        foreach (self::fetchData($result) as $stubSourceEvent) {
+            yield new StubSourceEntity(
+                /** @phpstan-ignore-next-line */
+                stubHash: $stubSourceEvent['stubHash'] ?? '',
+                stubSource: $stubSourceEvent['stubSource'] ?? '',
+                sourceBase64: $stubSourceEvent['sourceBase64'] ?? '',
+                time: (new DateTimeImmutable())->setTimestamp((int) ($stubSourceEvent['time'] ?? 0)),
+            );
+        }
     }
 
     /**
