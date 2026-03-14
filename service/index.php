@@ -262,6 +262,7 @@ $route->add(
             }
 
             return new JsonResponse([
+                'current' => true,
                 'source' => $content,
             ]);
         }
@@ -282,11 +283,15 @@ $route->add(
         $file = (string) $ref->getFileName();
 
         $current = $current && file_exists($file);
-        $current = $current && is_string(file_get_contents($file));
+        $currentSource = file_get_contents($file);
+        $current = $current && is_string($currentSource);
+
+        $source = base64_decode($stubSourceEntity->sourceBase64, true);
+        $current = $current && $source === $currentSource;
 
         return new JsonResponse([
             'current' => $current,
-            'source' => $stubSourceEntity,
+            'source' => $source,
         ]);
     }
 );
@@ -299,8 +304,6 @@ $route->add(
         $stubSource = $request->query->get('stubSource', '');
 
         /** @var class-string $stubSource */
-        $stubSource = str_starts_with($stubSource, '\\') ? $stubSource : '\\' . $stubSource;
-
         $stubSources = $storage->findStubSourcesByStubSource($stubSource);
 
         $result = [];
@@ -311,11 +314,16 @@ $route->add(
             $file = (string) $ref->getFileName();
 
             $current = $current && file_exists($file);
-            $current = $current && is_string(file_get_contents($file));
+            $currentSource = file_get_contents($file);
+            $current = $current && is_string($currentSource);
+
+            $source = base64_decode($stubSource->sourceBase64, true);
+            $current = $current && $source === $currentSource;
 
             $result[] = [
                 'current' => $current,
-                'source' => $stubSource,
+                'source' => $source,
+                'time' => $stubSource->time->format(DateTimeInterface::RFC3339_EXTENDED),
             ];
         }
 
