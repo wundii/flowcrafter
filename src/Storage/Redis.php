@@ -83,8 +83,10 @@ class Redis implements StorageInterface
         $data = [];
         $counter = count($result);
         for ($i = 1; $i < $counter; $i += 2) {
-            $json = $result[$i + 1][1] ?? null;
-            if ($json !== null) {
+            /** @var array{1: string}|null $entry */
+            $entry = $result[$i + 1] ?? null;
+            $json = $entry[1] ?? null;
+            if (is_string($json)) {
                 $decoded = json_decode($json, true);
                 if (is_array($decoded)) {
                     $data[] = $decoded;
@@ -481,14 +483,14 @@ class Redis implements StorageInterface
                 throw new RuntimeException('The flow message payload must be a valid JSON object.');
             }
 
+            /** @var array{type: string, flowSource: class-string<\Wundii\Flowcrafter\Interface\FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>} $payload */
             yield new ObserveItem(
                 queueId: Uuid::uuid7(new DateTimeImmutable())->toString(),
-                /** @phpstan-ignore-next-line */
-                type: $payload['type'] ?? '',
-                flowSource: $payload['flowSource'] ?? '',
-                flowHash: $payload['flowHash'] ?? null,
-                messageSource: $payload['messageSource'] ?? '',
-                message: $payload['message'] ?? [],
+                type: $payload['type'],
+                flowSource: $payload['flowSource'],
+                flowHash: $payload['flowHash'],
+                messageSource: $payload['messageSource'],
+                message: $payload['message'],
             );
         }
     }
@@ -528,14 +530,14 @@ class Redis implements StorageInterface
                 continue;
             }
 
+            /** @var array{queueId: string, type: string, flowSource: class-string<\Wundii\Flowcrafter\Interface\FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>} $payload */
             yield new ObserveItem(
-                /** @phpstan-ignore-next-line */
-                queueId: $payload['queueId'] ?? '',
-                type: $payload['type'] ?? '',
-                flowSource: $payload['flowSource'] ?? '',
-                flowHash: $payload['flowHash'] ?? null,
-                messageSource: $payload['messageSource'] ?? '',
-                message: $payload['message'] ?? [],
+                queueId: $payload['queueId'],
+                type: $payload['type'],
+                flowSource: $payload['flowSource'],
+                flowHash: $payload['flowHash'],
+                messageSource: $payload['messageSource'],
+                message: $payload['message'],
             );
         }
     }
@@ -620,15 +622,14 @@ class Redis implements StorageInterface
 
         $result = $this->client->rawcommand(...$args);
         foreach (self::fetchData($result) as $event) {
-            /** @var string $flowHash */
-            $flowHash = $event['flowHash'] ?? '';
+            /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: int} $event */
             yield new FlowEntity(
-                flowHash: $flowHash,
-                flowType: $event['flowType'] ?? '',
-                flowSource: $event['flowSource'] ?? '',
-                flowSubject: $event['flowSubject'] ?? '',
-                time: (new DateTimeImmutable())->setTimestamp((int) ($event['time'] ?? 0)),
-                exceptionCount: $this->countExceptionsByFlowHash($flowHash),
+                flowHash: $event['flowHash'],
+                flowType: $event['flowType'],
+                flowSource: $event['flowSource'],
+                flowSubject: $event['flowSubject'],
+                time: (new DateTimeImmutable())->setTimestamp($event['time']),
+                exceptionCount: $this->countExceptionsByFlowHash($event['flowHash']),
             );
         }
     }
@@ -662,15 +663,14 @@ class Redis implements StorageInterface
 
         $result = $this->client->rawcommand(...$args);
         foreach (self::fetchData($result) as $event) {
-            /** @var string $flowHash */
-            $flowHash = $event['flowHash'] ?? '';
+            /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: int} $event */
             yield new FlowEntity(
-                flowHash: $flowHash,
-                flowType: $event['flowType'] ?? '',
-                flowSource: $event['flowSource'] ?? '',
-                flowSubject: $event['flowSubject'] ?? '',
-                time: (new DateTimeImmutable())->setTimestamp((int) ($event['time'] ?? 0)),
-                exceptionCount: $this->countExceptionsByFlowHash($flowHash),
+                flowHash: $event['flowHash'],
+                flowType: $event['flowType'],
+                flowSource: $event['flowSource'],
+                flowSubject: $event['flowSubject'],
+                time: (new DateTimeImmutable())->setTimestamp($event['time']),
+                exceptionCount: $this->countExceptionsByFlowHash($event['flowHash']),
             );
         }
     }
@@ -714,20 +714,20 @@ class Redis implements StorageInterface
         $result = $this->client->rawcommand(...$args);
 
         foreach (self::fetchData($result) as $event) {
+            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: string, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: int, hash: string} $event */
             yield new FlowException(
-                /** @phpstan-ignore-next-line */
-                flowHash: $event['flowHash'] ?? '',
-                flowRuntimeHash: $event['flowRuntimeHash'] ?? '',
-                flowType: $event['flowType'] ?? '',
-                stubSource: $event['stubSource'] ?? '',
-                stubHash: $event['stubHash'] ?? null,
-                code: $event['code'] ?? 0,
-                message: $event['message'] ?? '',
-                file: $event['file'] ?? '',
-                line: $event['line'] ?? 0,
-                traceString: $event['traceString'] ?? '',
-                time: (new DateTimeImmutable())->setTimestamp((int) ($event['time'] ?? 0)),
-                hash: $event['hash'] ?? '',
+                flowHash: $event['flowHash'],
+                flowRuntimeHash: $event['flowRuntimeHash'],
+                flowType: $event['flowType'],
+                stubSource: $event['stubSource'],
+                stubHash: $event['stubHash'],
+                code: $event['code'],
+                message: $event['message'],
+                file: $event['file'],
+                line: $event['line'],
+                traceString: $event['traceString'],
+                time: (new DateTimeImmutable())->setTimestamp($event['time']),
+                hash: $event['hash'],
             );
         }
     }
@@ -747,25 +747,36 @@ class Redis implements StorageInterface
             return null;
         }
 
+        /** @var array<string, mixed> $flowArray */
         $schemaHash = is_string($flowArray['flowSchemaHash'] ?? null) ? $flowArray['flowSchemaHash'] : '';
         $flowArray['flowSchema'] = $this->findSchemaByHash($schemaHash);
         $flowArray['time'] = $this->timestampToRFC3339Extended($flowArray['time'] ?? 0);
 
+        /** @var list<array<mixed, mixed>> $flowMessages */
+        $flowMessages = [];
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
-        foreach (self::fetchData($result) as $messageEvent) {
-            $flowArray['flowMessages'][] = $messageEvent;
-        }
+        $flowMessages = self::fetchData($result);
 
+        $flowArray['flowMessages'] = $flowMessages;
+
+        /** @var list<array<mixed, mixed>> $flowExceptions */
+        $flowExceptions = [];
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $exceptionEvent) {
             $exceptionEvent['time'] = $this->timestampToRFC3339Extended($exceptionEvent['time'] ?? 0);
-            $flowArray['flowExceptions'][] = $exceptionEvent;
+            $flowExceptions[] = $exceptionEvent;
         }
 
+        $flowArray['flowExceptions'] = $flowExceptions;
+
+        /** @var list<array<mixed, mixed>> $flowRuns */
+        $flowRuns = [];
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $runEvent) {
-            $flowArray['flowRuns'][] = $runEvent;
+            $flowRuns[] = $runEvent;
         }
+
+        $flowArray['flowRuns'] = $flowRuns;
 
         return Converter::arrayToFlow($flowArray);
     }
@@ -796,12 +807,12 @@ class Redis implements StorageInterface
             return null;
         }
 
+        /** @var array{stubHash: string, stubSource: class-string, sourceBase64: string, time: int} $stubSourceArray */
         return new StubSourceEntity(
-            /** @phpstan-ignore-next-line */
-            stubHash: $stubSourceArray['stubHash'] ?? '',
-            stubSource: $stubSourceArray['stubSource'] ?? '',
-            sourceBase64: $stubSourceArray['sourceBase64'] ?? '',
-            time: (new DateTimeImmutable())->setTimestamp((int) ($stubSourceArray['time'] ?? 0)),
+            stubHash: $stubSourceArray['stubHash'],
+            stubSource: $stubSourceArray['stubSource'],
+            sourceBase64: $stubSourceArray['sourceBase64'],
+            time: (new DateTimeImmutable())->setTimestamp($stubSourceArray['time']),
         );
     }
 
@@ -815,12 +826,12 @@ class Redis implements StorageInterface
 
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SOURCE_STUB, '@stubSource:{' . $stubSource . '}', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $stubSourceEvent) {
+            /** @var array{stubHash: string, stubSource: class-string, sourceBase64: string, time: int} $stubSourceEvent */
             yield new StubSourceEntity(
-                /** @phpstan-ignore-next-line */
-                stubHash: $stubSourceEvent['stubHash'] ?? '',
-                stubSource: $stubSourceEvent['stubSource'] ?? '',
-                sourceBase64: $stubSourceEvent['sourceBase64'] ?? '',
-                time: (new DateTimeImmutable())->setTimestamp((int) ($stubSourceEvent['time'] ?? 0)),
+                stubHash: $stubSourceEvent['stubHash'],
+                stubSource: $stubSourceEvent['stubSource'],
+                sourceBase64: $stubSourceEvent['sourceBase64'],
+                time: (new DateTimeImmutable())->setTimestamp($stubSourceEvent['time']),
             );
         }
     }

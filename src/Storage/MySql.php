@@ -671,19 +671,20 @@ class MySql implements StorageInterface
         $stmt->execute();
 
         foreach ($stmt->fetchAll() as $row) {
+            /** @var array{flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: string, stub_hash: ?string, code: int, message: string, file: string, line: int, trace_string: string, time: string, hash: string} $row */
             yield new FlowException(
-                flowHash: $row['flow_hash'] ?? '',
-                flowRuntimeHash: $row['flow_runtime_hash'] ?? '',
-                flowType: $row['flow_type'] ?? '',
-                stubSource: $row['stub_source'] ?? '',
-                stubHash: $row['stub_hash'] ?? null,
-                code: $row['code'] ?? 0,
-                message: $row['message'] ?? '',
-                file: $row['file'] ?? '',
-                line: $row['line'] ?? 0,
-                traceString: $row['trace_string'] ?? '',
-                time: new DateTimeImmutable($row['time'] ?? 'now'),
-                hash: $row['hash'] ?? '',
+                flowHash: $row['flow_hash'],
+                flowRuntimeHash: $row['flow_runtime_hash'],
+                flowType: $row['flow_type'],
+                stubSource: $row['stub_source'],
+                stubHash: $row['stub_hash'],
+                code: $row['code'],
+                message: $row['message'],
+                file: $row['file'],
+                line: $row['line'],
+                traceString: $row['trace_string'],
+                time: new DateTimeImmutable($row['time']),
+                hash: $row['hash'],
             );
         }
     }
@@ -731,19 +732,20 @@ class MySql implements StorageInterface
         $stmt->execute();
 
         foreach ($stmt->fetchAll() as $row) {
+            /** @var array{flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: string, stub_hash: ?string, code: int, message: string, file: string, line: int, trace_string: string, time: string, hash: string} $row */
             yield new FlowException(
-                flowHash: $row['flow_hash'] ?? '',
-                flowRuntimeHash: $row['flow_runtime_hash'] ?? '',
-                flowType: $row['flow_type'] ?? '',
-                stubSource: $row['stub_source'] ?? '',
-                stubHash: $row['stub_hash'] ?? null,
-                code: $row['code'] ?? 0,
-                message: $row['message'] ?? '',
-                file: $row['file'] ?? '',
-                line: $row['line'] ?? 0,
-                traceString: $row['trace_string'] ?? '',
-                time: new DateTimeImmutable($row['time'] ?? 'now'),
-                hash: $row['hash'] ?? '',
+                flowHash: $row['flow_hash'],
+                flowRuntimeHash: $row['flow_runtime_hash'],
+                flowType: $row['flow_type'],
+                stubSource: $row['stub_source'],
+                stubHash: $row['stub_hash'],
+                code: $row['code'],
+                message: $row['message'],
+                file: $row['file'],
+                line: $row['line'],
+                traceString: $row['trace_string'],
+                time: new DateTimeImmutable($row['time']),
+                hash: $row['hash'],
             );
         }
     }
@@ -911,15 +913,12 @@ class MySql implements StorageInterface
             return null;
         }
 
+        /** @var array{stub_hash: string, stub_source: class-string, source_base64: string, time: string} $stubSource */
         return new StubSourceEntity(
-            /** @phpstan-ignore-next-line */
-            stubHash: $stubSource['stub_hash'] ?? '',
-            /** @phpstan-ignore-next-line */
-            stubSource: $stubSource['stub_source'] ?? '',
-            /** @phpstan-ignore-next-line */
-            sourceBase64: $stubSource['source_base64'] ?? '',
-            /** @phpstan-ignore-next-line */
-            time: new DateTimeImmutable($stubSource['time'] ?? 'now'),
+            stubHash: $stubSource['stub_hash'],
+            stubSource: $stubSource['stub_source'],
+            sourceBase64: $stubSource['source_base64'],
+            time: new DateTimeImmutable($stubSource['time']),
         );
     }
 
@@ -939,11 +938,12 @@ class MySql implements StorageInterface
         ]);
 
         foreach ($stmt->fetchAll() as $stubSource) {
+            /** @var array{stub_hash: string, stub_source: class-string, source_base64: string, time: string} $stubSource */
             yield new StubSourceEntity(
-                stubHash: $stubSource['stub_hash'] ?? '',
-                stubSource: $stubSource['stub_source'] ?? '',
-                sourceBase64: $stubSource['source_base64'] ?? '',
-                time: new DateTimeImmutable($stubSource['time'] ?? 'now'),
+                stubHash: $stubSource['stub_hash'],
+                stubSource: $stubSource['stub_source'],
+                sourceBase64: $stubSource['source_base64'],
+                time: new DateTimeImmutable($stubSource['time']),
             );
         }
     }
@@ -985,12 +985,13 @@ class MySql implements StorageInterface
                 throw new RuntimeException('Could not validate flow message payload.');
             }
 
+            /** @var array{queue_id: string, type: string, flow_source: class-string<\Wundii\Flowcrafter\Interface\FlowInterface>, flow_hash: ?string, message_source: string, message: string} $row */
             return new ObserveItem(
-                queueId: (string) $row['queue_id'],
-                type: $row['type'] ?? '',
-                flowSource: $row['flow_source'] ?? '',
-                flowHash: $row['flow_hash'] ?? null,
-                messageSource: $row['message_source'] ?? '',
+                queueId: $row['queue_id'],
+                type: $row['type'],
+                flowSource: $row['flow_source'],
+                flowHash: $row['flow_hash'],
+                messageSource: $row['message_source'],
                 message: $messageArray,
             );
         } catch (PDOException $pdoException) {

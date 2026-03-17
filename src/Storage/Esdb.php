@@ -778,14 +778,14 @@ class Esdb implements StorageInterface
         );
 
         foreach ($flowEvents as $flowEvent) {
-            $flowHash = $flowEvent['flowHash'] ?? '';
+            /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
             yield new FlowEntity(
-                flowHash: $flowHash,
-                flowType: $flowEvent['flowType'] ?? '',
-                flowSource: $flowEvent['flowSource'] ?? '',
-                flowSubject: $flowEvent['flowSubject'] ?? '',
-                time: new DateTimeImmutable($flowEvent['time'] ?? 'now'),
-                exceptionCount: $this->countExceptionsByFlowHash($flowHash),
+                flowHash: $flowEvent['flowHash'],
+                flowType: $flowEvent['flowType'],
+                flowSource: $flowEvent['flowSource'],
+                flowSubject: $flowEvent['flowSubject'],
+                time: new DateTimeImmutable($flowEvent['time']),
+                exceptionCount: $this->countExceptionsByFlowHash($flowEvent['flowHash']),
             );
         }
     }
@@ -820,14 +820,14 @@ class Esdb implements StorageInterface
         );
 
         foreach ($flowEvents as $flowEvent) {
-            $flowHash = $flowEvent['flowHash'] ?? '';
+            /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
             yield new FlowEntity(
-                flowHash: $flowHash,
-                flowType: $flowEvent['flowType'] ?? '',
-                flowSource: $flowEvent['flowSource'] ?? '',
-                flowSubject: $flowEvent['flowSubject'] ?? '',
-                time: new DateTimeImmutable($flowEvent['time'] ?? 'now'),
-                exceptionCount: $this->countExceptionsByFlowHash($flowHash),
+                flowHash: $flowEvent['flowHash'],
+                flowType: $flowEvent['flowType'],
+                flowSource: $flowEvent['flowSource'],
+                flowSubject: $flowEvent['flowSubject'],
+                time: new DateTimeImmutable($flowEvent['time']),
+                exceptionCount: $this->countExceptionsByFlowHash($flowEvent['flowHash']),
             );
         }
     }
@@ -858,14 +858,14 @@ class Esdb implements StorageInterface
         );
 
         foreach ($flowEvents as $flowEvent) {
-            $flowHash = $flowEvent['flowHash'] ?? '';
+            /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
             yield new FlowEntity(
-                flowHash: $flowHash,
-                flowType: $flowEvent['flowType'] ?? '',
-                flowSource: $flowEvent['flowSource'] ?? '',
-                flowSubject: $flowEvent['flowSubject'] ?? '',
-                time: new DateTimeImmutable($flowEvent['time'] ?? 'now'),
-                exceptionCount: $this->countExceptionsByFlowHash($flowHash),
+                flowHash: $flowEvent['flowHash'],
+                flowType: $flowEvent['flowType'],
+                flowSource: $flowEvent['flowSource'],
+                flowSubject: $flowEvent['flowSubject'],
+                time: new DateTimeImmutable($flowEvent['time']),
+                exceptionCount: $this->countExceptionsByFlowHash($flowEvent['flowHash']),
             );
         }
     }
@@ -899,19 +899,20 @@ class Esdb implements StorageInterface
         );
 
         foreach ($exceptionEvents as $exceptionEvent) {
+            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: string, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
             yield new FlowException(
-                flowHash: $exceptionEvent['flowHash'] ?? '',
-                flowRuntimeHash: $exceptionEvent['flowRuntimeHash'] ?? '',
-                flowType: $exceptionEvent['flowType'] ?? '',
-                stubSource: $exceptionEvent['stubSource'] ?? '',
-                stubHash: $exceptionEvent['stubHash'] ?? null,
-                code: $exceptionEvent['code'] ?? 0,
-                message: $exceptionEvent['message'] ?? '',
-                file: $exceptionEvent['file'] ?? '',
-                line: $exceptionEvent['line'] ?? 0,
-                traceString: $exceptionEvent['traceString'] ?? '',
-                time: new DateTimeImmutable($exceptionEvent['time'] ?? 'now'),
-                hash: $exceptionEvent['hash'] ?? '',
+                flowHash: $exceptionEvent['flowHash'],
+                flowRuntimeHash: $exceptionEvent['flowRuntimeHash'],
+                flowType: $exceptionEvent['flowType'],
+                stubSource: $exceptionEvent['stubSource'],
+                stubHash: $exceptionEvent['stubHash'],
+                code: $exceptionEvent['code'],
+                message: $exceptionEvent['message'],
+                file: $exceptionEvent['file'],
+                line: $exceptionEvent['line'],
+                traceString: $exceptionEvent['traceString'],
+                time: new DateTimeImmutable($exceptionEvent['time']),
+                hash: $exceptionEvent['hash'],
             );
         }
     }
@@ -946,19 +947,20 @@ class Esdb implements StorageInterface
         );
 
         foreach ($exceptionEvents as $exceptionEvent) {
+            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: string, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
             yield new FlowException(
-                flowHash: $exceptionEvent['flowHash'] ?? '',
-                flowRuntimeHash: $exceptionEvent['flowRuntimeHash'] ?? '',
-                flowType: $exceptionEvent['flowType'] ?? '',
-                stubSource: $exceptionEvent['stubSource'] ?? '',
-                stubHash: $exceptionEvent['stubHash'] ?? null,
-                code: $exceptionEvent['code'] ?? 0,
-                message: $exceptionEvent['message'] ?? '',
-                file: $exceptionEvent['file'] ?? '',
-                line: $exceptionEvent['line'] ?? 0,
-                traceString: $exceptionEvent['traceString'] ?? '',
-                time: new DateTimeImmutable($exceptionEvent['time'] ?? 'now'),
-                hash: $exceptionEvent['hash'] ?? '',
+                flowHash: $exceptionEvent['flowHash'],
+                flowRuntimeHash: $exceptionEvent['flowRuntimeHash'],
+                flowType: $exceptionEvent['flowType'],
+                stubSource: $exceptionEvent['stubSource'],
+                stubHash: $exceptionEvent['stubHash'],
+                code: $exceptionEvent['code'],
+                message: $exceptionEvent['message'],
+                file: $exceptionEvent['file'],
+                line: $exceptionEvent['line'],
+                traceString: $exceptionEvent['traceString'],
+                time: new DateTimeImmutable($exceptionEvent['time']),
+                hash: $exceptionEvent['hash'],
             );
         }
     }
@@ -1033,11 +1035,13 @@ class Esdb implements StorageInterface
             return null;
         }
 
+        /** @var array{stubHash: string, stubSource: class-string, sourceBase64: string, time: string} $data */
+        $data = $stubSourceEvent->data;
         return new StubSourceEntity(
-            stubHash: $stubSourceEvent->data['stubHash'] ?? '',
-            stubSource: $stubSourceEvent->data['stubSource'] ?? '',
-            sourceBase64: $stubSourceEvent->data['sourceBase64'] ?? '',
-            time: new DateTimeImmutable($stubSourceEvent->data['time'] ?? 'now'),
+            stubHash: $data['stubHash'],
+            stubSource: $data['stubSource'],
+            sourceBase64: $data['sourceBase64'],
+            time: new DateTimeImmutable($data['time']),
         );
     }
 
@@ -1056,11 +1060,12 @@ class Esdb implements StorageInterface
         );
 
         foreach ($stubSourceEvents as $stubSourceEvent) {
+            /** @var array{stubHash: string, stubSource: class-string, sourceBase64: string, time: string} $stubSourceEvent */
             yield new StubSourceEntity(
-                stubHash: $stubSourceEvent['stubHash'] ?? '',
-                stubSource: $stubSourceEvent['stubSource'] ?? '',
-                sourceBase64: $stubSourceEvent['sourceBase64'] ?? '',
-                time: new DateTimeImmutable($stubSourceEvent['time'] ?? 'now'),
+                stubHash: $stubSourceEvent['stubHash'],
+                stubSource: $stubSourceEvent['stubSource'],
+                sourceBase64: $stubSourceEvent['sourceBase64'],
+                time: new DateTimeImmutable($stubSourceEvent['time']),
             );
         }
     }
