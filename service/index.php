@@ -274,7 +274,7 @@ $route->add(
         if (!$stubSourceEntity instanceof StubSourceEntity) {
             return new JsonResponse([
                 'error' => 'Stub source not found',
-            ]);
+            ], 404);
         }
 
         $current = class_exists($stubSourceEntity->stubSource);

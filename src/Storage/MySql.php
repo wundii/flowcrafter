@@ -155,7 +155,7 @@ class MySql implements StorageInterface
                 message VARCHAR(2000) NOT NULL,
                 file VARCHAR(2000) NOT NULL,
                 line INT(11) NOT NULL,
-                traceString TEXT NOT NULL,
+                trace_string TEXT NOT NULL,
                 `time` DATETIME NOT NULL,
                 INDEX idx_flow_exception_flow_hash (flow_hash),
                 INDEX idx_flow_exception_flow_runtime_hash (flow_runtime_hash),
@@ -302,8 +302,8 @@ class MySql implements StorageInterface
     public function appendFlowException(FlowException $flowException): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_exception (hash, flow_hash, flow_runtime_hash, stub_source, stub_hash, code, message, file, line, traceString, time) ' .
-            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :stub_hash, :code, :message, :file, :line, :traceString, :time)'
+            'INSERT IGNORE INTO flow_exception (hash, flow_hash, flow_runtime_hash, stub_source, stub_hash, code, message, file, line, trace_string, time) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :stub_hash, :code, :message, :file, :line, :trace_string, :time)'
         );
 
         $stmt->execute([
@@ -316,7 +316,7 @@ class MySql implements StorageInterface
             ':message' => $flowException->getMessage(),
             ':file' => $flowException->getFile(),
             ':line' => $flowException->getLine(),
-            ':traceString' => $flowException->getTraceString(),
+            ':trace_string' => $flowException->getTraceString(),
             ':time' => $flowException->getTime()->format('Y-m-d H:i:s.u'),
         ]);
     }
@@ -819,7 +819,7 @@ class MySql implements StorageInterface
                 'messageType' => $message['message_type'] ?? '',
                 'messageSource' => $message['message_source'] ?? '',
                 'message' => $messageArray,
-                'predecessor' => $message['predecessor'] ?? '',
+                'predecessorHash' => $message['predecessor_hash'] ?? '',
                 'time' => $message['time'] ?? 'now',
             ];
         }
@@ -843,7 +843,7 @@ class MySql implements StorageInterface
                 'message' => $exception['message'] ?? '',
                 'file' => $exception['file'] ?? '',
                 'line' => $exception['line'] ?? 0,
-                'traceString' => $exception['traceString'] ?? '',
+                'trace_string' => $exception['trace_string'] ?? '',
                 'time' => $exception['time'] ?? 'now',
             ];
         }
@@ -862,7 +862,7 @@ class MySql implements StorageInterface
                 'flowHash' => $run['flow_hash'] ?? '',
                 'flowRuntimeHash' => $run['flow_runtime_hash'] ?? '',
                 'time' => $run['time'] ?? 'now',
-                'queueId' => $run['queueId'] ?? '',
+                'queueId' => $run['queue_id'] ?? '',
             ];
         }
 
