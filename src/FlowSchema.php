@@ -114,23 +114,6 @@ readonly class FlowSchema implements JsonSerializable
         return $map;
     }
 
-    /**
-     * @return class-string[]
-     */
-    public function getClassStrings(): array
-    {
-        $objects = [];
-
-        foreach ($this->stubs as $stub) {
-            $objects[] = $stub->getSource();
-            // foreach ($stub->getMessages() as $messageClass) {
-            //     $objects[] = $messageClass;
-            // }
-        }
-
-        return $objects;
-    }
-
     public function getHash(): string
     {
         $json = json_encode($this->jsonSerialize());

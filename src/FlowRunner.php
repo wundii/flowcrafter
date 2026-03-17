@@ -145,7 +145,7 @@ class FlowRunner
 
         $stubInstance = $containerBuilder->get($stubSource);
         if (!$stubInstance instanceof StubInterface) {
-            throw new RuntimeException('');
+            throw new RuntimeException('Stub instance must implement StubInterface.');
         }
 
         return $stubInstance;

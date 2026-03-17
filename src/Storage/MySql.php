@@ -843,7 +843,7 @@ class MySql implements StorageInterface
                 'message' => $exception['message'] ?? '',
                 'file' => $exception['file'] ?? '',
                 'line' => $exception['line'] ?? 0,
-                'trace_string' => $exception['trace_string'] ?? '',
+                'traceString' => $exception['trace_string'] ?? '',
                 'time' => $exception['time'] ?? 'now',
             ];
         }
