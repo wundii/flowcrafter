@@ -91,20 +91,22 @@ $route->add(
 );
 
 $observerPidFile = sys_get_temp_dir() . '/flowcrafter-observer.pid';
+$isObserverRunning = static function () use ($observerPidFile): bool {
+    if (file_exists($observerPidFile)) {
+        $pid = (int) file_get_contents($observerPidFile);
+        return $pid > 0 && file_exists('/proc/' . $pid);
+    }
+
+    return false;
+};
 
 $route->add(
     '/api/info',
     MethodEnum::GET,
-    function () use ($flowcrafterConfig, $observerPidFile): JsonResponse {
-        $observerRunning = false;
-        if (file_exists($observerPidFile)) {
-            $pid = (int) file_get_contents($observerPidFile);
-            $observerRunning = $pid > 0 && file_exists('/proc/' . $pid);
-        }
-
+    function () use ($flowcrafterConfig, $isObserverRunning): JsonResponse {
         return new JsonResponse([
             'description' => $flowcrafterConfig->getServerDescription(),
-            'observerRunning' => $observerRunning,
+            'observerRunning' => $isObserverRunning(),
         ]);
     }
 );
@@ -113,12 +115,8 @@ $route->add(
 $route->add(
     '/metrics',
     MethodEnum::GET,
-    function () use ($storage, $flowcrafterConfig, $observerPidFile): Response {
-        $observerRunning = false;
-        if (file_exists($observerPidFile)) {
-            $pid = (int) file_get_contents($observerPidFile);
-            $observerRunning = $pid > 0 && file_exists('/proc/' . $pid);
-        }
+    function () use ($storage, $flowcrafterConfig, $isObserverRunning): Response {
+        $observerRunning = $isObserverRunning();
 
         $queueSize = $storage->openQueues();
 

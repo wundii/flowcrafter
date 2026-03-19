@@ -720,7 +720,7 @@ class Redis implements StorageInterface
                 flowRuntimeHash: $event['flowRuntimeHash'],
                 flowType: $event['flowType'],
                 stubSource: $event['stubSource'],
-                stubHash: $event['stubHash'],
+                stubHash: $event['stubHash'] ?? null,
                 code: $event['code'],
                 message: $event['message'],
                 file: $event['file'],
