@@ -15,7 +15,7 @@ class StubSourceEntity implements JsonSerializable
     public function __construct(
         public string $stubHash,
         public string $stubSource,
-        public string $sourceBase64,
+        public string $sourceContent,
         public DateTimeInterface $time,
     ) {
     }
@@ -28,7 +28,7 @@ class StubSourceEntity implements JsonSerializable
         return [
             'stubHash' => $this->stubHash,
             'stubSource' => $this->stubSource,
-            'sourceBase64' => $this->sourceBase64,
+            'sourceContent' => $this->sourceContent,
             'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
         ];
     }

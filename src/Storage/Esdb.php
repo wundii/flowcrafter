@@ -192,7 +192,7 @@ class Esdb implements StorageInterface
                     'stubSource' => [
                         'type' => 'string',
                     ],
-                    'sourceBase64' => [
+                    'sourceContent' => [
                         'type' => 'string',
                     ],
                     'time' => [
@@ -202,7 +202,7 @@ class Esdb implements StorageInterface
                 'required' => [
                     'stubHash',
                     'stubSource',
-                    'sourceBase64',
+                    'sourceContent',
                     'time',
                 ],
                 'additionalProperties' => false,
@@ -1035,12 +1035,12 @@ class Esdb implements StorageInterface
             return null;
         }
 
-        /** @var array{stubHash: string, stubSource: class-string, sourceBase64: string, time: string} $data */
+        /** @var array{stubHash: string, stubSource: class-string, sourceContent: string, time: string} $data */
         $data = $stubSourceEvent->data;
         return new StubSourceEntity(
             stubHash: $data['stubHash'],
             stubSource: $data['stubSource'],
-            sourceBase64: $data['sourceBase64'],
+            sourceContent: $data['sourceContent'],
             time: new DateTimeImmutable($data['time']),
         );
     }
@@ -1060,11 +1060,11 @@ class Esdb implements StorageInterface
         );
 
         foreach ($stubSourceEvents as $stubSourceEvent) {
-            /** @var array{stubHash: string, stubSource: class-string, sourceBase64: string, time: string} $stubSourceEvent */
+            /** @var array{stubHash: string, stubSource: class-string, sourceContent: string, time: string} $stubSourceEvent */
             yield new StubSourceEntity(
                 stubHash: $stubSourceEvent['stubHash'],
                 stubSource: $stubSourceEvent['stubSource'],
-                sourceBase64: $stubSourceEvent['sourceBase64'],
+                sourceContent: $stubSourceEvent['sourceContent'],
                 time: new DateTimeImmutable($stubSourceEvent['time']),
             );
         }

@@ -546,7 +546,7 @@ final class FlowStorageRedisTest extends TestCase
         $this->assertInstanceOf(StubSourceEntity::class, $stubSource);
         $this->assertSame($flowMessage->getStubHash(), $stubSource->stubHash);
         $this->assertSame($flowMessage->getStubSource(), $stubSource->stubSource);
-        $this->assertNotEmpty($stubSource->sourceBase64);
+        $this->assertNotEmpty($stubSource->sourceContent);
 
         $stubSources = $storage->findStubSourcesByStubSource($flowMessage->getStubSource());
         $stubSources = iterator_to_array($stubSources);
@@ -554,6 +554,6 @@ final class FlowStorageRedisTest extends TestCase
         $this->assertInstanceOf(StubSourceEntity::class, $stubSources[0]);
         $this->assertSame($flowMessage->getStubHash(), $stubSources[0]->stubHash);
         $this->assertSame($flowMessage->getStubSource(), $stubSources[0]->stubSource);
-        $this->assertNotEmpty($stubSources[0]->sourceBase64);
+        $this->assertNotEmpty($stubSources[0]->sourceContent);
     }
 }

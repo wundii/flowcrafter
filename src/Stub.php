@@ -138,7 +138,7 @@ class Stub implements JsonSerializable
         return new StubSourceEntity(
             stubHash: md5($fileContent),
             stubSource: $source,
-            sourceBase64: base64_encode($fileContent),
+            sourceContent: $fileContent,
             time: new DateTimeImmutable('now'),
         );
     }

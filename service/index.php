@@ -284,7 +284,7 @@ $route->add(
         $currentSource = file_get_contents($file);
         $current = $current && is_string($currentSource);
 
-        $source = base64_decode($stubSourceEntity->sourceBase64, true);
+        $source = $stubSourceEntity->sourceContent;
         $current = $current && $source === $currentSource;
 
         return new JsonResponse([
@@ -315,7 +315,7 @@ $route->add(
             $currentSource = file_get_contents($file);
             $current = $current && is_string($currentSource);
 
-            $source = base64_decode($stubSource->sourceBase64, true);
+            $source = $stubSource->sourceContent;
             $current = $current && $source === $currentSource;
 
             $result[] = [

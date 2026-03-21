@@ -79,7 +79,7 @@ class MySql implements StorageInterface
             CREATE TABLE IF NOT EXISTS flow_source_stub (
                 stub_hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 stub_source VARCHAR(191) NOT NULL,
-                source_base64 TEXT NOT NULL,
+                source_content TEXT NOT NULL,
                 time DATETIME NOT NULL,
                 INDEX flow_source_stub_hash (stub_hash)
             )
@@ -228,13 +228,13 @@ class MySql implements StorageInterface
         $stubSource = Stub::source($stubSource);
 
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_source_stub (stub_hash, stub_source, source_base64, time) ' .
-            'VALUES (:stub_hash, :stub_source, :source_base64, :time)'
+            'INSERT IGNORE INTO flow_source_stub (stub_hash, stub_source, source_content, time) ' .
+            'VALUES (:stub_hash, :stub_source, :source_content, :time)'
         );
         $stmt->execute([
             ':stub_hash' => $stubSource->stubHash,
             ':stub_source' => $stubSource->stubSource,
-            ':source_base64' => $stubSource->sourceBase64,
+            ':source_content' => $stubSource->sourceContent,
             ':time' => $stubSource->time->format('Y-m-d H:i:s.u'),
         ]);
 
@@ -913,11 +913,11 @@ class MySql implements StorageInterface
             return null;
         }
 
-        /** @var array{stub_hash: string, stub_source: class-string, source_base64: string, time: string} $stubSource */
+        /** @var array{stub_hash: string, stub_source: class-string, source_content: string, time: string} $stubSource */
         return new StubSourceEntity(
             stubHash: $stubSource['stub_hash'],
             stubSource: $stubSource['stub_source'],
-            sourceBase64: $stubSource['source_base64'],
+            sourceContent: $stubSource['source_content'],
             time: new DateTimeImmutable($stubSource['time']),
         );
     }
@@ -938,11 +938,11 @@ class MySql implements StorageInterface
         ]);
 
         foreach ($stmt->fetchAll() as $stubSource) {
-            /** @var array{stub_hash: string, stub_source: class-string, source_base64: string, time: string} $stubSource */
+            /** @var array{stub_hash: string, stub_source: class-string, source_content: string, time: string} $stubSource */
             yield new StubSourceEntity(
                 stubHash: $stubSource['stub_hash'],
                 stubSource: $stubSource['stub_source'],
-                sourceBase64: $stubSource['source_base64'],
+                sourceContent: $stubSource['source_content'],
                 time: new DateTimeImmutable($stubSource['time']),
             );
         }
@@ -987,7 +987,7 @@ class MySql implements StorageInterface
 
             /** @var array{queue_id: string, type: string, flow_source: class-string<\Wundii\Flowcrafter\Interface\FlowInterface>, flow_hash: ?string, message_source: string, message: string} $row */
             return new ObserveItem(
-                queueId: $row['queue_id'],
+                queueId: (string) $row['queue_id'],
                 type: $row['type'],
                 flowSource: $row['flow_source'],
                 flowHash: $row['flow_hash'],

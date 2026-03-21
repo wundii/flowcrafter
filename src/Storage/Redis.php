@@ -149,9 +149,9 @@ class Redis implements StorageInterface
             'AS',
             'stubSource',
             'TAG',
-            '$.sourceBase64',
+            '$.sourceContent',
             'AS',
-            'stubBase64',
+            'sourceContent',
             'TAG',
             '$.time',
             'AS',
@@ -807,11 +807,11 @@ class Redis implements StorageInterface
             return null;
         }
 
-        /** @var array{stubHash: string, stubSource: class-string, sourceBase64: string, time: int} $stubSourceArray */
+        /** @var array{stubHash: string, stubSource: class-string, sourceContent: string, time: int} $stubSourceArray */
         return new StubSourceEntity(
             stubHash: $stubSourceArray['stubHash'],
             stubSource: $stubSourceArray['stubSource'],
-            sourceBase64: $stubSourceArray['sourceBase64'],
+            sourceContent: $stubSourceArray['sourceContent'],
             time: (new DateTimeImmutable())->setTimestamp($stubSourceArray['time']),
         );
     }
@@ -826,11 +826,11 @@ class Redis implements StorageInterface
 
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SOURCE_STUB, '@stubSource:{' . $stubSource . '}', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $stubSourceEvent) {
-            /** @var array{stubHash: string, stubSource: class-string, sourceBase64: string, time: int} $stubSourceEvent */
+            /** @var array{stubHash: string, stubSource: class-string, sourceContent: string, time: int} $stubSourceEvent */
             yield new StubSourceEntity(
                 stubHash: $stubSourceEvent['stubHash'],
                 stubSource: $stubSourceEvent['stubSource'],
-                sourceBase64: $stubSourceEvent['sourceBase64'],
+                sourceContent: $stubSourceEvent['sourceContent'],
                 time: (new DateTimeImmutable())->setTimestamp($stubSourceEvent['time']),
             );
         }
