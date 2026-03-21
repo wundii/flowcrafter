@@ -967,6 +967,10 @@ class Esdb implements StorageInterface
 
     public function findFlowByHash(string $flowHash): ?Flow
     {
+        if ($flowHash === '') {
+            return null;
+        }
+
         $flowArray = [];
         $flowEvents = $this->client->readEvents(
             subject: '/flow/' . $flowHash,
@@ -1025,6 +1029,10 @@ class Esdb implements StorageInterface
 
     public function findStubSourceByHash(string $stubHash): ?StubSourceEntity
     {
+        if ($stubHash === '') {
+            return null;
+        }
+
         $stubSourceEvents = $this->client->readEvents(
             subject: '/flow/source/stub/' . $stubHash,
             readEventsOptions: new ReadEventsOptions(recursive: false)
