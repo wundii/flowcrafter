@@ -215,7 +215,7 @@ Dies gilt sowohl für synchrone Ausführung (`/api/flows/run`) als auch für die
 
 ### Observer (asynchrone Verarbeitung)
 
-`appendObserveItem()` legt eine Message in die Queue. Der `FlowObserver`-Daemon pollt `observeQueue()`, deserialisiert die Messages und führt sie via `FlowRunner` aus. Exceptions werden protokolliert, der Observer läuft mit 2s Retry-Delay weiter.
+`appendObserveItem()` legt eine Message in die Queue. Der optionale Parameter `flowSubject` wird dabei durchgereicht und beim Erstellen des Flows als Beschriftung gesetzt. Der `FlowObserver`-Daemon pollt `observeQueue()`, deserialisiert die Messages und führt sie via `FlowRunner` aus. Exceptions werden protokolliert, der Observer läuft mit 2s Retry-Delay weiter.
 
 ### Stub-Source-Snapshotting
 
@@ -235,6 +235,7 @@ Die REST-API wird über `service/index.php` bereitgestellt (Flower Micro-Router)
 | GET     | `/api/info`           | —                                                | Server-Beschreibung + Observer-Status |
 | GET     | `/api/flows`          | `sort`, `top`, `skip`, `type`, `from`, `to`      | Flow-Instanzen (paginiert, filterbar) |
 | GET     | `/api/flows/detail`   | `hash` oder `runtimeHash`                        | Flow mit Messages, Exceptions & Runs  |
+| GET     | `/api/flows/search`   | `subject`, `top`                                 | Flows nach `flowSubject` suchen       |
 | GET     | `/api/exceptions`     | `sort`, `top`, `skip`, `flowHash`, `from`, `to`  | Exceptions (paginiert, filterbar)     |
 
 ### Schemas & Stub-Source
@@ -249,8 +250,8 @@ Die REST-API wird über `service/index.php` bereitgestellt (Flower Micro-Router)
 
 | Methode | Pfad               | Body / Parameter                                            | Beschreibung                    |
 | ------- | ------------------ | ----------------------------------------------------------- | ------------------------------- |
-| POST    | `/api/flows/run`   | `{ flowHash, messageSource, message, includeStubs? }`                      | Flow synchron ausführen         |
-| POST    | `/api/queue`       | `{ flowHash?, messageSource, message, includeStubs?, type?, flowSource? }` | Message in die Queue stellen    |
+| POST    | `/api/flows/run`   | `{ flowHash, messageSource, message, includeStubs? }`                                  | Flow synchron ausführen         |
+| POST    | `/api/queue`       | `{ flowHash?, messageSource, message, includeStubs?, type?, flowSource?, flowSubject? }` | Message in die Queue stellen    |
 | GET     | `/api/queues`      | `sort`                                                      | Alle Queue-Einträge mit Details |
 | GET     | `/api/queue/count` | —                                                           | Aktuelle Queue-Größe            |
 
