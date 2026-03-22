@@ -505,7 +505,7 @@ class Redis implements StorageInterface
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = []): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);
@@ -516,6 +516,7 @@ class Redis implements StorageInterface
             'flowHash' => $flowHash,
             'messageSource' => $messageSource,
             'message' => $message,
+            'includeStubs' => $includeStubs,
         ];
 
         $this->client->lPush('flow:queue', json_encode($data));
@@ -547,7 +548,7 @@ class Redis implements StorageInterface
                 throw new RuntimeException('The flow message payload must be a valid JSON object.');
             }
 
-            /** @var array{type: string, flowSource: class-string<\Wundii\Flowcrafter\Interface\FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>} $payload */
+            /** @var array{type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeStubs?: class-string[]} $payload */
             yield new ObserveItem(
                 queueId: Uuid::uuid7(new DateTimeImmutable())->toString(),
                 type: $payload['type'],
@@ -555,6 +556,7 @@ class Redis implements StorageInterface
                 flowHash: $payload['flowHash'],
                 messageSource: $payload['messageSource'],
                 message: $payload['message'],
+                includeStubs: $payload['includeStubs'] ?? [],
             );
         }
     }
@@ -594,7 +596,7 @@ class Redis implements StorageInterface
                 continue;
             }
 
-            /** @var array{queueId: string, type: string, flowSource: class-string<\Wundii\Flowcrafter\Interface\FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>} $payload */
+            /** @var array{queueId: string, type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeStubs?: class-string[]} $payload */
             yield new ObserveItem(
                 queueId: $payload['queueId'],
                 type: $payload['type'],
@@ -602,6 +604,7 @@ class Redis implements StorageInterface
                 flowHash: $payload['flowHash'],
                 messageSource: $payload['messageSource'],
                 message: $payload['message'],
+                includeStubs: $payload['includeStubs'] ?? [],
             );
         }
     }

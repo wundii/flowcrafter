@@ -11,6 +11,7 @@ final readonly class ObserveItem
     /**
      * @param class-string<FlowInterface> $flowSource
      * @param array<mixed> $message
+     * @param class-string[] $includeStubs
      */
     public function __construct(
         private string $queueId,
@@ -19,6 +20,7 @@ final readonly class ObserveItem
         private ?string $flowHash,
         private string $messageSource,
         private array $message,
+        private array $includeStubs = [],
     ) {
     }
 
@@ -56,5 +58,13 @@ final readonly class ObserveItem
     public function getMessage(): array
     {
         return $this->message;
+    }
+
+    /**
+     * @return class-string[]
+     */
+    public function getIncludeStubs(): array
+    {
+        return $this->includeStubs;
     }
 }

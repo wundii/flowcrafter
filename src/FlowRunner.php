@@ -30,6 +30,11 @@ class FlowRunner
      */
     private array $messageToStubsMap;
 
+    /**
+     * @var class-string[]
+     */
+    private array $includeStubs = [];
+
     private bool|MessageReturnInterface $messageReturn = false;
 
     /**
@@ -55,10 +60,14 @@ class FlowRunner
         return $this->flow;
     }
 
+    /**
+     * @param class-string[] $includeStubs
+     */
     public function run(
         MessageInterface $message,
         ?string $flowHash = null,
         ?string $queueId = null,
+        array $includeStubs = [],
     ): bool|MessageReturnInterface {
         $storedFlow = $this->storage?->findFlowByHash((string) $flowHash);
 
@@ -84,6 +93,7 @@ class FlowRunner
         $this->storage?->registerFlowInstance($this->flow);
         $this->storage?->appendFlowRun($this->flow, $queueId); #start to run the flow
         $this->executedStubKey = [];
+        $this->includeStubs = $includeStubs;
         $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
 
         $this->executeStubsRecursive($message);
@@ -169,6 +179,10 @@ class FlowRunner
 
         foreach ($this->messageToStubsMap[$messageClass] as $stub) {
             $stubSource = $stub->getSource();
+
+            if ($this->includeStubs !== [] && !in_array($stubSource, $this->includeStubs, true)) {
+                continue;
+            }
 
             $stubKey = $stubSource . ':' . $messageClass;
             if (in_array($stubKey, $this->executedStubKey, true)) {

@@ -12,6 +12,10 @@ use Tests\MockClass\DependencyMock;
 use Tests\MockClass\FailStubMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageInitMock;
+use Tests\MockClass\NextStubMock;
+use Tests\MockClass\OtherStubMock;
+use Tests\MockClass\PostStubMock;
+use Tests\MockClass\StubMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Flow;
@@ -99,6 +103,79 @@ final class FlowRunnerTest extends TestCase
         $this->assertSame($flow->getRuntimeHash(), $exception->getFlowRuntimeHash());
         $this->assertSame(FailStubMock::class, $exception->getStubSource());
         $this->assertStringStartsWith('Test Exception', $exception->getMessage());
+    }
+
+    public function testRunWithEmptyIncludeStubsExecutesAll(): void
+    {
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+        );
+        $result = $flowRunner->run(new MessageInitMock('test data'), includeStubs: []);
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertCount(0, $flow->getFlowExceptions());
+        $this->assertCount(6, $flow->getFlowMessages());
+        $this->assertCount(1, $flow->getFlowResults());
+        $this->assertInstanceOf(MessageReturnInterface::class, $result);
+    }
+
+    public function testRunWithIncludeStubsOnlyNextStub(): void
+    {
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+        );
+        $result = $flowRunner->run(
+            new MessageInitMock('test data'),
+            includeStubs: [StubMock::class, NextStubMock::class],
+        );
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertCount(0, $flow->getFlowExceptions());
+        $this->assertCount(2, $flow->getFlowMessages());
+        $this->assertCount(1, $flow->getFlowResults());
+        $this->assertIsBool($result);
+    }
+
+    public function testRunWithIncludeStubsSkipNextStub(): void
+    {
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+        );
+        $result = $flowRunner->run(
+            new MessageInitMock('test data'),
+            includeStubs: [StubMock::class, OtherStubMock::class, PostStubMock::class],
+        );
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertCount(0, $flow->getFlowExceptions());
+        $this->assertCount(5, $flow->getFlowMessages());
+        $this->assertCount(0, $flow->getFlowResults());
+        $this->assertInstanceOf(MessageReturnInterface::class, $result);
+    }
+
+    public function testRunWithIncludeStubsSkipPostStub(): void
+    {
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+        );
+        $result = $flowRunner->run(
+            new MessageInitMock('test data'),
+            includeStubs: [StubMock::class, NextStubMock::class, OtherStubMock::class],
+        );
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertCount(0, $flow->getFlowExceptions());
+        $this->assertCount(3, $flow->getFlowMessages());
+        $this->assertCount(1, $flow->getFlowResults());
+        $this->assertIsBool($result);
     }
 
     public function testRunWithDependencyInjection(): void

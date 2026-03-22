@@ -634,7 +634,7 @@ class Esdb implements StorageInterface
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = []): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);
@@ -650,6 +650,7 @@ class Esdb implements StorageInterface
                     'flowHash' => $flowHash,
                     'messageSource' => $messageSource,
                     'message' => $message,
+                    'includeStubs' => $includeStubs,
                 ],
             ),
         ]);
@@ -692,6 +693,7 @@ class Esdb implements StorageInterface
                 flowHash: $event->data['flowHash'] ?? null,
                 messageSource: $event->data['messageSource'] ?? '',
                 message: $event->data['message'] ?? [],
+                includeStubs: $event->data['includeStubs'] ?? [],
             );
         }
     }
@@ -754,6 +756,7 @@ class Esdb implements StorageInterface
                 flowHash: $allEvent->data['flowHash'] ?? null,
                 messageSource: $allEvent->data['messageSource'] ?? '',
                 message: $allEvent->data['message'] ?? [],
+                includeStubs: $allEvent->data['includeStubs'] ?? [],
             );
         }
     }

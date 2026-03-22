@@ -40,8 +40,9 @@ interface StorageInterface
      * @param class-string $flowSource
      * @param class-string $messageSource
      * @param array<mixed> $message
+     * @param class-string[] $includeStubs
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void;
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = []): void;
 
     public function openQueues(): int;
 

@@ -416,6 +416,8 @@ $route->add(
         $flowHash = Assert::string($body['flowHash'] ?? '');
         $messageSource = Assert::string($body['messageSource'] ?? '');
         $message = Assert::array($body['message'] ?? []);
+        /** @var class-string[] $includeStubs */
+        $includeStubs = Assert::array($body['includeStubs'] ?? []);
         $messageReturn = null;
 
         if ($flowHash === '' || $messageSource === '' || $message === []) {
@@ -467,7 +469,11 @@ $route->add(
         }
 
         try {
-            $messageReturn = $flowRunner->run($messageInstance, $flowHash);
+            $messageReturn = $flowRunner->run(
+                message: $messageInstance,
+                flowHash: $flowHash,
+                includeStubs: $includeStubs,
+            );
         } catch (Throwable $throwable) {
             // the exception is recorded in storage
         }
@@ -495,6 +501,8 @@ $route->add(
         $flowHash = Assert::nullOrString($body['flowHash'] ?? null);
         $messageSource = Assert::string($body['messageSource'] ?? '');
         $message = Assert::array($body['message'] ?? []);
+        /** @var class-string[] $includeStubs */
+        $includeStubs = Assert::array($body['includeStubs'] ?? []);
         $type = Assert::string($body['type'] ?? '');
         $flowSource = Assert::string($body['flowSource'] ?? '');
 
@@ -533,6 +541,7 @@ $route->add(
                 flowHash: $flowHash,
                 messageSource: $messageSource,
                 message: $message,
+                includeStubs: $includeStubs,
             );
         } catch (Throwable $throwable) {
             return new JsonResponse([

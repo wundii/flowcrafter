@@ -197,6 +197,7 @@ class MySql implements StorageInterface
                 flow_hash VARCHAR(191) NULL,
                 message_source VARCHAR(255) NOT NULL,
                 message JSON NOT NULL,
+                include_stubs JSON NOT NULL,
                 created_at DATETIME NOT NULL,
                 INDEX idx_flow_queue_created_at (created_at)
             )
@@ -375,7 +376,7 @@ class MySql implements StorageInterface
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = []): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);
@@ -385,9 +386,14 @@ class MySql implements StorageInterface
             throw new RuntimeException('Could not serialize observe message payload.');
         }
 
+        $includeStubsJson = json_encode($includeStubs);
+        if (!is_string($includeStubsJson)) {
+            throw new RuntimeException('Could not serialize includeStubs payload.');
+        }
+
         $stmt = $this->client->prepare(
-            'INSERT INTO flow_queue (type, flow_source, flow_hash, message_source, message, created_at)' .
-            ' VALUES (:type, :flow_source, :flow_hash, :message_source, :message, :created_at)'
+            'INSERT INTO flow_queue (type, flow_source, flow_hash, message_source, message, include_stubs, created_at)' .
+            ' VALUES (:type, :flow_source, :flow_hash, :message_source, :message, :include_stubs, :created_at)'
         );
 
         $stmt->execute([
@@ -396,6 +402,7 @@ class MySql implements StorageInterface
             ':flow_hash' => $flowHash,
             ':message_source' => $messageSource,
             ':message' => $messageJson,
+            ':include_stubs' => $includeStubsJson,
             ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.u'),
         ]);
     }
@@ -455,6 +462,10 @@ class MySql implements StorageInterface
         }
 
         foreach ($stmt->fetchAll() as $row) {
+            $includeStubsRaw = $row['include_stubs'] ?? '[]';
+            /** @var class-string[] $includeStubsParsed */
+            $includeStubsParsed = is_string($includeStubsRaw) ? (json_decode($includeStubsRaw, true) ?? []) : [];
+
             yield new ObserveItem(
                 queueId: $row['queue_id'] ?? '',
                 type: $row['type'] ?? '',
@@ -462,6 +473,7 @@ class MySql implements StorageInterface
                 flowHash: $row['flow_hash'] ?? null,
                 messageSource: $row['message_source'] ?? '',
                 message: $row['message'] ?? [],
+                includeStubs: $includeStubsParsed,
             );
         }
     }
@@ -1045,7 +1057,11 @@ class MySql implements StorageInterface
                 throw new RuntimeException('Could not validate flow message payload.');
             }
 
-            /** @var array{queue_id: string, type: string, flow_source: class-string<\Wundii\Flowcrafter\Interface\FlowInterface>, flow_hash: ?string, message_source: string, message: string} $row */
+            $includeStubsRaw = $row['include_stubs'] ?? '[]';
+            /** @var class-string[] $includeStubsParsed */
+            $includeStubsParsed = is_string($includeStubsRaw) ? (json_decode($includeStubsRaw, true) ?? []) : [];
+
+            /** @var array{queue_id: string, type: string, flow_source: class-string<FlowInterface>, flow_hash: ?string, message_source: string, message: string, include_stubs?: string} $row */
             return new ObserveItem(
                 queueId: (string) $row['queue_id'],
                 type: $row['type'],
@@ -1053,6 +1069,7 @@ class MySql implements StorageInterface
                 flowHash: $row['flow_hash'],
                 messageSource: $row['message_source'],
                 message: $messageArray,
+                includeStubs: $includeStubsParsed,
             );
         } catch (PDOException $pdoException) {
             if ($this->client->inTransaction()) {

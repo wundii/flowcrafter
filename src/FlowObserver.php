@@ -72,6 +72,7 @@ readonly class FlowObserver
                 message: $message,
                 flowHash: $observeItem->getFlowHash(),
                 queueId: $observeItem->getQueueId(),
+                includeStubs: $observeItem->getIncludeStubs(),
             );
         }
     }

@@ -204,6 +204,15 @@ Ein Stub kann zurückgeben:
 - `MessageReturnInterface` → Flow endet
 - `false` → Keine Aktion
 
+### Selektive Stub-Ausführung (`includeStubs`)
+
+Wenn eine Message-Klasse von mehreren Stubs konsumiert wird, können beim Auslösen eines Runs gezielt einzelne Stubs ausgewählt werden. Der optionale Parameter `includeStubs` (Array von Stub-Klassennamen) steuert, welche Stubs ausgeführt werden:
+
+- **Leeres Array** (Default): Alle Stubs werden wie gewohnt ausgeführt
+- **Nicht-leeres Array**: Nur die aufgeführten Stubs werden ausgeführt, alle anderen werden übersprungen
+
+Dies gilt sowohl für synchrone Ausführung (`/api/flows/run`) als auch für die Queue (`/api/queue`).
+
 ### Observer (asynchrone Verarbeitung)
 
 `appendObserveItem()` legt eine Message in die Queue. Der `FlowObserver`-Daemon pollt `observeQueue()`, deserialisiert die Messages und führt sie via `FlowRunner` aus. Exceptions werden protokolliert, der Observer läuft mit 2s Retry-Delay weiter.
@@ -240,8 +249,8 @@ Die REST-API wird über `service/index.php` bereitgestellt (Flower Micro-Router)
 
 | Methode | Pfad               | Body / Parameter                                            | Beschreibung                    |
 | ------- | ------------------ | ----------------------------------------------------------- | ------------------------------- |
-| POST    | `/api/flows/run`   | `{ flowHash, messageSource, message }`                      | Flow synchron ausführen         |
-| POST    | `/api/queue`       | `{ flowHash?, messageSource, message, type?, flowSource? }` | Message in die Queue stellen    |
+| POST    | `/api/flows/run`   | `{ flowHash, messageSource, message, includeStubs? }`                      | Flow synchron ausführen         |
+| POST    | `/api/queue`       | `{ flowHash?, messageSource, message, includeStubs?, type?, flowSource? }` | Message in die Queue stellen    |
 | GET     | `/api/queues`      | `sort`                                                      | Alle Queue-Einträge mit Details |
 | GET     | `/api/queue/count` | —                                                           | Aktuelle Queue-Größe            |
 
