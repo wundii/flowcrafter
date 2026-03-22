@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Console;
 
+use Composer\InstalledVersions;
 use Symfony\Component\Console\Application as BaseApplication;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArgvInput;
@@ -26,11 +27,6 @@ final class FlowConsole extends BaseApplication
      * @var string
      */
     public const NAME = 'FlowCrafter';
-
-    /**
-     * @var string
-     */
-    public const VERSION = '0.7';
 
     public function __construct(
         FlowCreateCommand $flowCreateCommand,
@@ -78,40 +74,14 @@ final class FlowConsole extends BaseApplication
 
     public static function vendorVersion(): string
     {
-        $version = self::VERSION;
-        $vendorInstallJson = getcwd() . DIRECTORY_SEPARATOR . 'vendor/composer/installed.json';
-
-        $fileContent = file_get_contents($vendorInstallJson);
-        if ($fileContent === false) {
-            return $version;
-        }
-
-        $composerJson = json_decode($fileContent, true);
-        if (!is_array($composerJson)) {
-            return $version;
-        }
-
-        $packages = $composerJson['packages'] ?? [];
-        if (!is_iterable($packages)) {
-            return $version;
-        }
-
-        foreach ($packages as $package) {
-            if (!array_key_exists('name', $package)) {
-                continue;
-            }
-
-            if (!array_key_exists('version', $package)) {
-                continue;
-            }
-
-            if ($package['name'] === 'wundii/flowcrafter' && is_string($package['version'])) {
-                $version = $package['version'];
-                break;
+        if (InstalledVersions::isInstalled('wundii/flowcrafter')) {
+            $version = InstalledVersions::getPrettyVersion('wundii/flowcrafter');
+            if ($version !== null) {
+                return $version;
             }
         }
 
-        return $version;
+        return 'dev';
     }
 
     private function getInputDefinition(): InputDefinition
