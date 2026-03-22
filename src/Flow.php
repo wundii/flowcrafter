@@ -22,6 +22,7 @@ class Flow implements JsonSerializable
      * @param FlowMessage[] $flowMessages
      * @param FlowException[] $flowExceptions
      * @param FlowRun[] $flowRuns
+     * @param FlowResult[] $flowResults
      */
     public function __construct(
         private readonly string $flowType,
@@ -34,6 +35,7 @@ class Flow implements JsonSerializable
         private array $flowMessages = [],
         private array $flowExceptions = [],
         private array $flowRuns = [],
+        private array $flowResults = [],
     ) {
         Assert::classString(
             $flowSource,
@@ -194,6 +196,19 @@ class Flow implements JsonSerializable
     }
 
     /**
+     * @return FlowResult[]
+     */
+    public function getFlowResults(): array
+    {
+        return $this->flowResults;
+    }
+
+    public function addResult(FlowResult $flowResult): void
+    {
+        $this->flowResults[] = $flowResult;
+    }
+
+    /**
      * @return FlowRun[]
      */
     public function getFlowRuns(): array
@@ -270,7 +285,7 @@ class Flow implements JsonSerializable
     }
 
     /**
-     * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowRun>|FlowSchema>
+     * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowResult|FlowRun>|FlowSchema>
      */
     public function jsonSerialize(): array
     {
@@ -284,6 +299,7 @@ class Flow implements JsonSerializable
             'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => $this->flowMessages,
             'flowExceptions' => $this->flowExceptions,
+            'flowResults' => $this->flowResults,
             'flowRuns' => $this->getFlowRuns(),
             'isExecutable' => $this->isExecutable(),
         ];

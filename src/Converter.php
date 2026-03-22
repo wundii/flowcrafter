@@ -147,6 +147,22 @@ final class Converter
                 },
                 Assert::array($flow['flowRuns'] ?? [], 'Runs must be an array.'),
             ),
+            array_map(
+                static function (mixed $array): FlowResult {
+                    $result = Assert::array($array, 'Each Result must be an array.');
+
+                    return new FlowResult(
+                        Assert::string($result['flowHash'] ?? null, 'Each Result must have a string flowHash.'),
+                        Assert::string($result['flowRuntimeHash'] ?? null, 'Each Result must have a string flowRuntimeHash.'),
+                        Assert::string($result['stubSource'] ?? null, 'Each Result must have a string stubSource.'),
+                        Assert::nullOrString($result['stubHash'] ?? null, 'Each stubHash must have a string or null.'),
+                        Assert::bool($result['result'] ?? null, 'Each Result must have a bool result.'),
+                        Assert::datetimeImmutable($result['time'] ?? null, 'Time must be a valid date string.'),
+                        Assert::string($result['hash'] ?? null, 'Each Result must have a string hash.'),
+                    );
+                },
+                Assert::array($flow['flowResults'] ?? [], 'Results must be an array.'),
+            ),
         );
     }
 

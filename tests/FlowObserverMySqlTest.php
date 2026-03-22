@@ -54,6 +54,9 @@ final class FlowObserverMySqlTest extends TestCase
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_MESSAGE);
         $this->assertCount(6, iterator_to_array($stmt->fetchAll()));
 
+        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_RESULT);
+        $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
+
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_QUEUE);
         $this->assertCount(0, iterator_to_array($stmt->fetchAll()));
 

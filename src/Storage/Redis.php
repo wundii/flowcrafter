@@ -16,6 +16,7 @@ use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
+use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -34,6 +35,8 @@ class Redis implements StorageInterface
 
     public const PREFIX_TYPE_EXCEPTION = 'flow:exception:';
 
+    public const PREFIX_TYPE_RESULT = 'flow:result:';
+
     public const PREFIX_TYPE_RUN = 'flow:run:';
 
     public const PREFIX_TYPE_SCHEMA = 'flow:schema:';
@@ -45,6 +48,8 @@ class Redis implements StorageInterface
     private const INDEX_MESSAGE = 'idx:flow:message';
 
     private const INDEX_EXCEPTION = 'idx:flow:exception';
+
+    private const INDEX_RESULT = 'idx:flow:result';
 
     private const INDEX_RUN = 'idx:flow:run';
 
@@ -333,6 +338,50 @@ class Redis implements StorageInterface
             'TAG',
             'SORTABLE',
         );
+
+        if ($this->existIndex(self::INDEX_RESULT)) {
+            $this->client->rawCommand('FT.DROPINDEX', self::INDEX_RESULT);
+        }
+
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_RESULT,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_TYPE_RESULT,
+            'SCHEMA',
+            '$.flowHash',
+            'AS',
+            'flowHash',
+            'TAG',
+            '$.flowRuntimeHash',
+            'AS',
+            'flowRuntimeHash',
+            'TAG',
+            '$.stubSource',
+            'AS',
+            'stubSource',
+            'TAG',
+            '$.stubHash',
+            'AS',
+            'stubHash',
+            'TAG',
+            '$.result',
+            'AS',
+            'result',
+            'NUMERIC',
+            '$.time',
+            'AS',
+            'time',
+            'NUMERIC',
+            'SORTABLE',
+            '$.hash',
+            'AS',
+            'hash',
+            'TAG',
+        );
     }
 
     public function registerFlowSchema(FlowSchema $flowSchema): void
@@ -387,6 +436,7 @@ class Redis implements StorageInterface
         unset($data['flowSchema']);
         unset($data['flowMessages']);
         unset($data['flowExceptions']);
+        unset($data['flowResults']);
         unset($data['flowRuns']);
         unset($data['isExecutable']);
         $data['time'] = $flow->getTime()->getTimestamp();
@@ -426,6 +476,20 @@ class Redis implements StorageInterface
 
         $data = $flowException->jsonSerialize();
         $data['time'] = $flowException->getTime()->getTimestamp();
+
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
+    }
+
+    public function appendFlowResult(FlowResult $flowResult): void
+    {
+        $key = self::PREFIX_TYPE_RESULT . $flowResult->getHash();
+        if ($this->client->exists($key)) {
+            return;
+        }
+
+        $data = $flowResult->jsonSerialize();
+        $data['time'] = $flowResult->getTime()->getTimestamp();
+        $data['result'] = (int) $flowResult->getResult();
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
@@ -768,6 +832,17 @@ class Redis implements StorageInterface
         }
 
         $flowArray['flowExceptions'] = $flowExceptions;
+
+        /** @var list<array<mixed, mixed>> $flowResults */
+        $flowResults = [];
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RESULT, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
+        foreach (self::fetchData($result) as $resultEvent) {
+            $resultEvent['time'] = $this->timestampToRFC3339Extended($resultEvent['time'] ?? 0);
+            $resultEvent['result'] = (bool) ($resultEvent['result'] ?? false);
+            $flowResults[] = $resultEvent;
+        }
+
+        $flowArray['flowResults'] = $flowResults;
 
         /** @var list<array<mixed, mixed>> $flowRuns */
         $flowRuns = [];

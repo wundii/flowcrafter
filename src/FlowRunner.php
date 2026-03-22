@@ -239,6 +239,18 @@ class FlowRunner
 
             $this->messageReturn = $processResult;
 
+            if (is_bool($processResult)) {
+                $flowResult = FlowResult::create(
+                    flowHash: $flow->getHash(),
+                    flowRuntimeHash: $flow->getRuntimeHash(),
+                    stubSource: $stubSource,
+                    stubHash: $stubHash,
+                    result: $processResult,
+                );
+                $flow->addResult($flowResult);
+                $this->storage?->appendFlowResult($flowResult);
+            }
+
             if ($processResult instanceof MessageReturnInterface) {
                 $returnFlowMessage = FlowMessage::create(
                     flowHash: $flow->getHash(),

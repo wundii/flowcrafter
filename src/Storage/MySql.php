@@ -17,6 +17,7 @@ use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
+use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -33,6 +34,8 @@ class MySql implements StorageInterface
     public const TYPE_MESSAGE = 'flow_message';
 
     public const TYPE_EXCEPTION = 'flow_exception';
+
+    public const TYPE_RESULT = 'flow_result';
 
     public const TYPE_QUEUE = 'flow_queue';
 
@@ -163,6 +166,24 @@ class MySql implements StorageInterface
                 FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
                 FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash),
                 FOREIGN KEY (stub_hash) REFERENCES flow_source_stub(stub_hash)
+            )
+            SQL
+        );
+
+        $this->client->exec(
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS flow_result (
+                hash VARCHAR(191) NOT NULL PRIMARY KEY,
+                flow_hash VARCHAR(191) NOT NULL,
+                flow_runtime_hash VARCHAR(191) NOT NULL,
+                stub_source VARCHAR(255) NOT NULL,
+                stub_hash VARCHAR(191) NULL,
+                result TINYINT(1) NOT NULL,
+                `time` DATETIME NOT NULL,
+                INDEX idx_flow_result_flow_hash (flow_hash),
+                INDEX idx_flow_result_flow_runtime_hash (flow_runtime_hash),
+                FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
+                FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash)
             )
             SQL
         );
@@ -318,6 +339,24 @@ class MySql implements StorageInterface
             ':line' => $flowException->getLine(),
             ':trace_string' => $flowException->getTraceString(),
             ':time' => $flowException->getTime()->format('Y-m-d H:i:s.u'),
+        ]);
+    }
+
+    public function appendFlowResult(FlowResult $flowResult): void
+    {
+        $stmt = $this->client->prepare(
+            'INSERT IGNORE INTO flow_result (hash, flow_hash, flow_runtime_hash, stub_source, stub_hash, result, time) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :stub_hash, :result, :time)'
+        );
+
+        $stmt->execute([
+            ':hash' => $flowResult->getHash(),
+            ':flow_hash' => $flowResult->getFlowHash(),
+            ':flow_runtime_hash' => $flowResult->getFlowRuntimeHash(),
+            ':stub_source' => $flowResult->getStubSource(),
+            ':stub_hash' => $flowResult->getStubHash(),
+            ':result' => $flowResult->getResult() ? 1 : 0,
+            ':time' => $flowResult->getTime()->format('Y-m-d H:i:s.u'),
         ]);
     }
 
@@ -847,6 +886,27 @@ class MySql implements StorageInterface
                 'line' => $exception['line'] ?? 0,
                 'traceString' => $exception['trace_string'] ?? '',
                 'time' => $exception['time'] ?? 'now',
+            ];
+        }
+
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_result ' .
+            'WHERE flow_hash = :flow_hash ' .
+            'ORDER BY time ASC'
+        );
+        $stmt->execute([
+            ':flow_hash' => $flowHash,
+        ]);
+
+        foreach ($stmt->fetchAll() as $result) {
+            $flowArray['flowResults'][] = [
+                'hash' => $result['hash'] ?? '',
+                'flowHash' => $result['flow_hash'] ?? '',
+                'flowRuntimeHash' => $result['flow_runtime_hash'] ?? '',
+                'stubSource' => $result['stub_source'] ?? '',
+                'stubHash' => $result['stub_hash'] ?? null,
+                'result' => (bool) ($result['result'] ?? false),
+                'time' => $result['time'] ?? 'now',
             ];
         }
 

@@ -9,6 +9,7 @@ use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
+use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
@@ -32,6 +33,8 @@ interface StorageInterface
     public function appendFlowMessage(FlowMessage $flowMessage): void;
 
     public function appendFlowException(FlowException $flowException): void;
+
+    public function appendFlowResult(FlowResult $flowResult): void;
 
     /**
      * @param class-string $flowSource

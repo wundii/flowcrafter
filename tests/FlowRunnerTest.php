@@ -38,6 +38,7 @@ final class FlowRunnerTest extends TestCase
         $this->assertCount(1, $runs);
 
         $this->assertCount(6, $flow->getFlowMessages());
+        $this->assertCount(1, $flow->getFlowResults());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
         $this->assertStringStartsWith('[', $result->getData());
     }

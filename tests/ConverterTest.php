@@ -21,6 +21,7 @@ use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
+use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Stub;
 use Wundii\Flowcrafter\Uuid;
@@ -68,6 +69,7 @@ final class ConverterTest extends TestCase
             'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => [],
             'flowExceptions' => [],
+            'flowResults' => [],
             'flowRuns' => [],
             'isExecutable' => true,
         ]);
@@ -82,8 +84,10 @@ final class ConverterTest extends TestCase
             '0198ce36-3a94-7125-9ac7-88902e8ff001', #$json::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff002', #$json::runtimeHash
             '0198ce36-3a94-7125-9ac7-88902e8ff003', #$json::flowException::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff004', #$json::flowResult::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff002', #$expectedJson::flowMessage::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff003', #$expectedJson::flowException::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff004', #$expectedJson::flowResult::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff000', #$expectedJson::flowSchema::stubs::stub::hash
         ]);
 
@@ -123,6 +127,15 @@ final class ConverterTest extends TestCase
                 hash: Uuid::uuid7($flow->getTime())->toString(),
             ),
         );
+        $flow->addResult(FlowResult::create(
+            flowHash: $flow->getHash(),
+            flowRuntimeHash: $flow->getRuntimeHash(),
+            stubSource: StubMock::class,
+            stubHash: '123',
+            result: true,
+            time: $flow->getTime(),
+            hash: Uuid::uuid7($flow->getTime())->toString(),
+        ));
         $flow->addRun(datetime: $flow->getTime());
 
         $json = Converter::flowToJson($flow);
@@ -171,6 +184,17 @@ final class ConverterTest extends TestCase
                     'file' => $file,
                     'line' => $line,
                     'traceString' => 'Stack trace',
+                    'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
+                    'hash' => Uuid::uuid7($flow->getTime())->toString(),
+                ],
+            ],
+            'flowResults' => [
+                [
+                    'flowHash' => $flow->getHash(),
+                    'flowRuntimeHash' => $flow->getRuntimeHash(),
+                    'stubSource' => StubMock::class,
+                    'stubHash' => '123',
+                    'result' => true,
                     'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
                     'hash' => Uuid::uuid7($flow->getTime())->toString(),
                 ],

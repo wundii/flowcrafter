@@ -42,7 +42,7 @@ final class FlowObserverEsdbTest extends TestCase
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
-        $this->assertCount(14, iterator_to_array($events));
+        $this->assertCount(15, iterator_to_array($events));
 
         $flowSchemaEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.schema.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowSchemaEvents));
@@ -55,6 +55,9 @@ final class FlowObserverEsdbTest extends TestCase
 
         $flowMessageEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.message.v1" PROJECT INTO e');
         $this->assertCount(6, iterator_to_array($flowMessageEvents));
+
+        $flowResultEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.result.v1" PROJECT INTO e');
+        $this->assertCount(1, iterator_to_array($flowResultEvents));
 
         $flowExceptionEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.exception.v1" PROJECT INTO e');
         $this->assertCount(0, iterator_to_array($flowExceptionEvents));
