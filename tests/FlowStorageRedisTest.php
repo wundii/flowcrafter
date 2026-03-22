@@ -529,6 +529,124 @@ final class FlowStorageRedisTest extends TestCase
     /**
      * @throws Exception
      */
+    public function testCountFlowsBySubject(): void
+    {
+        $storage = $this->storage();
+        $flowRunnerA = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowSubject: 'order-12345',
+            storage: $storage,
+        );
+        $flowRunnerB = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowSubject: 'order-67890',
+            storage: $storage,
+        );
+        $flowRunnerC = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowSubject: 'user-99999',
+            storage: $storage,
+        );
+        $flowRunnerA->run(new MessageInitMock('test data1'));
+        $flowRunnerB->run(new MessageInitMock('test data2'));
+        $flowRunnerC->run(new MessageInitMock('test data3'));
+
+        $this->assertSame(2, $storage->countFlowsBySubject('order'));
+        $this->assertSame(1, $storage->countFlowsBySubject('12345'));
+        $this->assertSame(1, $storage->countFlowsBySubject('user'));
+        $this->assertSame(0, $storage->countFlowsBySubject('nonexistent'));
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindFlowsBySubject(): void
+    {
+        $storage = $this->storage();
+        $flowRunnerA = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowSubject: 'order-12345',
+            storage: $storage,
+        );
+        $flowRunnerB = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowSubject: 'order-67890',
+            storage: $storage,
+        );
+        $flowRunnerC = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowSubject: 'user-99999',
+            storage: $storage,
+        );
+        $flowRunnerA->run(new MessageInitMock('test data1'));
+        $flowRunnerB->run(new MessageInitMock('test data2'));
+        $flowRunnerC->run(new MessageInitMock('test data3'));
+
+        $flows = iterator_to_array($storage->findFlowsBySubject('order'));
+        $this->assertCount(2, $flows);
+        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+
+        $flows = iterator_to_array($storage->findFlowsBySubject('12345'));
+        $this->assertCount(1, $flows);
+        $this->assertSame('order-12345', $flows[0]->flowSubject);
+
+        $flows = iterator_to_array($storage->findFlowsBySubject('nonexistent'));
+        $this->assertCount(0, $flows);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindFlowsBySubjectWithFromToMatching(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowSubject: 'order-12345',
+            storage: $storage,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+
+        $from = new DateTimeImmutable('-1 day');
+        $to = new DateTimeImmutable('+1 day');
+
+        $flows = iterator_to_array($storage->findFlowsBySubject('order', SortEnum::DESC, 1000, 0, $from, $to));
+        $this->assertCount(1, $flows);
+        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindFlowsBySubjectWithFromToOutOfRange(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowSubject: 'order-12345',
+            storage: $storage,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+
+        $from = new DateTimeImmutable('2020-01-01');
+        $to = new DateTimeImmutable('2020-01-02');
+
+        $flows = iterator_to_array($storage->findFlowsBySubject('order', SortEnum::DESC, 1000, 0, $from, $to));
+        $this->assertCount(0, $flows);
+    }
+
+    /**
+     * @throws Exception
+     */
     public function testFindStubSource(): void
     {
         $storage = $this->storage();

@@ -195,6 +195,7 @@ class MySql implements StorageInterface
                 `type` VARCHAR(191) NOT NULL,
                 flow_source VARCHAR(255) NOT NULL,
                 flow_hash VARCHAR(191) NULL,
+                flow_subject VARCHAR(255) NULL,
                 message_source VARCHAR(255) NOT NULL,
                 message JSON NOT NULL,
                 include_stubs JSON NOT NULL,
@@ -376,7 +377,7 @@ class MySql implements StorageInterface
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = []): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = [], ?string $flowSubject = null): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);
@@ -392,14 +393,15 @@ class MySql implements StorageInterface
         }
 
         $stmt = $this->client->prepare(
-            'INSERT INTO flow_queue (type, flow_source, flow_hash, message_source, message, include_stubs, created_at)' .
-            ' VALUES (:type, :flow_source, :flow_hash, :message_source, :message, :include_stubs, :created_at)'
+            'INSERT INTO flow_queue (type, flow_source, flow_hash, flow_subject, message_source, message, include_stubs, created_at)' .
+            ' VALUES (:type, :flow_source, :flow_hash, :flow_subject, :message_source, :message, :include_stubs, :created_at)'
         );
 
         $stmt->execute([
             ':type' => $type,
             ':flow_source' => $flowSource,
             ':flow_hash' => $flowHash,
+            ':flow_subject' => $flowSubject,
             ':message_source' => $messageSource,
             ':message' => $messageJson,
             ':include_stubs' => $includeStubsJson,
@@ -469,6 +471,7 @@ class MySql implements StorageInterface
             yield new ObserveItem(
                 queueId: $row['queue_id'] ?? '',
                 type: $row['type'] ?? '',
+                flowSubject: $row['flow_subject'] ?? null,
                 flowSource: $row['flow_source'] ?? '',
                 flowHash: $row['flow_hash'] ?? null,
                 messageSource: $row['message_source'] ?? '',
@@ -528,6 +531,19 @@ class MySql implements StorageInterface
     {
         $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_exception WHERE flow_hash = :flow_hash');
         $stmt->bindValue(':flow_hash', $flowHash);
+        $stmt->execute();
+
+        if ($stmt === false) {
+            return 0;
+        }
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countFlowsBySubject(string $flowSubject): int
+    {
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_instance WHERE flow_subject LIKE :flow_subject');
+        $stmt->bindValue(':flow_subject', '%' . $flowSubject . '%');
         $stmt->execute();
 
         if ($stmt === false) {
@@ -667,6 +683,56 @@ class MySql implements StorageInterface
             ' ORDER BY fi.flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
         );
         $stmt->bindValue(':flow_type', $flowType . '.v%');
+        $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
+        $stmt->bindValue(':top', $top, Client::PARAM_INT);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+
+        $stmt->execute();
+
+        foreach ($stmt->fetchAll() as $row) {
+            yield new FlowEntity(
+                flowHash: $row['flow_hash'] ?? '',
+                flowType: $row['flow_type'] ?? '',
+                flowSource: $row['flow_source'] ?? '',
+                flowSubject: $row['flow_subject'] ?? null,
+                time: new DateTimeImmutable($row['time'] ?? 'now'),
+                exceptionCount: $row['exception_count'] ?? 0,
+            );
+        }
+    }
+
+    /**
+     * @return FlowEntity[]
+     * @throws Exception
+     */
+    public function findFlowsBySubject(string $flowSubject, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
+    {
+        $skip = max(0, $skip);
+        $top = max(1, $top);
+
+        $where = '';
+        $params = [];
+        if ($from instanceof DateTimeInterface) {
+            $where .= ' AND fi.`time` >= :from';
+            $params[':from'] = $from->format('Y-m-d H:i:s');
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $where .= ' AND fi.`time` <= :to';
+            $params[':to'] = $to->format('Y-m-d H:i:s');
+        }
+
+        $stmt = $this->client->prepare(
+            'SELECT fi.*, COUNT(fe.flow_hash) AS exception_count FROM flow_instance fi' .
+            ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
+            ' WHERE fi.flow_subject LIKE :flow_subject' .
+            $where .
+            ' GROUP BY fi.flow_hash' .
+            ' ORDER BY fi.flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
+        );
+        $stmt->bindValue(':flow_subject', '%' . $flowSubject . '%');
         $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
         $stmt->bindValue(':top', $top, Client::PARAM_INT);
         foreach ($params as $key => $value) {
@@ -1061,10 +1127,11 @@ class MySql implements StorageInterface
             /** @var class-string[] $includeStubsParsed */
             $includeStubsParsed = is_string($includeStubsRaw) ? (json_decode($includeStubsRaw, true) ?? []) : [];
 
-            /** @var array{queue_id: string, type: string, flow_source: class-string<FlowInterface>, flow_hash: ?string, message_source: string, message: string, include_stubs?: string} $row */
+            /** @var array{queue_id: string, type: string, flow_source: class-string<FlowInterface>, flow_hash: ?string, flow_subject: ?string, message_source: string, message: string, include_stubs?: string} $row */
             return new ObserveItem(
                 queueId: (string) $row['queue_id'],
                 type: $row['type'],
+                flowSubject: $row['flow_subject'] ?? null,
                 flowSource: $row['flow_source'],
                 flowHash: $row['flow_hash'],
                 messageSource: $row['message_source'],

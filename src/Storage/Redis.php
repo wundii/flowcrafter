@@ -202,6 +202,12 @@ class Redis implements StorageInterface
             'time',
             'NUMERIC',
             'SORTABLE',
+            '$.flowSubject',
+            'AS',
+            'flowSubject',
+            'TAG',
+            'SEPARATOR',
+            '|',
         );
 
         if ($this->existIndex(self::INDEX_RUN)) {
@@ -505,7 +511,7 @@ class Redis implements StorageInterface
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = []): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = [], ?string $flowSubject = null): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);
@@ -517,6 +523,7 @@ class Redis implements StorageInterface
             'messageSource' => $messageSource,
             'message' => $message,
             'includeStubs' => $includeStubs,
+            'flowSubject' => $flowSubject,
         ];
 
         $this->client->lPush('flow:queue', json_encode($data));
@@ -548,10 +555,11 @@ class Redis implements StorageInterface
                 throw new RuntimeException('The flow message payload must be a valid JSON object.');
             }
 
-            /** @var array{type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeStubs?: class-string[]} $payload */
+            /** @var array{type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeStubs?: class-string[], flowSubject?: ?string} $payload */
             yield new ObserveItem(
                 queueId: Uuid::uuid7(new DateTimeImmutable())->toString(),
                 type: $payload['type'],
+                flowSubject: $payload['flowSubject'] ?? null,
                 flowSource: $payload['flowSource'],
                 flowHash: $payload['flowHash'],
                 messageSource: $payload['messageSource'],
@@ -596,10 +604,11 @@ class Redis implements StorageInterface
                 continue;
             }
 
-            /** @var array{queueId: string, type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeStubs?: class-string[]} $payload */
+            /** @var array{queueId: string, type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeStubs?: class-string[], flowSubject?: ?string} $payload */
             yield new ObserveItem(
                 queueId: $payload['queueId'],
                 type: $payload['type'],
+                flowSubject: $payload['flowSubject'] ?? null,
                 flowSource: $payload['flowSource'],
                 flowHash: $payload['flowHash'],
                 messageSource: $payload['messageSource'],
@@ -632,6 +641,18 @@ class Redis implements StorageInterface
         $value = match ($flowType) {
             '*', '' => '*',
             default => '@flowType:{' . $flowType . '\.v*}',
+        };
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_INSTANCE, $value, 'LIMIT', '0', '0');
+
+        return is_array($result) && is_int($result[0] ?? null) ? $result[0] : 0;
+    }
+
+    public function countFlowsBySubject(string $flowSubject): int
+    {
+        $flowSubject = self::escapeValue($flowSubject);
+        $value = match ($flowSubject) {
+            '*', '' => '*',
+            default => '@flowSubject:{*' . $flowSubject . '*}',
         };
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_INSTANCE, $value, 'LIMIT', '0', '0');
 
@@ -714,6 +735,47 @@ class Redis implements StorageInterface
         $value = match ($flowType) {
             '*', '' => '*',
             default => '@flowType:{' . $flowType . '\.v*}',
+        };
+
+        $args = ['FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', $skip, $top];
+        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
+            $args[] = 'FILTER';
+            $args[] = 'time';
+            $args[] = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
+            $args[] = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
+        }
+
+        $args[] = 'RETURN';
+        $args[] = '1';
+        $args[] = '$';
+
+        $result = $this->client->rawcommand(...$args);
+        foreach (self::fetchData($result) as $event) {
+            /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: int} $event */
+            yield new FlowEntity(
+                flowHash: $event['flowHash'],
+                flowType: $event['flowType'],
+                flowSource: $event['flowSource'],
+                flowSubject: $event['flowSubject'],
+                time: (new DateTimeImmutable())->setTimestamp($event['time']),
+                exceptionCount: $this->countExceptionsByFlowHash($event['flowHash']),
+            );
+        }
+    }
+
+    /**
+     * @return FlowEntity[]
+     * @throws Exception
+     */
+    public function findFlowsBySubject(string $flowSubject, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
+    {
+        $flowSubject = self::escapeValue($flowSubject);
+        $skip = max(0, $skip);
+        $top = max(1, $top);
+
+        $value = match ($flowSubject) {
+            '*', '' => '*',
+            default => '@flowSubject:{*' . $flowSubject . '*}',
         };
 
         $args = ['FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', $skip, $top];

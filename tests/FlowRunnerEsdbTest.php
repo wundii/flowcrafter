@@ -79,14 +79,15 @@ final class FlowRunnerEsdbTest extends TestCase
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
+            flowSubject: '1234',
             storage: $storage,
         );
         $flowRunner->run(new MessageInitMock('test data'));
 
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
-
-        $this->assertCount(6, $flowRunner->getFlow()->getFlowMessages());
+        $this->assertSame('1234', $flow->getSubject());
+        $this->assertCount(6, $flow->getFlowMessages());
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
         $this->assertCount(14, iterator_to_array($events));
@@ -94,11 +95,13 @@ final class FlowRunnerEsdbTest extends TestCase
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
+            flowSubject: 'fail',
             storage: $storage,
         );
         $flowRunner->run(new MessageDataMock('test data round two'), $flow->getHash());
 
         $this->assertCount(5, $flowRunner->getFlow()->getFlowMessages());
+        $this->assertSame('1234', $flowRunner->getFlow()->getSubject());
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
         $this->assertCount(21, iterator_to_array($events));

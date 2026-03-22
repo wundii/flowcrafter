@@ -42,7 +42,7 @@ interface StorageInterface
      * @param array<mixed> $message
      * @param class-string[] $includeStubs
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = []): void;
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = [], ?string $flowSubject = null): void;
 
     public function openQueues(): int;
 
@@ -71,6 +71,8 @@ interface StorageInterface
 
     public function countExceptionsByFlowHash(string $flowHash = ''): int;
 
+    public function countFlowsBySubject(string $flowSubject): int;
+
     /**
      * @return FlowEntity[]
      */
@@ -85,6 +87,11 @@ interface StorageInterface
      * @return FlowEntity[]
      */
     public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
+
+    /**
+     * @return FlowEntity[]
+     */
+    public function findFlowsBySubject(string $flowSubject, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
 
     /**
      * @return FlowException[]

@@ -72,12 +72,13 @@ class FlowRunner
         $storedFlow = $this->storage?->findFlowByHash((string) $flowHash);
 
         $flowSchemaHash = $storedFlow instanceof Flow ? $storedFlow->getSchemaHash() : null;
+        $flowSubject = $storedFlow instanceof Flow ? $storedFlow->getSubject() : $this->flowSubject;
 
         $this->flow = Flow::create(
             flowType: $this->type,
             flowSource: $this->flowSource,
             flowSchemaHash: $flowSchemaHash,
-            flowSubject: $this->flowSubject,
+            flowSubject: $flowSubject,
             flowHash: $flowHash,
         );
 

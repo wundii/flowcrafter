@@ -634,7 +634,7 @@ class Esdb implements StorageInterface
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = []): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = [], ?string $flowSubject = null): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);
@@ -651,6 +651,7 @@ class Esdb implements StorageInterface
                     'messageSource' => $messageSource,
                     'message' => $message,
                     'includeStubs' => $includeStubs,
+                    'flowSubject' => $flowSubject,
                 ],
             ),
         ]);
@@ -689,6 +690,7 @@ class Esdb implements StorageInterface
             yield new ObserveItem(
                 queueId: $event->id,
                 type: $event->data['type'] ?? '',
+                flowSubject: $event->data['flowSubject'] ?? null,
                 flowSource: $event->data['flowSource'] ?? '',
                 flowHash: $event->data['flowHash'] ?? null,
                 messageSource: $event->data['messageSource'] ?? '',
@@ -752,6 +754,7 @@ class Esdb implements StorageInterface
             yield new ObserveItem(
                 queueId: $allEvent->id,
                 type: $allEvent->data['type'] ?? '',
+                flowSubject: $allEvent->data['flowSubject'] ?? null,
                 flowSource: $allEvent->data['flowSource'] ?? '',
                 flowHash: $allEvent->data['flowHash'] ?? null,
                 messageSource: $allEvent->data['messageSource'] ?? '',
@@ -790,6 +793,18 @@ class Esdb implements StorageInterface
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'AND STARTSWITH(e.data.flowType, "' . $flowType . '.v") ' .
+            'PROJECT INTO COUNT()'
+        );
+        $flowEvents = iterator_to_array($flowEvents);
+        return $flowEvents[0] ?? 0;
+    }
+
+    public function countFlowsBySubject(string $flowSubject): int
+    {
+        $flowEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
+            'AND INSTR(LOWER(IF(e.data.flowSubject == NULL, "", e.data.flowSubject)), LOWER("' . $flowSubject . '")) > -1 ' .
             'PROJECT INTO COUNT()'
         );
         $flowEvents = iterator_to_array($flowEvents);
@@ -920,6 +935,48 @@ class Esdb implements StorageInterface
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'AND STARTSWITH(e.data.flowType, "' . $flowType . '.v") ' .
+            $timeFilter .
+            'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'SKIP ' . $skip . ' ' .
+            'TOP ' . $top . ' ' .
+            'PROJECT INTO e.data'
+        );
+
+        foreach ($flowEvents as $flowEvent) {
+            /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
+            yield new FlowEntity(
+                flowHash: $flowEvent['flowHash'],
+                flowType: $flowEvent['flowType'],
+                flowSource: $flowEvent['flowSource'],
+                flowSubject: $flowEvent['flowSubject'],
+                time: new DateTimeImmutable($flowEvent['time']),
+                exceptionCount: $this->countExceptionsByFlowHash($flowEvent['flowHash']),
+            );
+        }
+    }
+
+    /**
+     * @return FlowEntity[]
+     * @throws Exception
+     */
+    public function findFlowsBySubject(string $flowSubject, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
+    {
+        $skip = max(0, $skip);
+        $top = max(1, $top);
+
+        $timeFilter = '';
+        if ($from instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
+        }
+
+        $flowEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
+            'AND INSTR(LOWER(IF(e.data.flowSubject == NULL, "", e.data.flowSubject)), LOWER("' . $flowSubject . '")) > -1 ' .
             $timeFilter .
             'ORDER BY e.id ' . $sortEnum->name . ' ' .
             'SKIP ' . $skip . ' ' .

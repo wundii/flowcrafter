@@ -183,6 +183,40 @@ $route->add(
     }
 );
 
+// GET /api/flows/search?subject=<query>[&top=10]
+$route->add(
+    '/api/flows/search',
+    MethodEnum::GET,
+    function (Request $request) use ($storage, $serializeEntity): JsonResponse {
+        $subject = Assert::string($request->query->get('subject') ?? '');
+
+        if ($subject === '') {
+            return new JsonResponse([
+                'items' => [],
+                'total' => 0,
+                'hasMore' => false,
+            ]);
+        }
+
+        $top = max(1, min(100, (int) $request->query->get('top', 10)));
+
+        $flows = $storage->findFlowsBySubject($subject, SortEnum::DESC, $top + 1);
+        $items = array_map($serializeEntity, iterator_to_array($flows));
+        $hasMore = count($items) > $top;
+        if ($hasMore) {
+            array_pop($items);
+        }
+
+        $total = $storage->countFlowsBySubject($subject);
+
+        return new JsonResponse([
+            'items' => $items,
+            'total' => $total,
+            'hasMore' => $hasMore,
+        ]);
+    }
+);
+
 // GET /api/flows/detail?hash=<flowHash> | ?runtimeHash=<flowRuntimeHash>
 $route->add(
     '/api/flows/detail',
@@ -459,6 +493,7 @@ $route->add(
             $flowRunner = new FlowRunner(
                 type: $existingFlow->getType(),
                 flowSource: $existingFlow->getSource(),
+                flowSubject: $existingFlow->getSubject(),
                 storage: $storage,
                 dependenciesInjection: $flowcrafterConfig->getDependencyInjections(),
             );
@@ -486,7 +521,7 @@ $route->add(
     }
 );
 
-// POST /api/queue  body: { flowHash, messageSource, message, type, flowSource }
+// POST /api/queue  body: { flowHash, messageSource, message, type, flowSource, flowSubject }
 $route->add(
     '/api/queue',
     MethodEnum::POST,
@@ -505,6 +540,7 @@ $route->add(
         $includeStubs = Assert::array($body['includeStubs'] ?? []);
         $type = Assert::string($body['type'] ?? '');
         $flowSource = Assert::string($body['flowSource'] ?? '');
+        $flowSubject = Assert::nullOrString($body['flowSubject'] ?? null);
 
         if ($flowHash !== null && $flowHash !== '') {
             $flow = $storage->findFlowByHash($flowHash);
@@ -542,6 +578,7 @@ $route->add(
                 messageSource: $messageSource,
                 message: $message,
                 includeStubs: $includeStubs,
+                flowSubject: $flowSubject,
             );
         } catch (Throwable $throwable) {
             return new JsonResponse([

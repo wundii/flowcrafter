@@ -64,6 +64,7 @@ readonly class FlowObserver
             $flowRunner = new FlowRunner(
                 type: $observeItem->getType(),
                 flowSource: $observeItem->getFlowSource(),
+                flowSubject: $observeItem->getFlowSubject(),
                 storage: $this->storage,
                 dependenciesInjection: $this->dependenciesInjection,
             );

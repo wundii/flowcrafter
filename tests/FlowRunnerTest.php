@@ -30,11 +30,13 @@ final class FlowRunnerTest extends TestCase
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
+            flowSubject: '1234',
         );
         $result = $flowRunner->run(new MessageInitMock('test data'));
 
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertSame('1234', $flow->getSubject());
 
         $exceptions = $flow->getFlowExceptions();
         $runs = $flow->getFlowRuns();

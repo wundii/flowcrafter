@@ -16,6 +16,7 @@ final readonly class ObserveItem
     public function __construct(
         private string $queueId,
         private string $type,
+        private ?string $flowSubject,
         private string $flowSource,
         private ?string $flowHash,
         private string $messageSource,
@@ -66,5 +67,10 @@ final readonly class ObserveItem
     public function getIncludeStubs(): array
     {
         return $this->includeStubs;
+    }
+
+    public function getFlowSubject(): ?string
+    {
+        return $this->flowSubject;
     }
 }
