@@ -72,6 +72,7 @@ final class ConverterTest extends TestCase
             'flowResults' => [],
             'flowRuns' => [],
             'isExecutable' => true,
+            'isReadOnly' => false,
         ]);
 
         $this->assertSame($expectedJson, $json);
@@ -208,6 +209,7 @@ final class ConverterTest extends TestCase
                 ],
             ],
             'isExecutable' => true,
+            'isReadOnly' => false,
         ]);
 
         $this->assertSame($expectedJson, $json);

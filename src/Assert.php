@@ -224,6 +224,19 @@ final class Assert
         return $value;
     }
 
+    /**
+     * @template T of object
+     * @param class-string<T> $object
+     */
+    public static function isValidClassString(mixed $value, string $object): bool
+    {
+        if (!is_string($value)) {
+            return false;
+        }
+
+        return $value === $object || is_subclass_of($value, $object);
+    }
+
     public static function isHash(mixed $value): bool
     {
         $value = self::string($value, 'Expected a string value for hash validation.');

@@ -7,9 +7,13 @@ namespace Wundii\Flowcrafter;
 use DateTimeImmutable;
 use DateTimeInterface;
 use JsonSerializable;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
 class FlowResult implements JsonSerializable
 {
+    /**
+     * @param class-string<StubInterface> $stubSource
+     */
     public function __construct(
         private readonly string $flowHash,
         private readonly string $flowRuntimeHash,
@@ -18,9 +22,20 @@ class FlowResult implements JsonSerializable
         private readonly bool $result,
         private readonly DateTimeInterface $time,
         private readonly string $hash,
+        bool $skipClassValidation = false,
     ) {
+        if (!$skipClassValidation) {
+            Assert::classString(
+                $stubSource,
+                StubInterface::class,
+                sprintf('Message source class "%s" does not implement StubInterface.', $stubSource)
+            );
+        }
     }
 
+    /**
+     * @param class-string<StubInterface> $stubSource
+     */
     public static function create(
         string $flowHash,
         string $flowRuntimeHash,

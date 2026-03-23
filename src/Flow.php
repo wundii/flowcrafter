@@ -36,12 +36,15 @@ class Flow implements JsonSerializable
         private array $flowExceptions = [],
         private array $flowRuns = [],
         private array $flowResults = [],
+        private bool $flowReadOnly = false,
     ) {
-        Assert::classString(
-            $flowSource,
-            FlowInterface::class,
-            sprintf('Flow source class "%s" does not implement FlowInterface.', $flowSource),
-        );
+        if (!$flowReadOnly) {
+            Assert::classString(
+                $flowSource,
+                FlowInterface::class,
+                sprintf('Flow source class "%s" does not implement FlowInterface.', $flowSource),
+            );
+        }
 
         if (!Assert::isHash($flowHash)) {
             throw new InvalidArgumentException(sprintf(
@@ -279,9 +282,18 @@ class Flow implements JsonSerializable
 
     public function isExecutable(): bool
     {
+        if ($this->flowReadOnly) {
+            return false;
+        }
+
         $flowSchema = FlowSchema::create($this->flowSource);
 
         return $this->flowSchemaHash === $flowSchema->getHash();
+    }
+
+    public function isReadOnly(): bool
+    {
+        return $this->flowReadOnly;
     }
 
     /**
@@ -302,6 +314,7 @@ class Flow implements JsonSerializable
             'flowResults' => $this->flowResults,
             'flowRuns' => $this->getFlowRuns(),
             'isExecutable' => $this->isExecutable(),
+            'isReadOnly' => $this->flowReadOnly,
         ];
     }
 }

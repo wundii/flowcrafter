@@ -31,28 +31,37 @@ class Stub implements JsonSerializable
         private readonly array $messages,
         private readonly array $returnTypes,
         ?MessageEnum $messageEnum = null,
+        bool $skipClassValidation = false,
     ) {
-        Assert::classString(
-            $source,
-            StubInterface::class,
-            'Source must be an instance of MessageInterface',
-        );
+        if (!$skipClassValidation) {
+            Assert::classString(
+                $source,
+                StubInterface::class,
+                'Source must be an instance of MessageInterface',
+            );
+        }
 
         foreach ($messages as $message) {
-            Assert::classString(
-                $message,
-                MessageInterface::class,
-                sprintf(
-                    '%s: Message "%s" must be an instance of MessageInterface',
-                    $source,
+            if (!$skipClassValidation) {
+                Assert::classString(
                     $message,
-                ),
-            );
+                    MessageInterface::class,
+                    sprintf(
+                        '%s: Message "%s" must be an instance of MessageInterface',
+                        $source,
+                        $message,
+                    ),
+                );
+            }
 
-            $interfaces = class_implements($message);
             if ($messageEnum instanceof MessageEnum) {
                 $this->messageEnum = $messageEnum;
                 continue;
+            }
+
+            $interfaces = class_implements($message);
+            if ($interfaces === false) {
+                throw new InvalidArgumentException(sprintf('Message "%s" does not exist.', $message));
             }
 
             $this->messageEnum = match (true) {

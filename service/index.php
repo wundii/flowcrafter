@@ -304,7 +304,7 @@ $route->add(
         }
 
         $current = class_exists($stubSourceEntity->stubSource);
-        $source = $stubSourceEntity->stubSource;
+        $source = $stubSourceEntity->sourceContent;
 
         if ($current) {
             $ref = new ReflectionClass($stubSourceEntity->stubSource);
@@ -313,8 +313,6 @@ $route->add(
             $current = file_exists($file);
             $currentSource = file_get_contents($file);
             $current = $current && is_string($currentSource);
-
-            $source = $stubSourceEntity->sourceContent;
             $current = $current && $source === $currentSource;
         }
 
@@ -347,8 +345,6 @@ $route->add(
                 $current = file_exists($file);
                 $currentSource = file_get_contents($file);
                 $current = $current && is_string($currentSource);
-
-                $source = $stubSource->sourceContent;
                 $current = $current && $source === $currentSource;
             }
 

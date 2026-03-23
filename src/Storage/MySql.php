@@ -22,6 +22,7 @@ use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
@@ -788,7 +789,7 @@ class MySql implements StorageInterface
         $stmt->execute();
 
         foreach ($stmt->fetchAll() as $row) {
-            /** @var array{flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: string, stub_hash: ?string, code: int, message: string, file: string, line: int, trace_string: string, time: string, hash: string} $row */
+            /** @var array{flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: class-string<StubInterface>, stub_hash: ?string, code: int, message: string, file: string, line: int, trace_string: string, time: string, hash: string} $row */
             yield new FlowException(
                 flowHash: $row['flow_hash'],
                 flowRuntimeHash: $row['flow_runtime_hash'],
@@ -849,7 +850,7 @@ class MySql implements StorageInterface
         $stmt->execute();
 
         foreach ($stmt->fetchAll() as $row) {
-            /** @var array{flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: string, stub_hash: ?string, code: int, message: string, file: string, line: int, trace_string: string, time: string, hash: string} $row */
+            /** @var array{flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: class-string<StubInterface>, stub_hash: ?string, code: int, message: string, file: string, line: int, trace_string: string, time: string, hash: string} $row */
             yield new FlowException(
                 flowHash: $row['flow_hash'],
                 flowRuntimeHash: $row['flow_runtime_hash'],

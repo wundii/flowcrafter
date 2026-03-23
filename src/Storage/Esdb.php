@@ -29,6 +29,7 @@ use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
@@ -380,6 +381,9 @@ class Esdb implements StorageInterface
                     'type' => [
                         'type' => 'string',
                     ],
+                    'flowSubject' => [
+                        'type' => ['null', 'string'],
+                    ],
                     'flowSource' => [
                         'type' => 'string',
                     ],
@@ -392,13 +396,18 @@ class Esdb implements StorageInterface
                     'message' => [
                         'type' => ['array', 'object'],
                     ],
+                    'includeStubs' => [
+                        'type' => ['array'],
+                    ],
                 ],
                 'required' => [
                     'type',
+                    'flowSubject',
                     'flowSource',
                     'flowHash',
                     'messageSource',
                     'message',
+                    'includeStubs',
                 ],
                 'additionalProperties' => false,
             ];
@@ -488,6 +497,7 @@ class Esdb implements StorageInterface
         unset($data['flowResults']);
         unset($data['flowRuns']);
         unset($data['isExecutable']);
+        unset($data['isReadOnly']);
 
         $subjectSchema = '/flow/schema/' . $flow->getSchema()->getHash();
         $eventCandidate = new EventCandidate(
@@ -1026,7 +1036,7 @@ class Esdb implements StorageInterface
         );
 
         foreach ($exceptionEvents as $exceptionEvent) {
-            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: string, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
+            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
             yield new FlowException(
                 flowHash: $exceptionEvent['flowHash'],
                 flowRuntimeHash: $exceptionEvent['flowRuntimeHash'],
@@ -1074,7 +1084,7 @@ class Esdb implements StorageInterface
         );
 
         foreach ($exceptionEvents as $exceptionEvent) {
-            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: string, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
+            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
             yield new FlowException(
                 flowHash: $exceptionEvent['flowHash'],
                 flowRuntimeHash: $exceptionEvent['flowRuntimeHash'],

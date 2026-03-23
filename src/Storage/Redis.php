@@ -21,6 +21,7 @@ use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
@@ -445,6 +446,7 @@ class Redis implements StorageInterface
         unset($data['flowResults']);
         unset($data['flowRuns']);
         unset($data['isExecutable']);
+        unset($data['isReadOnly']);
         $data['time'] = $flow->getTime()->getTimestamp();
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
@@ -843,7 +845,7 @@ class Redis implements StorageInterface
         $result = $this->client->rawcommand(...$args);
 
         foreach (self::fetchData($result) as $event) {
-            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: string, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: int, hash: string} $event */
+            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: int, hash: string} $event */
             yield new FlowException(
                 flowHash: $event['flowHash'],
                 flowRuntimeHash: $event['flowRuntimeHash'],

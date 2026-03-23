@@ -29,17 +29,20 @@ class FlowMessage implements JsonSerializable
         private readonly DateTimeImmutable $time,
         private readonly string $hash,
         private readonly ?string $predecessorHash = null,
+        bool $skipClassValidation = false,
     ) {
-        Assert::classString(
-            $stubSource,
-            StubInterface::class,
-            sprintf('Message source class "%s" does not implement StubInterface.', $stubSource)
-        );
-        Assert::classString(
-            $messageSource,
-            MessageInterface::class,
-            sprintf('Message source class "%s" does not implement MessageInterface.', $messageSource)
-        );
+        if (!$skipClassValidation) {
+            Assert::classString(
+                $stubSource,
+                StubInterface::class,
+                sprintf('Message source class "%s" does not implement StubInterface.', $stubSource)
+            );
+            Assert::classString(
+                $messageSource,
+                MessageInterface::class,
+                sprintf('Message source class "%s" does not implement MessageInterface.', $messageSource)
+            );
+        }
     }
 
     /**
