@@ -261,16 +261,10 @@ $route->add(
     '/api/schema/stub-source',
     MethodEnum::GET,
     function (Request $request) use ($storage): JsonResponse {
-        $className = $request->query->get('className');
-        if (is_string($className)) {
-            $className = str_starts_with($className, '\\') ? $className : '\\' . $className;
+        $className = $request->query->get('className', '');
+        $className = str_starts_with($className, '\\') ? $className : '\\' . $className;
 
-            if (!class_exists($className)) {
-                return new JsonResponse([
-                    'error' => 'The class not found',
-                ], 404);
-            }
-
+        if (class_exists($className)) {
             if (!is_subclass_of($className, StubInterface::class)) {
                 return new JsonResponse([
                     'error' => 'The class does not implement StubInterface',
@@ -310,16 +304,19 @@ $route->add(
         }
 
         $current = class_exists($stubSourceEntity->stubSource);
+        $source = $stubSourceEntity->stubSource;
 
-        $ref = new ReflectionClass($stubSourceEntity->stubSource);
-        $file = (string) $ref->getFileName();
+        if ($current) {
+            $ref = new ReflectionClass($stubSourceEntity->stubSource);
+            $file = (string) $ref->getFileName();
 
-        $current = $current && file_exists($file);
-        $currentSource = file_get_contents($file);
-        $current = $current && is_string($currentSource);
+            $current = file_exists($file);
+            $currentSource = file_get_contents($file);
+            $current = $current && is_string($currentSource);
 
-        $source = $stubSourceEntity->sourceContent;
-        $current = $current && $source === $currentSource;
+            $source = $stubSourceEntity->sourceContent;
+            $current = $current && $source === $currentSource;
+        }
 
         return new JsonResponse([
             'current' => $current,
@@ -341,16 +338,19 @@ $route->add(
         $result = [];
         foreach ($stubSources as $stubSource) {
             $current = class_exists($stubSource->stubSource);
-
-            $ref = new ReflectionClass($stubSource->stubSource);
-            $file = (string) $ref->getFileName();
-
-            $current = $current && file_exists($file);
-            $currentSource = file_get_contents($file);
-            $current = $current && is_string($currentSource);
-
             $source = $stubSource->sourceContent;
-            $current = $current && $source === $currentSource;
+
+            if ($current) {
+                $ref = new ReflectionClass($stubSource->stubSource);
+                $file = (string) $ref->getFileName();
+
+                $current = file_exists($file);
+                $currentSource = file_get_contents($file);
+                $current = $current && is_string($currentSource);
+
+                $source = $stubSource->sourceContent;
+                $current = $current && $source === $currentSource;
+            }
 
             $result[] = [
                 'current' => $current,
