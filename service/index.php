@@ -262,7 +262,7 @@ $route->add(
     MethodEnum::GET,
     function (Request $request) use ($storage): JsonResponse {
         $className = $request->query->get('className', '');
-        $className = str_starts_with($className, '\\') ? $className : '\\' . $className;
+        $className = $className && !str_starts_with($className, '\\') ? '\\' . $className : $className;
 
         if (class_exists($className)) {
             if (!is_subclass_of($className, StubInterface::class)) {
