@@ -711,7 +711,12 @@ class Redis implements StorageInterface
         $args[] = '$';
 
         $result = $this->client->rawcommand(...$args);
-        foreach (self::fetchData($result) as $event) {
+        $events = self::fetchData($result);
+        /** @var string[] $flowHashes */
+        $flowHashes = array_column($events, 'flowHash');
+        $exceptionCounts = $this->batchCountExceptions($flowHashes);
+
+        foreach ($events as $event) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: int} $event */
             yield new FlowEntity(
                 flowHash: $event['flowHash'],
@@ -719,7 +724,7 @@ class Redis implements StorageInterface
                 flowSource: $event['flowSource'],
                 flowSubject: $event['flowSubject'],
                 time: (new DateTimeImmutable())->setTimestamp($event['time']),
-                exceptionCount: $this->countExceptionsByFlowHash($event['flowHash']),
+                exceptionCount: $exceptionCounts[$event['flowHash']] ?? 0,
             );
         }
     }
@@ -752,7 +757,12 @@ class Redis implements StorageInterface
         $args[] = '$';
 
         $result = $this->client->rawcommand(...$args);
-        foreach (self::fetchData($result) as $event) {
+        $events = self::fetchData($result);
+        /** @var string[] $flowHashes */
+        $flowHashes = array_column($events, 'flowHash');
+        $exceptionCounts = $this->batchCountExceptions($flowHashes);
+
+        foreach ($events as $event) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: int} $event */
             yield new FlowEntity(
                 flowHash: $event['flowHash'],
@@ -760,7 +770,7 @@ class Redis implements StorageInterface
                 flowSource: $event['flowSource'],
                 flowSubject: $event['flowSubject'],
                 time: (new DateTimeImmutable())->setTimestamp($event['time']),
-                exceptionCount: $this->countExceptionsByFlowHash($event['flowHash']),
+                exceptionCount: $exceptionCounts[$event['flowHash']] ?? 0,
             );
         }
     }
@@ -793,7 +803,12 @@ class Redis implements StorageInterface
         $args[] = '$';
 
         $result = $this->client->rawcommand(...$args);
-        foreach (self::fetchData($result) as $event) {
+        $events = self::fetchData($result);
+        /** @var string[] $flowHashes */
+        $flowHashes = array_column($events, 'flowHash');
+        $exceptionCounts = $this->batchCountExceptions($flowHashes);
+
+        foreach ($events as $event) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: int} $event */
             yield new FlowEntity(
                 flowHash: $event['flowHash'],
@@ -801,7 +816,7 @@ class Redis implements StorageInterface
                 flowSource: $event['flowSource'],
                 flowSubject: $event['flowSubject'],
                 time: (new DateTimeImmutable())->setTimestamp($event['time']),
-                exceptionCount: $this->countExceptionsByFlowHash($event['flowHash']),
+                exceptionCount: $exceptionCounts[$event['flowHash']] ?? 0,
             );
         }
     }
@@ -976,6 +991,62 @@ class Redis implements StorageInterface
                 time: (new DateTimeImmutable())->setTimestamp($stubSourceEvent['time']),
             );
         }
+    }
+
+    /**
+     * Batch-fetches exception counts for multiple flow hashes in a single FT.AGGREGATE call.
+     *
+     * @param string[] $flowHashes
+     * @return array<string, int> flowHash => count
+     */
+    private function batchCountExceptions(array $flowHashes): array
+    {
+        if ($flowHashes === []) {
+            return [];
+        }
+
+        $escaped = array_map(static fn (string $h): string => self::escapeValue($h), $flowHashes);
+        $filter = '@flowHash:{' . implode('|', $escaped) . '}';
+
+        $result = $this->client->rawCommand(
+            'FT.AGGREGATE',
+            self::INDEX_EXCEPTION,
+            $filter,
+            'GROUPBY',
+            '1',
+            '@flowHash',
+            'REDUCE',
+            'COUNT',
+            '0',
+            'AS',
+            'cnt',
+        );
+
+        $counts = [];
+        if (is_array($result)) {
+            for ($i = 1, $len = count($result); $i < $len; ++$i) {
+                $row = $result[$i];
+                if (is_array($row)) {
+                    $hash = null;
+                    $cnt = 0;
+                    for ($j = 0, $rLen = count($row); $j < $rLen - 1; $j += 2) {
+                        if ($row[$j] === 'flowHash' && is_string($row[$j + 1])) {
+                            $hash = $row[$j + 1];
+                        }
+
+                        if ($row[$j] === 'cnt' && (is_string($row[$j + 1]) || is_int($row[$j + 1]))) {
+                            $cnt = (int) $row[$j + 1];
+                        }
+                    }
+
+                    if ($hash !== null) {
+                        $counts[$hash] = $cnt;
+                    }
+                }
+            }
+        }
+
+        return $counts;
     }
 
     /**

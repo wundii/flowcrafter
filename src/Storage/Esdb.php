@@ -872,6 +872,10 @@ class Esdb implements StorageInterface
             'PROJECT INTO e.data'
         );
 
+        $flowEvents = iterator_to_array($flowEvents);
+
+        $exceptionCounts = $this->batchCountExceptions(array_column($flowEvents, 'flowHash'));
+
         foreach ($flowEvents as $flowEvent) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
             yield new FlowEntity(
@@ -880,7 +884,7 @@ class Esdb implements StorageInterface
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
-                exceptionCount: $this->countExceptionsByFlowHash($flowEvent['flowHash']),
+                exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
             );
         }
     }
@@ -914,6 +918,10 @@ class Esdb implements StorageInterface
             'PROJECT INTO e.data'
         );
 
+        $flowEvents = iterator_to_array($flowEvents);
+
+        $exceptionCounts = $this->batchCountExceptions(array_column($flowEvents, 'flowHash'));
+
         foreach ($flowEvents as $flowEvent) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
             yield new FlowEntity(
@@ -922,7 +930,7 @@ class Esdb implements StorageInterface
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
-                exceptionCount: $this->countExceptionsByFlowHash($flowEvent['flowHash']),
+                exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
             );
         }
     }
@@ -952,6 +960,10 @@ class Esdb implements StorageInterface
             'PROJECT INTO e.data'
         );
 
+        $flowEvents = iterator_to_array($flowEvents);
+
+        $exceptionCounts = $this->batchCountExceptions(array_column($flowEvents, 'flowHash'));
+
         foreach ($flowEvents as $flowEvent) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
             yield new FlowEntity(
@@ -960,7 +972,7 @@ class Esdb implements StorageInterface
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
-                exceptionCount: $this->countExceptionsByFlowHash($flowEvent['flowHash']),
+                exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
             );
         }
     }
@@ -994,6 +1006,10 @@ class Esdb implements StorageInterface
             'PROJECT INTO e.data'
         );
 
+        $flowEvents = iterator_to_array($flowEvents);
+
+        $exceptionCounts = $this->batchCountExceptions(array_column($flowEvents, 'flowHash'));
+
         foreach ($flowEvents as $flowEvent) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
             yield new FlowEntity(
@@ -1002,7 +1018,7 @@ class Esdb implements StorageInterface
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
-                exceptionCount: $this->countExceptionsByFlowHash($flowEvent['flowHash']),
+                exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
             );
         }
     }
@@ -1217,5 +1233,39 @@ class Esdb implements StorageInterface
                 time: new DateTimeImmutable($stubSourceEvent['time']),
             );
         }
+    }
+
+    /**
+     * Batch-fetches exception counts for multiple flow hashes in a single EventQL query.
+     *
+     * @param string[] $flowHashes
+     * @return array<string, int> flowHash => count
+     */
+    private function batchCountExceptions(array $flowHashes): array
+    {
+        if ($flowHashes === []) {
+            return [];
+        }
+
+        $orClauses = array_map(
+            static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
+            $flowHashes,
+        );
+
+        $result = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
+            'AND (' . implode(' OR ', $orClauses) . ') ' .
+            'GROUP BY e.data.flowHash ' .
+            'PROJECT INTO { flowHash: UNIQUE(e.data.flowHash), cnt: COUNT() }'
+        );
+
+        $counts = [];
+        foreach ($result as $row) {
+            /** @var array{flowHash: string, cnt: int} $row */
+            $counts[$row['flowHash']] = $row['cnt'];
+        }
+
+        return $counts;
     }
 }
