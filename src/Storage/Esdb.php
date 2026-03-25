@@ -884,6 +884,7 @@ class Esdb implements StorageInterface
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
+                timeLastRun: new DateTimeImmutable($flowEvent['time']),
                 exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
             );
         }
@@ -930,6 +931,7 @@ class Esdb implements StorageInterface
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
+                timeLastRun: new DateTimeImmutable($flowEvent['time']),
                 exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
             );
         }
@@ -972,6 +974,7 @@ class Esdb implements StorageInterface
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
+                timeLastRun: new DateTimeImmutable($flowEvent['time']),
                 exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
             );
         }
@@ -1018,6 +1021,7 @@ class Esdb implements StorageInterface
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
+                timeLastRun: new DateTimeImmutable($flowEvent['time']),
                 exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
             );
         }

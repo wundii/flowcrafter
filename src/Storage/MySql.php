@@ -562,16 +562,17 @@ class MySql implements StorageInterface
         $where = '';
         $params = [];
         if ($from instanceof DateTimeInterface) {
-            $where .= ' AND fi.`time` >= :from';
+            $where .= ' AND fr.`time` >= :from';
             $params[':from'] = $from->format('Y-m-d H:i:s');
         }
 
         if ($to instanceof DateTimeInterface) {
-            $where .= ' AND fi.`time` <= :to';
+            $where .= ' AND fr.`time` <= :to';
             $params[':to'] = $to->format('Y-m-d H:i:s');
         }
 
-        $sql = 'SELECT fi.*, COUNT(fe.flow_hash) AS exception_count FROM flow_instance fi' .
+        $sql = 'SELECT fi.*, MAX(fr.`time`) AS time_last_run, COUNT(DISTINCT fe.flow_hash) AS exception_count FROM flow_instance fi' .
+            ' JOIN flow_run fr ON fi.flow_hash = fr.flow_hash' .
             ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
             ' WHERE 1=1' .
             $where .
@@ -593,6 +594,7 @@ class MySql implements StorageInterface
                 flowSource: $row['flow_source'] ?? '',
                 flowSubject: $row['flow_subject'] ?? null,
                 time: new DateTimeImmutable($row['time'] ?? 'now'),
+                timeLastRun: new DateTimeImmutable($row['time_last_run'] ?? 'now'),
                 exceptionCount: $row['exception_count'] ?? 0,
             );
         }
@@ -615,17 +617,18 @@ class MySql implements StorageInterface
         $where = '';
         $params = [];
         if ($from instanceof DateTimeInterface) {
-            $where .= ' AND fi.`time` >= :from';
+            $where .= ' AND fr.`time` >= :from';
             $params[':from'] = $from->format('Y-m-d H:i:s');
         }
 
         if ($to instanceof DateTimeInterface) {
-            $where .= ' AND fi.`time` <= :to';
+            $where .= ' AND fr.`time` <= :to';
             $params[':to'] = $to->format('Y-m-d H:i:s');
         }
 
         $stmt = $this->client->prepare(
-            'SELECT fi.*, COUNT(fe.flow_hash) AS exception_count FROM flow_instance fi' .
+            'SELECT fi.*, MAX(fr.`time`) AS time_last_run, COUNT(DISTINCT fe.flow_hash) AS exception_count FROM flow_instance fi' .
+            ' JOIN flow_run fr ON fi.flow_hash = fr.flow_hash' .
             ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
             ' WHERE fi.flow_source = :flow_source' .
             $where .
@@ -648,6 +651,7 @@ class MySql implements StorageInterface
                 flowSource: $row['flow_source'] ?? '',
                 flowSubject: $row['flow_subject'] ?? null,
                 time: new DateTimeImmutable($row['time'] ?? 'now'),
+                timeLastRun: new DateTimeImmutable($row['time_last_run'] ?? 'now'),
                 exceptionCount: $row['exception_count'] ?? 0,
             );
         }
@@ -666,17 +670,18 @@ class MySql implements StorageInterface
         $where = '';
         $params = [];
         if ($from instanceof DateTimeInterface) {
-            $where .= ' AND fi.`time` >= :from';
+            $where .= ' AND fr.`time` >= :from';
             $params[':from'] = $from->format('Y-m-d H:i:s');
         }
 
         if ($to instanceof DateTimeInterface) {
-            $where .= ' AND fi.`time` <= :to';
+            $where .= ' AND fr.`time` <= :to';
             $params[':to'] = $to->format('Y-m-d H:i:s');
         }
 
         $stmt = $this->client->prepare(
-            'SELECT fi.*, COUNT(fe.flow_hash) AS exception_count FROM flow_instance fi' .
+            'SELECT fi.*, MAX(fr.`time`) AS time_last_run, COUNT(DISTINCT fe.flow_hash) AS exception_count FROM flow_instance fi' .
+            ' JOIN flow_run fr ON fi.flow_hash = fr.flow_hash' .
             ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
             ' WHERE fi.flow_type LIKE :flow_type' .
             $where .
@@ -699,6 +704,7 @@ class MySql implements StorageInterface
                 flowSource: $row['flow_source'] ?? '',
                 flowSubject: $row['flow_subject'] ?? null,
                 time: new DateTimeImmutable($row['time'] ?? 'now'),
+                timeLastRun: new DateTimeImmutable($row['time_last_run'] ?? 'now'),
                 exceptionCount: $row['exception_count'] ?? 0,
             );
         }
@@ -716,17 +722,18 @@ class MySql implements StorageInterface
         $where = '';
         $params = [];
         if ($from instanceof DateTimeInterface) {
-            $where .= ' AND fi.`time` >= :from';
+            $where .= ' AND fr.`time` >= :from';
             $params[':from'] = $from->format('Y-m-d H:i:s');
         }
 
         if ($to instanceof DateTimeInterface) {
-            $where .= ' AND fi.`time` <= :to';
+            $where .= ' AND fr.`time` <= :to';
             $params[':to'] = $to->format('Y-m-d H:i:s');
         }
 
         $stmt = $this->client->prepare(
-            'SELECT fi.*, COUNT(fe.flow_hash) AS exception_count FROM flow_instance fi' .
+            'SELECT fi.*, MAX(fr.`time`) AS time_last_run, COUNT(DISTINCT fe.flow_hash) AS exception_count FROM flow_instance fi' .
+            ' JOIN flow_run fr ON fi.flow_hash = fr.flow_hash' .
             ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
             ' WHERE fi.flow_subject LIKE :flow_subject' .
             $where .
@@ -749,6 +756,7 @@ class MySql implements StorageInterface
                 flowSource: $row['flow_source'] ?? '',
                 flowSubject: $row['flow_subject'] ?? null,
                 time: new DateTimeImmutable($row['time'] ?? 'now'),
+                timeLastRun: new DateTimeImmutable($row['time_last_run'] ?? 'now'),
                 exceptionCount: $row['exception_count'] ?? 0,
             );
         }

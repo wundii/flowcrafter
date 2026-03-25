@@ -232,6 +232,10 @@ class Redis implements StorageInterface
             'AS',
             'flowRuntimeHash',
             'TAG',
+            '$.time',
+            'AS',
+            'time',
+            'NUMERIC',
         );
 
         if ($this->existIndex(self::INDEX_MESSAGE)) {
@@ -458,7 +462,7 @@ class Redis implements StorageInterface
         $data = [
             'flowHash' => $flow->getHash(),
             'flowRuntimeHash' => $flow->getRuntimeHash(),
-            'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
+            'time' => $flow->getTime()->getTimestamp(),
             'queueId' => $queueId,
         ];
 
@@ -693,18 +697,24 @@ class Redis implements StorageInterface
         $skip = max(0, $skip);
         $top = max(1, $top);
 
-        $value = match ($flowSource) {
-            '*', '' => '*',
-            default => '@flowSource:{' . $flowSource . '}',
-        };
+        $runHashes = $this->flowHashesByRunTime($from, $to);
+        if ($runHashes !== null && $runHashes === []) {
+            return;
+        }
+
+        $filters = [];
+        if ($flowSource !== '*' && $flowSource !== '') {
+            $filters[] = '@flowSource:{' . $flowSource . '}';
+        }
+
+        if ($runHashes !== null) {
+            $escaped = array_map(static fn (string $h): string => self::escapeValue($h), $runHashes);
+            $filters[] = '@flowHash:{' . implode('|', $escaped) . '}';
+        }
+
+        $value = $filters === [] ? '*' : implode(' ', $filters);
 
         $args = ['FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', $skip, $top];
-        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
-            $args[] = 'FILTER';
-            $args[] = 'time';
-            $args[] = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
-            $args[] = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
-        }
 
         $args[] = 'RETURN';
         $args[] = '1';
@@ -715,15 +725,18 @@ class Redis implements StorageInterface
         /** @var string[] $flowHashes */
         $flowHashes = array_column($events, 'flowHash');
         $exceptionCounts = $this->batchCountExceptions($flowHashes);
+        $lastRunTimes = $this->batchLastRunTime($flowHashes);
 
         foreach ($events as $event) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: int} $event */
+            $lastRun = $lastRunTimes[$event['flowHash']] ?? null;
             yield new FlowEntity(
                 flowHash: $event['flowHash'],
                 flowType: $event['flowType'],
                 flowSource: $event['flowSource'],
                 flowSubject: $event['flowSubject'],
                 time: (new DateTimeImmutable())->setTimestamp($event['time']),
+                timeLastRun: $lastRun instanceof DateTimeImmutable ? $lastRun : (new DateTimeImmutable())->setTimestamp($event['time']),
                 exceptionCount: $exceptionCounts[$event['flowHash']] ?? 0,
             );
         }
@@ -739,18 +752,24 @@ class Redis implements StorageInterface
         $skip = max(0, $skip);
         $top = max(1, $top);
 
-        $value = match ($flowType) {
-            '*', '' => '*',
-            default => '@flowType:{' . $flowType . '\.v*}',
-        };
+        $runHashes = $this->flowHashesByRunTime($from, $to);
+        if ($runHashes !== null && $runHashes === []) {
+            return;
+        }
+
+        $filters = [];
+        if ($flowType !== '*' && $flowType !== '') {
+            $filters[] = '@flowType:{' . $flowType . '\.v*}';
+        }
+
+        if ($runHashes !== null) {
+            $escaped = array_map(static fn (string $h): string => self::escapeValue($h), $runHashes);
+            $filters[] = '@flowHash:{' . implode('|', $escaped) . '}';
+        }
+
+        $value = $filters === [] ? '*' : implode(' ', $filters);
 
         $args = ['FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', $skip, $top];
-        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
-            $args[] = 'FILTER';
-            $args[] = 'time';
-            $args[] = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
-            $args[] = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
-        }
 
         $args[] = 'RETURN';
         $args[] = '1';
@@ -761,15 +780,18 @@ class Redis implements StorageInterface
         /** @var string[] $flowHashes */
         $flowHashes = array_column($events, 'flowHash');
         $exceptionCounts = $this->batchCountExceptions($flowHashes);
+        $lastRunTimes = $this->batchLastRunTime($flowHashes);
 
         foreach ($events as $event) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: int} $event */
+            $lastRun = $lastRunTimes[$event['flowHash']] ?? null;
             yield new FlowEntity(
                 flowHash: $event['flowHash'],
                 flowType: $event['flowType'],
                 flowSource: $event['flowSource'],
                 flowSubject: $event['flowSubject'],
                 time: (new DateTimeImmutable())->setTimestamp($event['time']),
+                timeLastRun: $lastRun instanceof DateTimeImmutable ? $lastRun : (new DateTimeImmutable())->setTimestamp($event['time']),
                 exceptionCount: $exceptionCounts[$event['flowHash']] ?? 0,
             );
         }
@@ -785,18 +807,24 @@ class Redis implements StorageInterface
         $skip = max(0, $skip);
         $top = max(1, $top);
 
-        $value = match ($flowSubject) {
-            '*', '' => '*',
-            default => '@flowSubject:{*' . $flowSubject . '*}',
-        };
+        $runHashes = $this->flowHashesByRunTime($from, $to);
+        if ($runHashes !== null && $runHashes === []) {
+            return;
+        }
+
+        $filters = [];
+        if ($flowSubject !== '*' && $flowSubject !== '') {
+            $filters[] = '@flowSubject:{*' . $flowSubject . '*}';
+        }
+
+        if ($runHashes !== null) {
+            $escaped = array_map(static fn (string $h): string => self::escapeValue($h), $runHashes);
+            $filters[] = '@flowHash:{' . implode('|', $escaped) . '}';
+        }
+
+        $value = $filters === [] ? '*' : implode(' ', $filters);
 
         $args = ['FT.SEARCH', self::INDEX_INSTANCE, $value, 'SORTBY', 'flowHash', $sortEnum->name, 'LIMIT', $skip, $top];
-        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
-            $args[] = 'FILTER';
-            $args[] = 'time';
-            $args[] = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
-            $args[] = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
-        }
 
         $args[] = 'RETURN';
         $args[] = '1';
@@ -807,15 +835,18 @@ class Redis implements StorageInterface
         /** @var string[] $flowHashes */
         $flowHashes = array_column($events, 'flowHash');
         $exceptionCounts = $this->batchCountExceptions($flowHashes);
+        $lastRunTimes = $this->batchLastRunTime($flowHashes);
 
         foreach ($events as $event) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: int} $event */
+            $lastRun = $lastRunTimes[$event['flowHash']] ?? null;
             yield new FlowEntity(
                 flowHash: $event['flowHash'],
                 flowType: $event['flowType'],
                 flowSource: $event['flowSource'],
                 flowSubject: $event['flowSubject'],
                 time: (new DateTimeImmutable())->setTimestamp($event['time']),
+                timeLastRun: $lastRun instanceof DateTimeImmutable ? $lastRun : (new DateTimeImmutable())->setTimestamp($event['time']),
                 exceptionCount: $exceptionCounts[$event['flowHash']] ?? 0,
             );
         }
@@ -930,6 +961,7 @@ class Redis implements StorageInterface
         $flowRuns = [];
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $runEvent) {
+            $runEvent['time'] = $this->timestampToRFC3339Extended($runEvent['time'] ?? 0);
             $flowRuns[] = $runEvent;
         }
 
@@ -1047,6 +1079,84 @@ class Redis implements StorageInterface
         }
 
         return $counts;
+    }
+
+    /**
+     * @return string[]|null
+     */
+    private function flowHashesByRunTime(?DateTimeInterface $from, ?DateTimeInterface $to): ?array
+    {
+        if (!$from instanceof DateTimeInterface && !$to instanceof DateTimeInterface) {
+            return null;
+        }
+
+        $fromVal = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
+        $toVal = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
+        $query = '@time:[' . $fromVal . ' ' . $toVal . ']';
+
+        $result = $this->client->rawCommand(
+            'FT.AGGREGATE',
+            self::INDEX_RUN,
+            $query,
+            'GROUPBY',
+            '1',
+            '@flowHash',
+        );
+
+        $hashes = [];
+        if (is_array($result)) {
+            for ($i = 1, $len = count($result); $i < $len; ++$i) {
+                $row = $result[$i];
+                if (is_array($row)) {
+                    for ($j = 0, $rLen = count($row); $j < $rLen - 1; $j += 2) {
+                        if ($row[$j] === 'flowHash' && is_string($row[$j + 1])) {
+                            $hashes[] = $row[$j + 1];
+                        }
+                    }
+                }
+            }
+        }
+
+        return $hashes;
+    }
+
+    /**
+     * @param string[] $flowHashes
+     * @return array<string, DateTimeImmutable>
+     */
+    private function batchLastRunTime(array $flowHashes): array
+    {
+        if ($flowHashes === []) {
+            return [];
+        }
+
+        $escaped = array_map(static fn (string $h): string => self::escapeValue($h), $flowHashes);
+        $filter = '@flowHash:{' . implode('|', $escaped) . '}';
+
+        $result = $this->client->rawCommand(
+            'FT.SEARCH',
+            self::INDEX_RUN,
+            $filter,
+            'LIMIT',
+            '0',
+            '10000',
+            'RETURN',
+            '1',
+            '$',
+        );
+
+        $runs = self::fetchData($result);
+        $times = [];
+        foreach ($runs as $run) {
+            /** @var array{flowHash: string, time: int} $run */
+            $hash = $run['flowHash'];
+            $time = (int) $run['time'];
+            if (!isset($times[$hash]) || $time > $times[$hash]) {
+                $times[$hash] = $time;
+            }
+        }
+
+        return array_map(static fn (int $t): DateTimeImmutable => (new DateTimeImmutable())->setTimestamp($t), $times);
     }
 
     /**

@@ -67,6 +67,7 @@ $serializeEntity = static fn (FlowEntity $flowEntity): array => [
     'flowSource' => $flowEntity->flowSource,
     'flowSubject' => $flowEntity->flowSubject,
     'time' => $flowEntity->time->format(DateTimeInterface::RFC3339_EXTENDED),
+    'timeLastRun' => $flowEntity->timeLastRun->format(DateTimeInterface::RFC3339_EXTENDED),
     'exceptionCount' => $flowEntity->exceptionCount,
 ];
 

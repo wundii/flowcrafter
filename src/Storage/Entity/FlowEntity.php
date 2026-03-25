@@ -14,6 +14,7 @@ class FlowEntity
         public string $flowSource,
         public ?string $flowSubject,
         public DateTimeInterface $time,
+        public DateTimeInterface $timeLastRun,
         public int $exceptionCount = 0,
     ) {
     }
