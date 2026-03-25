@@ -184,9 +184,9 @@ $route->add(
     }
 );
 
-// GET /api/runs/stats[?from=ISO8601&to=ISO8601&type=flow.example]
+// GET /api/flow-stats[?from=ISO8601&to=ISO8601&type=flow.example]
 $route->add(
-    '/api/runs/stats',
+    '/api/flow-stats',
     MethodEnum::GET,
     function (Request $request) use ($storage): JsonResponse {
         $fromStr = $request->query->get('from');
@@ -197,10 +197,14 @@ $route->add(
         $to = $to instanceof DateTimeImmutable ? $to : null;
         $type = $request->query->get('type');
 
-        $stats = iterator_to_array($storage->findRunStats($from, $to, $type));
+        $stats = iterator_to_array($storage->findFlowStats($from, $to, $type));
 
         return new JsonResponse(array_map(
-            static fn ($s) => ['date' => $s->date, 'count' => $s->count],
+            static fn (\Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity $flowStatsEntity): array => [
+                'date' => $flowStatsEntity->date,
+                'instances' => $flowStatsEntity->instances,
+                'runs' => $flowStatsEntity->runs,
+            ],
             $stats,
         ));
     }

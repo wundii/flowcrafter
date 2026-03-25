@@ -32,7 +32,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
-use Wundii\Flowcrafter\Storage\Entity\RunStatsEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Stub;
 
@@ -125,6 +125,9 @@ class Esdb implements StorageInterface
                     'flowRuntimeHash' => [
                         'type' => 'string',
                     ],
+                    'flowType' => [
+                        'type' => 'string',
+                    ],
                     'time' => [
                         'type' => 'string',
                     ],
@@ -135,6 +138,7 @@ class Esdb implements StorageInterface
                 'required' => [
                     'flowHash',
                     'flowRuntimeHash',
+                    'flowType',
                     'time',
                     'queueId',
                 ],
@@ -529,6 +533,7 @@ class Esdb implements StorageInterface
             data: [
                 'flowHash' => $flow->getHash(),
                 'flowRuntimeHash' => $flow->getRuntimeHash(),
+                'flowType' => $flow->getType(),
                 'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
                 'queueId' => $queueId,
             ],
@@ -1190,59 +1195,65 @@ class Esdb implements StorageInterface
     }
 
     /**
-     * @return RunStatsEntity[]
+     * @return FlowStatsEntity[]
      */
-    public function findRunStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
+    public function findFlowStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
     {
-        $where = 'e.type == "' . self::TYPE_RUN . '"';
+        $where = [];
         if ($from instanceof DateTimeInterface) {
-            $where .= ' AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
+            $where[] = 'e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
         if ($to instanceof DateTimeInterface) {
-            $where .= ' AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
+            $where[] = 'e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
-        $query = 'FROM e IN events WHERE ' . $where . ' PROJECT INTO e.data';
-        $events = $this->client->runEventQlQuery($query);
-
-        $instanceHashes = null;
-        if ($flowType !== null && $flowType !== '') {
-            $instanceHashes = [];
-            $typeQuery = 'FROM e IN events WHERE e.type == "' . self::TYPE_INSTANCE . '" AND STARTSWITH(e.data.flowType, "' . $flowType . '.v") PROJECT INTO e.data.flowHash';
-            foreach ($this->client->runEventQlQuery($typeQuery) as $hash) {
-                if (is_string($hash)) {
-                    $instanceHashes[$hash] = true;
-                }
-            }
+        if ($flowType !== null) {
+            $where[] = 'STARTSWITH(e.data.flowType, "' . $flowType . '.v")';
         }
 
-        $counts = [];
-        foreach ($events as $event) {
+        $runCounts = [];
+        $instanceCounts = [];
+        $query = 'FROM e IN events ';
+        $query .= 'WHERE (e.type == "' . self::TYPE_INSTANCE . '" OR e.type == "' . self::TYPE_RUN . '") ';
+        $query .= $where !== [] ? 'AND ' . implode(' AND ', $where) : '';
+        $query .= ' PROJECT INTO e';
+        foreach ($this->client->runEventQlQuery($query) as $event) {
             if (!is_array($event)) {
                 continue;
             }
 
-            $flowHash = is_string($event['flowHash'] ?? null) ? $event['flowHash'] : '';
-            if ($instanceHashes !== null && !isset($instanceHashes[$flowHash])) {
+            $time = $event['time'] ?? '';
+            if (!is_string($time)) {
                 continue;
             }
 
-            $time = $event['time'] ?? '';
-            if (!is_string($time) || $time === '') {
+            if ($time === '') {
                 continue;
             }
 
             $date = (new DateTimeImmutable($time))->format('Y-m-d');
-            $counts[$date] = ($counts[$date] ?? 0) + 1;
+
+            switch ($event['type']) {
+                case self::TYPE_INSTANCE:
+                    ++$instanceCounts[$date];
+                    break;
+                case self::TYPE_RUN:
+                    ++$runCounts[$date];
+                    break;
+                default:
+                    break;
+            }
         }
 
-        ksort($counts);
+        $allDates = array_unique(array_merge(array_keys($runCounts), array_keys($instanceCounts)));
+        sort($allDates);
 
-        foreach ($counts as $date => $count) {
-            yield new RunStatsEntity(
-                date: $date,
-                count: $count,
+        foreach ($allDates as $allDate) {
+            yield new FlowStatsEntity(
+                date: $allDate,
+                instances: $instanceCounts[$allDate] ?? 0,
+                runs: $runCounts[$allDate] ?? 0,
             );
         }
     }

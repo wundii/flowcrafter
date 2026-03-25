@@ -164,7 +164,8 @@ final class Converter
 
                     return new FlowRun(
                         Assert::string($run['flowHash'] ?? null, 'Each Run must have a string flowHash.'),
-                        Assert::string($run['flowRuntimeHash'] ?? null, 'Each Run must have a string runtimeHash.'),
+                        Assert::string($run['flowRuntimeHash'] ?? null, 'Each Run must have a string flowRuntimeHash.'),
+                        Assert::string($run['flowType'] ?? null, 'Each Run must have a string flowType.'),
                         Assert::datetimeImmutable($run['time'] ?? null, 'Time must be a valid date string.'),
                         Assert::nullOrString($run['queueId'] ?? null, 'Each Run must have a null or string queueId.'),
                     );

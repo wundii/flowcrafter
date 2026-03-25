@@ -204,6 +204,7 @@ final class ConverterTest extends TestCase
                 [
                     'flowHash' => $flow->getHash(),
                     'flowRuntimeHash' => $flow->getRuntimeHash(),
+                    'flowType' => 'flow.workflow.v1',
                     'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
                     'queueId' => null,
                 ],

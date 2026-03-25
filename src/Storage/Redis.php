@@ -24,7 +24,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
-use Wundii\Flowcrafter\Storage\Entity\RunStatsEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Stub;
 use Wundii\Flowcrafter\Uuid;
@@ -232,6 +232,10 @@ class Redis implements StorageInterface
             '$.flowRuntimeHash',
             'AS',
             'flowRuntimeHash',
+            'TAG',
+            '$.flowType',
+            'AS',
+            'flowType',
             'TAG',
             '$.time',
             'AS',
@@ -463,6 +467,7 @@ class Redis implements StorageInterface
         $data = [
             'flowHash' => $flow->getHash(),
             'flowRuntimeHash' => $flow->getRuntimeHash(),
+            'flowType' => $flow->getType(),
             'time' => $flow->getTime()->getTimestamp(),
             'queueId' => $queueId,
         ];
@@ -984,66 +989,70 @@ class Redis implements StorageInterface
     }
 
     /**
-     * @return RunStatsEntity[]
+     * @return FlowStatsEntity[]
      */
-    public function findRunStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
+    public function findFlowStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
     {
         $fromVal = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
         $toVal = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
-        $query = '@time:[' . $fromVal . ' ' . $toVal . ']';
+        $flowType = self::escapeValue((string) $flowType);
 
-        $result = $this->client->rawCommand(
-            'FT.SEARCH',
-            self::INDEX_RUN,
-            $query,
-            'LIMIT',
-            '0',
-            '10000',
-            'RETURN',
-            '1',
-            '$',
-        );
+        $value = match ($flowType) {
+            '*', '' => '*',
+            default => '@flowType:{' . $flowType . '\.v*}',
+        };
 
-        $runs = self::fetchData($result);
-
-        if ($flowType !== null && $flowType !== '') {
-            $flowType = strtolower($flowType);
-            $instanceHashes = [];
-            $escaped = self::escapeValue($flowType);
-            $instanceResult = $this->client->rawCommand(
-                'FT.SEARCH',
-                self::INDEX_INSTANCE,
-                '@flowType:{' . $escaped . '\.v*}',
-                'LIMIT',
-                '0',
-                '10000',
-                'RETURN',
-                '1',
-                '$',
-            );
-            foreach (self::fetchData($instanceResult) as $instance) {
-                /** @var array{flowHash: string} $instance */
-                $instanceHashes[$instance['flowHash']] = true;
-            }
+        $defaultArgs = [$value];
+        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
+            $defaultArgs[] = 'FILTER';
+            $defaultArgs[] = 'time';
+            $defaultArgs[] = $fromVal;
+            $defaultArgs[] = $toVal;
         }
 
-        $counts = [];
-        foreach ($runs as $run) {
-            /** @var array{flowHash: string, time: int} $run */
-            if (isset($instanceHashes) && !isset($instanceHashes[$run['flowHash']])) {
-                continue;
-            }
+        $defaultArgs[] = 'LIMIT';
+        $defaultArgs[] = '0';
+        $defaultArgs[] = '10000';
+        $defaultArgs[] = 'RETURN';
+        $defaultArgs[] = '1';
+        $defaultArgs[] = '$';
 
-            $date = (new DateTimeImmutable())->setTimestamp((int) $run['time'])->format('Y-m-d');
-            $counts[$date] = ($counts[$date] ?? 0) + 1;
+        // Instance counts
+        $instanceArgs = ['FT.SEARCH', self::INDEX_INSTANCE];
+        $instanceArgs = array_merge($instanceArgs, $defaultArgs);
+
+        $instanceResult = $this->client->rawCommand(...$instanceArgs);
+        $instanceEvents = self::fetchData($instanceResult);
+
+        $instances = [];
+        foreach ($instanceEvents as $instanceEvent) {
+            /** @phpstan-ignore-next-line */
+            $date = (new DateTimeImmutable())->setTimestamp((int) $instanceEvent['time'])->format('Y-m-d');
+            $instances[$date] = ($instances[$date] ?? 0) + 1;
         }
 
-        ksort($counts);
+        // Run counts
+        $runArgs = ['FT.SEARCH', self::INDEX_RUN];
+        $runArgs = array_merge($runArgs, $defaultArgs);
 
-        foreach ($counts as $date => $count) {
-            yield new RunStatsEntity(
+        $runResult = $this->client->rawCommand(...$runArgs);
+        $runEvents = self::fetchData($runResult);
+
+        $runs = [];
+        foreach ($runEvents as $runEvent) {
+            /** @phpstan-ignore-next-line */
+            $date = (new DateTimeImmutable())->setTimestamp((int) $runEvent['time'])->format('Y-m-d');
+            $runs[$date] = ($runs[$date] ?? 0) + 1;
+        }
+
+        $dates = array_unique(array_merge(array_keys($instances), array_keys($runs)));
+        sort($dates);
+
+        foreach ($dates as $date) {
+            yield new FlowStatsEntity(
                 date: $date,
-                count: $count,
+                instances: $instances[$date] ?? 0,
+                runs: $runs[$date] ?? 0,
             );
         }
     }

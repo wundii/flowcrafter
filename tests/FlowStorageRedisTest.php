@@ -17,7 +17,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
-use Wundii\Flowcrafter\Storage\Entity\RunStatsEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 final class FlowStorageRedisTest extends TestCase
@@ -681,7 +681,7 @@ final class FlowStorageRedisTest extends TestCase
     /**
      * @throws Exception
      */
-    public function testFindRunStats(): void
+    public function testFindFlowStats(): void
     {
         $storage = $this->storage();
         $flowRunner = new FlowRunner(
@@ -692,17 +692,18 @@ final class FlowStorageRedisTest extends TestCase
         $flowRunner->run(new MessageInitMock('test data1'));
         $flowRunner->run(new MessageInitMock('test data2'));
 
-        $stats = iterator_to_array($storage->findRunStats());
+        $stats = iterator_to_array($storage->findFlowStats());
         $this->assertCount(1, $stats);
-        $this->assertInstanceOf(RunStatsEntity::class, $stats[0]);
+        $this->assertInstanceOf(FlowStatsEntity::class, $stats[0]);
         $this->assertSame(date('Y-m-d'), $stats[0]->date);
-        $this->assertSame(2, $stats[0]->count);
+        $this->assertSame(2, $stats[0]->instances);
+        $this->assertSame(2, $stats[0]->runs);
     }
 
     /**
      * @throws Exception
      */
-    public function testFindRunStatsWithFromTo(): void
+    public function testFindFlowStatsWithFromTo(): void
     {
         $storage = $this->storage();
         $flowRunner = new FlowRunner(
@@ -716,15 +717,16 @@ final class FlowStorageRedisTest extends TestCase
         $from = new DateTimeImmutable('-1 day');
         $to = new DateTimeImmutable('+1 day');
 
-        $stats = iterator_to_array($storage->findRunStats($from, $to));
+        $stats = iterator_to_array($storage->findFlowStats($from, $to));
         $this->assertCount(1, $stats);
-        $this->assertSame(2, $stats[0]->count);
+        $this->assertSame(2, $stats[0]->instances);
+        $this->assertSame(2, $stats[0]->runs);
     }
 
     /**
      * @throws Exception
      */
-    public function testFindRunStatsOutOfRange(): void
+    public function testFindFlowStatsOutOfRange(): void
     {
         $storage = $this->storage();
         $flowRunner = new FlowRunner(
@@ -737,14 +739,14 @@ final class FlowStorageRedisTest extends TestCase
         $from = new DateTimeImmutable('2020-01-01');
         $to = new DateTimeImmutable('2020-01-02');
 
-        $stats = iterator_to_array($storage->findRunStats($from, $to));
+        $stats = iterator_to_array($storage->findFlowStats($from, $to));
         $this->assertCount(0, $stats);
     }
 
     /**
      * @throws Exception
      */
-    public function testFindRunStatsWithFlowType(): void
+    public function testFindFlowStatsWithFlowType(): void
     {
         $storage = $this->storage();
         $flowRunnerA = new FlowRunner(
@@ -765,15 +767,17 @@ final class FlowStorageRedisTest extends TestCase
         } catch (Exception) {
         }
 
-        $stats = iterator_to_array($storage->findRunStats(null, null, 'flow.workflow'));
+        $stats = iterator_to_array($storage->findFlowStats(null, null, 'flow.workflow'));
         $this->assertCount(1, $stats);
-        $this->assertSame(2, $stats[0]->count);
+        $this->assertSame(2, $stats[0]->instances);
+        $this->assertSame(2, $stats[0]->runs);
 
-        $stats = iterator_to_array($storage->findRunStats(null, null, 'flow.workflow.fail'));
+        $stats = iterator_to_array($storage->findFlowStats(null, null, 'flow.workflow.fail'));
         $this->assertCount(1, $stats);
-        $this->assertSame(1, $stats[0]->count);
+        $this->assertSame(1, $stats[0]->instances);
+        $this->assertSame(1, $stats[0]->runs);
 
-        $stats = iterator_to_array($storage->findRunStats(null, null, 'flow.nonexistent'));
+        $stats = iterator_to_array($storage->findFlowStats(null, null, 'flow.nonexistent'));
         $this->assertCount(0, $stats);
     }
 }

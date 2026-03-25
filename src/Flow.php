@@ -221,10 +221,11 @@ class Flow implements JsonSerializable
 
     public function addRun(?string $queueId = null, ?DateTimeInterface $datetime = null): void
     {
-        $this->flowRuns[$this->getRuntimeHash()] = new FlowRun(
+        $this->flowRuns[$this->getRuntimeHash()] = FlowRun::create(
             $this->getHash(),
             $this->getRuntimeHash(),
-            $datetime ?? new DateTimeImmutable('now'),
+            $this->getType(),
+            $datetime,
             $queueId,
         );
     }

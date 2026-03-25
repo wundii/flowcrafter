@@ -25,7 +25,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
-use Wundii\Flowcrafter\Storage\Entity\RunStatsEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Stub;
 
@@ -114,6 +114,7 @@ class MySql implements StorageInterface
             CREATE TABLE IF NOT EXISTS flow_run (
                 flow_runtime_hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 flow_hash VARCHAR(191) NOT NULL,
+                flow_type VARCHAR(191) NOT NULL,
                 queue_id VARCHAR(191) NULL,
                 `time` DATETIME NOT NULL,
                 INDEX idx_flow_run_flow_hash (flow_hash),
@@ -286,13 +287,14 @@ class MySql implements StorageInterface
     public function appendFlowRun(Flow $flow, ?string $queueId = null): void
     {
         $stmt = $this->client->prepare(
-            'INSERT INTO flow_run (flow_runtime_hash, flow_hash, queue_id, time) ' .
-            'VALUES (:flow_runtime_hash, :flow_hash, :queue_id, :time)'
+            'INSERT INTO flow_run (flow_runtime_hash, flow_hash, flow_type, queue_id, time) ' .
+            'VALUES (:flow_runtime_hash, :flow_hash, :flow_type, :queue_id, :time)'
         );
 
         $stmt->execute([
             ':flow_runtime_hash' => $flow->getRuntimeHash(),
             ':flow_hash' => $flow->getHash(),
+            ':flow_type' => $flow->getType(),
             ':queue_id' => $queueId,
             ':time' => $flow->getTime()->format('Y-m-d H:i:s.u'),
         ]);
@@ -1011,6 +1013,7 @@ class MySql implements StorageInterface
             $flowArray['flowRuns'][] = [
                 'flowHash' => $run['flow_hash'] ?? '',
                 'flowRuntimeHash' => $run['flow_runtime_hash'] ?? '',
+                'flowType' => $run['flow_type'] ?? '',
                 'time' => $run['time'] ?? 'now',
                 'queueId' => $run['queue_id'] ?? '',
             ];
@@ -1044,42 +1047,67 @@ class MySql implements StorageInterface
     }
 
     /**
-     * @return RunStatsEntity[]
+     * @return FlowStatsEntity[]
      */
-    public function findRunStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
+    public function findFlowStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
     {
         $where = '';
         $params = [];
         if ($from instanceof DateTimeInterface) {
-            $where .= ' AND fr.`time` >= :from';
+            $where .= ' AND f.`time` >= :from';
             $params[':from'] = $from->format('Y-m-d H:i:s');
         }
 
         if ($to instanceof DateTimeInterface) {
-            $where .= ' AND fr.`time` <= :to';
+            $where .= ' AND f.`time` <= :to';
             $params[':to'] = $to->format('Y-m-d H:i:s');
         }
 
         if ($flowType !== null && $flowType !== '') {
-            $where .= ' AND fi.flow_type LIKE :flow_type';
+            $where .= ' AND f.flow_type LIKE :flow_type';
             $params[':flow_type'] = $flowType . '.v%';
         }
 
+        // Run counts
         $stmt = $this->client->prepare(
-            'SELECT DATE(fr.`time`) AS `date`, COUNT(*) AS `count` FROM flow_run fr' .
-            ' JOIN flow_instance fi ON fr.flow_hash = fi.flow_hash' .
+            'SELECT DATE(f.`time`) AS `date`, COUNT(*) AS `count` FROM flow_run f' .
             ' WHERE 1=1' .
             $where .
-            ' GROUP BY DATE(fr.`time`)' .
+            ' GROUP BY DATE(f.`time`)' .
             ' ORDER BY `date` ASC'
         );
         $stmt->execute($params);
 
+        $runs = [];
         while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
             /** @var array{date: string, count: int|string} $row */
-            yield new RunStatsEntity(
-                date: $row['date'],
-                count: (int) $row['count'],
+            $runs[$row['date']] = (int) $row['count'];
+        }
+
+        // Instance counts
+        $stmt = $this->client->prepare(
+            'SELECT DATE(f.`time`) AS `date`, COUNT(*) AS `count` FROM flow_instance f' .
+            ' WHERE 1=1' .
+            $where .
+            ' GROUP BY DATE(f.`time`)' .
+            ' ORDER BY `date` ASC'
+        );
+        $stmt->execute($params);
+
+        $instances = [];
+        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
+            /** @var array{date: string, count: int|string} $row */
+            $instances[$row['date']] = (int) $row['count'];
+        }
+
+        $dates = array_unique(array_merge(array_keys($instances), array_keys($runs)));
+        sort($dates);
+
+        foreach ($dates as $date) {
+            yield new FlowStatsEntity(
+                date: $date,
+                instances: $instances[$date] ?? 0,
+                runs: $runs[$date] ?? 0,
             );
         }
     }
