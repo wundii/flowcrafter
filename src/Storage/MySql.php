@@ -25,6 +25,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\RunStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Stub;
 
@@ -1040,6 +1041,47 @@ class MySql implements StorageInterface
         }
 
         return $this->findFlowByHash($flowHash);
+    }
+
+    /**
+     * @return RunStatsEntity[]
+     */
+    public function findRunStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
+    {
+        $where = '';
+        $params = [];
+        if ($from instanceof DateTimeInterface) {
+            $where .= ' AND fr.`time` >= :from';
+            $params[':from'] = $from->format('Y-m-d H:i:s');
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $where .= ' AND fr.`time` <= :to';
+            $params[':to'] = $to->format('Y-m-d H:i:s');
+        }
+
+        if ($flowType !== null && $flowType !== '') {
+            $where .= ' AND fi.flow_type LIKE :flow_type';
+            $params[':flow_type'] = $flowType . '.v%';
+        }
+
+        $stmt = $this->client->prepare(
+            'SELECT DATE(fr.`time`) AS `date`, COUNT(*) AS `count` FROM flow_run fr' .
+            ' JOIN flow_instance fi ON fr.flow_hash = fi.flow_hash' .
+            ' WHERE 1=1' .
+            $where .
+            ' GROUP BY DATE(fr.`time`)' .
+            ' ORDER BY `date` ASC'
+        );
+        $stmt->execute($params);
+
+        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
+            /** @var array{date: string, count: int|string} $row */
+            yield new RunStatsEntity(
+                date: $row['date'],
+                count: (int) $row['count'],
+            );
+        }
     }
 
     /**

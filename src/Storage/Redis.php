@@ -24,6 +24,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\RunStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Stub;
 use Wundii\Flowcrafter\Uuid;
@@ -980,6 +981,71 @@ class Redis implements StorageInterface
         }
 
         return $this->findFlowByHash($flowHash);
+    }
+
+    /**
+     * @return RunStatsEntity[]
+     */
+    public function findRunStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
+    {
+        $fromVal = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
+        $toVal = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
+        $query = '@time:[' . $fromVal . ' ' . $toVal . ']';
+
+        $result = $this->client->rawCommand(
+            'FT.SEARCH',
+            self::INDEX_RUN,
+            $query,
+            'LIMIT',
+            '0',
+            '10000',
+            'RETURN',
+            '1',
+            '$',
+        );
+
+        $runs = self::fetchData($result);
+
+        if ($flowType !== null && $flowType !== '') {
+            $flowType = strtolower($flowType);
+            $instanceHashes = [];
+            $escaped = self::escapeValue($flowType);
+            $instanceResult = $this->client->rawCommand(
+                'FT.SEARCH',
+                self::INDEX_INSTANCE,
+                '@flowType:{' . $escaped . '\.v*}',
+                'LIMIT',
+                '0',
+                '10000',
+                'RETURN',
+                '1',
+                '$',
+            );
+            foreach (self::fetchData($instanceResult) as $instance) {
+                /** @var array{flowHash: string} $instance */
+                $instanceHashes[$instance['flowHash']] = true;
+            }
+        }
+
+        $counts = [];
+        foreach ($runs as $run) {
+            /** @var array{flowHash: string, time: int} $run */
+            if (isset($instanceHashes) && !isset($instanceHashes[$run['flowHash']])) {
+                continue;
+            }
+
+            $date = (new DateTimeImmutable())->setTimestamp((int) $run['time'])->format('Y-m-d');
+            $counts[$date] = ($counts[$date] ?? 0) + 1;
+        }
+
+        ksort($counts);
+
+        foreach ($counts as $date => $count) {
+            yield new RunStatsEntity(
+                date: $date,
+                count: $count,
+            );
+        }
     }
 
     public function findStubSourceByHash(string $stubHash): ?StubSourceEntity

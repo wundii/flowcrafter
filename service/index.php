@@ -184,6 +184,28 @@ $route->add(
     }
 );
 
+// GET /api/runs/stats[?from=ISO8601&to=ISO8601&type=flow.example]
+$route->add(
+    '/api/runs/stats',
+    MethodEnum::GET,
+    function (Request $request) use ($storage): JsonResponse {
+        $fromStr = $request->query->get('from');
+        $toStr = $request->query->get('to');
+        $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $fromStr) : null;
+        $to = is_string($toStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $toStr) : null;
+        $from = $from instanceof DateTimeImmutable ? $from : null;
+        $to = $to instanceof DateTimeImmutable ? $to : null;
+        $type = $request->query->get('type');
+
+        $stats = iterator_to_array($storage->findRunStats($from, $to, $type));
+
+        return new JsonResponse(array_map(
+            static fn ($s) => ['date' => $s->date, 'count' => $s->count],
+            $stats,
+        ));
+    }
+);
+
 // GET /api/flows/search?subject=<query>[&top=10]
 $route->add(
     '/api/flows/search',

@@ -32,6 +32,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\RunStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Stub;
 
@@ -1186,6 +1187,64 @@ class Esdb implements StorageInterface
         $flowHash = iterator_to_array($flowHashIter)[0] ?? '';
 
         return $this->findFlowByHash($flowHash);
+    }
+
+    /**
+     * @return RunStatsEntity[]
+     */
+    public function findRunStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
+    {
+        $where = 'e.type == "' . self::TYPE_RUN . '"';
+        if ($from instanceof DateTimeInterface) {
+            $where .= ' AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $where .= ' AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
+        }
+
+        $query = 'FROM e IN events WHERE ' . $where . ' PROJECT INTO e.data';
+        $events = $this->client->runEventQlQuery($query);
+
+        $instanceHashes = null;
+        if ($flowType !== null && $flowType !== '') {
+            $instanceHashes = [];
+            $typeQuery = 'FROM e IN events WHERE e.type == "' . self::TYPE_INSTANCE . '" AND STARTSWITH(e.data.flowType, "' . $flowType . '.v") PROJECT INTO e.data.flowHash';
+            foreach ($this->client->runEventQlQuery($typeQuery) as $hash) {
+                if (is_string($hash)) {
+                    $instanceHashes[$hash] = true;
+                }
+            }
+        }
+
+        $counts = [];
+        foreach ($events as $event) {
+            if (!is_array($event)) {
+                continue;
+            }
+
+            $flowHash = is_string($event['flowHash'] ?? null) ? $event['flowHash'] : '';
+            if ($instanceHashes !== null && !isset($instanceHashes[$flowHash])) {
+                continue;
+            }
+
+            $time = $event['time'] ?? '';
+            if (!is_string($time) || $time === '') {
+                continue;
+            }
+
+            $date = (new DateTimeImmutable($time))->format('Y-m-d');
+            $counts[$date] = ($counts[$date] ?? 0) + 1;
+        }
+
+        ksort($counts);
+
+        foreach ($counts as $date => $count) {
+            yield new RunStatsEntity(
+                date: $date,
+                count: $count,
+            );
+        }
     }
 
     public function findStubSourceByHash(string $stubHash): ?StubSourceEntity

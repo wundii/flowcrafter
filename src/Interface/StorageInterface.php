@@ -13,6 +13,7 @@ use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\RunStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 interface StorageInterface
@@ -106,6 +107,11 @@ interface StorageInterface
     public function findFlowByHash(string $flowHash): ?Flow;
 
     public function findFlowByRuntimeHash(string $flowRuntimeHash): ?Flow;
+
+    /**
+     * @return RunStatsEntity[]
+     */
+    public function findRunStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable;
 
     public function findStubSourceByHash(string $stubHash): ?StubSourceEntity;
 

@@ -17,6 +17,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\RunStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 final class FlowStorageMySqlTest extends TestCase
@@ -675,5 +676,104 @@ final class FlowStorageMySqlTest extends TestCase
         $this->assertSame($flowMessage->getStubHash(), $stubSources[0]->stubHash);
         $this->assertSame($flowMessage->getStubSource(), $stubSources[0]->stubSource);
         $this->assertNotEmpty($stubSources[0]->sourceContent);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindRunStats(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+        $flowRunner->run(new MessageInitMock('test data2'));
+
+        $stats = iterator_to_array($storage->findRunStats());
+        $this->assertCount(1, $stats);
+        $this->assertInstanceOf(RunStatsEntity::class, $stats[0]);
+        $this->assertSame(date('Y-m-d'), $stats[0]->date);
+        $this->assertSame(2, $stats[0]->count);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindRunStatsWithFromTo(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+        $flowRunner->run(new MessageInitMock('test data2'));
+
+        $from = new DateTimeImmutable('-1 day');
+        $to = new DateTimeImmutable('+1 day');
+
+        $stats = iterator_to_array($storage->findRunStats($from, $to));
+        $this->assertCount(1, $stats);
+        $this->assertSame(2, $stats[0]->count);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindRunStatsOutOfRange(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+        $flowRunner->run(new MessageInitMock('test data1'));
+
+        $from = new DateTimeImmutable('2020-01-01');
+        $to = new DateTimeImmutable('2020-01-02');
+
+        $stats = iterator_to_array($storage->findRunStats($from, $to));
+        $this->assertCount(0, $stats);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindRunStatsWithFlowType(): void
+    {
+        $storage = $this->storage();
+        $flowRunnerA = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+        $flowRunnerB = new FlowRunner(
+            type: 'flow.workflow.fail.v1',
+            flowSource: WorkflowFailMock::class,
+            storage: $storage,
+        );
+        $flowRunnerA->run(new MessageInitMock('test data1'));
+        $flowRunnerA->run(new MessageInitMock('test data2'));
+
+        try {
+            $flowRunnerB->run(new MessageInitMock('test data3'));
+        } catch (Exception) {
+        }
+
+        $stats = iterator_to_array($storage->findRunStats(null, null, 'flow.workflow'));
+        $this->assertCount(1, $stats);
+        $this->assertSame(2, $stats[0]->count);
+
+        $stats = iterator_to_array($storage->findRunStats(null, null, 'flow.workflow.fail'));
+        $this->assertCount(1, $stats);
+        $this->assertSame(1, $stats[0]->count);
+
+        $stats = iterator_to_array($storage->findRunStats(null, null, 'flow.nonexistent'));
+        $this->assertCount(0, $stats);
     }
 }
