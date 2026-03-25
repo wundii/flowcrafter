@@ -19,6 +19,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flower\Flower;
 use Wundii\Flower\MethodEnum;
@@ -184,9 +185,9 @@ $route->add(
     }
 );
 
-// GET /api/flow-stats[?from=ISO8601&to=ISO8601&type=flow.example]
+// GET /api/flows/stats[?from=ISO8601&to=ISO8601&type=flow.example]
 $route->add(
-    '/api/flow-stats',
+    '/api/flows/stats',
     MethodEnum::GET,
     function (Request $request) use ($storage): JsonResponse {
         $fromStr = $request->query->get('from');
@@ -200,7 +201,7 @@ $route->add(
         $stats = iterator_to_array($storage->findFlowStats($from, $to, $type));
 
         return new JsonResponse(array_map(
-            static fn (\Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity $flowStatsEntity): array => [
+            static fn (FlowStatsEntity $flowStatsEntity): array => [
                 'date' => $flowStatsEntity->date,
                 'instances' => $flowStatsEntity->instances,
                 'runs' => $flowStatsEntity->runs,

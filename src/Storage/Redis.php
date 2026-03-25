@@ -139,6 +139,10 @@ class Redis implements StorageInterface
             'TAG',
         );
 
+        if ($this->existIndex(self::INDEX_SOURCE_STUB)) {
+            $this->client->rawCommand('FT.DROPINDEX', self::INDEX_SOURCE_STUB);
+        }
+
         $this->client->rawCommand(
             'FT.CREATE',
             self::INDEX_SOURCE_STUB,
