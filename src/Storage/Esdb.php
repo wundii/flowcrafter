@@ -873,34 +873,23 @@ class Esdb implements StorageInterface
             'WHERE e.type == "' . self::TYPE_RUN . '" ' .
             $timeFilter .
             'ORDER BY e.data.time DESC ' .
-            'PROJECT INTO e.data'
+            'PROJECT INTO e.data.flowHash'
         );
 
-        /** @var array<string, string> $runTimeLastMap flowHash => max run time */
-        $runTimeLastMap = [];
-        foreach ($runEvents as $runEvent) {
-            /** @var array{flowHash: string, time: string} $runEvent */
-            $flowHash = $runEvent['flowHash'];
-            $time = $runEvent['time'];
-
-            if (array_key_exists($flowHash, $runTimeLastMap)) {
-                continue;
-            }
-
-            $runTimeLastMap[$flowHash] = $time;
-        }
+        $runTimeLastMap = iterator_to_array($runEvents);
+        $runTimeLastMap = array_unique($runTimeLastMap);
 
         if ($runTimeLastMap === []) {
             return;
         }
 
         if ($sortEnum === SortEnum::ASC) {
-            ksort($runTimeLastMap);
+            sort($runTimeLastMap);
         }
 
         $orClauses = array_map(
             static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
-            array_keys($runTimeLastMap),
+            $runTimeLastMap,
         );
 
         $flowEvents = $this->client->runEventQlQuery(
@@ -954,34 +943,23 @@ class Esdb implements StorageInterface
             'WHERE e.type == "' . self::TYPE_RUN . '" ' .
             $timeFilter .
             'ORDER BY e.data.time DESC ' .
-            'PROJECT INTO e.data'
+            'PROJECT INTO {time: e.data.time, flowHash: e.data.flowHash}'
         );
 
-        /** @var array<string, string> $runTimeLastMap flowHash => max run time */
-        $runTimeLastMap = [];
-        foreach ($runEvents as $runEvent) {
-            /** @var array{flowHash: string, time: string} $runEvent */
-            $flowHash = $runEvent['flowHash'];
-            $time = $runEvent['time'];
-
-            if (array_key_exists($flowHash, $runTimeLastMap)) {
-                continue;
-            }
-
-            $runTimeLastMap[$flowHash] = $time;
-        }
+        $runTimeLastMap = iterator_to_array($runEvents);
+        $runTimeLastMap = array_unique($runTimeLastMap);
 
         if ($runTimeLastMap === []) {
             return;
         }
 
         if ($sortEnum === SortEnum::ASC) {
-            ksort($runTimeLastMap);
+            sort($runTimeLastMap);
         }
 
         $orClauses = array_map(
             static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
-            array_keys($runTimeLastMap),
+            $runTimeLastMap,
         );
 
         $flowEvents = $this->client->runEventQlQuery(
@@ -1036,34 +1014,23 @@ class Esdb implements StorageInterface
             'WHERE e.type == "' . self::TYPE_RUN . '" ' .
             $timeFilter .
             'ORDER BY e.data.time DESC ' .
-            'PROJECT INTO e.data'
+            'PROJECT INTO e.data.flowHash'
         );
 
-        /** @var array<string, string> $runTimeLastMap flowHash => max run time */
-        $runTimeLastMap = [];
-        foreach ($runEvents as $runEvent) {
-            /** @var array{flowHash: string, time: string} $runEvent */
-            $flowHash = $runEvent['flowHash'];
-            $time = $runEvent['time'];
-
-            if (array_key_exists($flowHash, $runTimeLastMap)) {
-                continue;
-            }
-
-            $runTimeLastMap[$flowHash] = $time;
-        }
+        $runTimeLastMap = iterator_to_array($runEvents);
+        $runTimeLastMap = array_unique($runTimeLastMap);
 
         if ($runTimeLastMap === []) {
             return;
         }
 
         if ($sortEnum === SortEnum::ASC) {
-            ksort($runTimeLastMap);
+            sort($runTimeLastMap);
         }
 
         $orClauses = array_map(
             static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
-            array_keys($runTimeLastMap),
+            $runTimeLastMap,
         );
 
         $flowEvents = $this->client->runEventQlQuery(
@@ -1326,24 +1293,10 @@ class Esdb implements StorageInterface
         $query = 'FROM e IN events ';
         $query .= 'WHERE (e.type == "' . self::TYPE_INSTANCE . '" OR e.type == "' . self::TYPE_RUN . '") ';
         $query .= $where !== [] ? 'AND ' . implode(' AND ', $where) : '';
-        $query .= ' PROJECT INTO e';
+        $query .= ' PROJECT INTO {time: e.time, type: e.type}';
 
         foreach ($this->client->runEventQlQuery($query) as $event) {
-            if (!is_array($event)) {
-                continue;
-            }
-
-            $time = $event['time'] ?? '';
-            if (!is_string($time)) {
-                continue;
-            }
-
-            if ($time === '') {
-                continue;
-            }
-
-            $date = (new DateTimeImmutable($time))->format('Y-m-d');
-
+            $date = substr($event['time'] ?? '', 0, 10);
 
             switch ($event['type']) {
                 case self::TYPE_INSTANCE:
@@ -1358,7 +1311,6 @@ class Esdb implements StorageInterface
         }
 
         $allDates = array_unique(array_merge(array_keys($runCounts), array_keys($instanceCounts)));
-        sort($allDates);
 
         foreach ($allDates as $allDate) {
             yield new FlowStatsEntity(
