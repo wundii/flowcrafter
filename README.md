@@ -153,6 +153,8 @@ flowcrafter/
 │   │   ├── Esdb.php                   # EventSourcingDB-Implementierung
 │   │   └── Entity/
 │   │       ├── FlowEntity.php         # DTO für Flow-Listeneinträge
+│   │       ├── FlowStatsEntity.php    # DTO für Flow-Statistiken
+│   │       ├── RunStatsEntity.php     # DTO für Run-Statistiken
 │   │       └── StubSourceEntity.php   # DTO für Stub-Source-Snapshots
 │   ├── Assert.php                     # Validierungs-Helfer
 │   ├── Converter.php                  # JSON ↔ Flow ↔ Mermaid-Konvertierung
@@ -163,6 +165,8 @@ flowcrafter/
 │   ├── FlowObserver.php               # Asynchroner Queue-Prozessor
 │   ├── FlowMessage.php                # Nachrichtenobjekt
 │   ├── FlowException.php              # Exception-Objekt mit Kontext
+│   ├── FlowMessageReadOnly.php        # Read-Only-Wrapper für Messages
+│   ├── FlowResult.php                 # Ergebnisobjekt für boolesche Stub-Rückgaben
 │   ├── FlowRun.php                    # Ausführungsprotokoll (Runtime-Hash, Queue-ID)
 │   ├── ObserveItem.php                # Queue-Eintrag
 │   ├── Stub.php                       # Prozessor-Unit mit Source-Snapshotting
@@ -185,7 +189,7 @@ flowcrafter/
 
 ### Flow
 
-Ein Flow ist eine Workflow-Instanz, identifiziert durch einen `flowHash` (MD5 des Schemas) und einen `flowRuntimeHash` (UUIDv7 je Ausführung). Pro Flow werden alle Messages, Exceptions und Runs persistiert. Ein optionales `flowSubject` erlaubt die Beschriftung von Flow-Instanzen.
+Ein Flow ist eine Workflow-Instanz, identifiziert durch einen `flowHash` (MD5 des Schemas) und einen `flowRuntimeHash` (UUIDv7 je Ausführung). Pro Flow werden alle Messages, Exceptions, Runs und Results persistiert. Ein optionales `flowSubject` erlaubt die Beschriftung von Flow-Instanzen. Jeder Flow besitzt einen `flowType` (Schema-Klassenname) und einen `timeLastRun`-Zeitstempel.
 
 ### FlowSchema
 
@@ -202,7 +206,7 @@ Das Schema definiert den Workflow-Aufbau: welche `StubInterface`-Implementierung
 Ein Stub kann zurückgeben:
 - `MessageInterface` → Flow läuft weiter
 - `MessageReturnInterface` → Flow endet
-- `false` → Keine Aktion
+- `bool` → Wird als `FlowResult` persistiert (pro Stub-Ausführung mit `flowHash`, `flowRuntimeHash`, `stubSource`, `stubHash`, `result`, `time`)
 
 ### Selektive Stub-Ausführung (`includeStubs`)
 
@@ -235,6 +239,7 @@ Die REST-API wird über `service/index.php` bereitgestellt (Flower Micro-Router)
 | GET     | `/api/info`           | —                                                | Server-Beschreibung + Observer-Status |
 | GET     | `/api/flows`          | `sort`, `top`, `skip`, `type`, `from`, `to`      | Flow-Instanzen (paginiert, filterbar) |
 | GET     | `/api/flows/detail`   | `hash` oder `runtimeHash`                        | Flow mit Messages, Exceptions & Runs  |
+| GET     | `/api/flows/stats`    | `from`, `to`, `type`                             | Tägliche Flow-Statistiken (Instanzen & Runs) |
 | GET     | `/api/flows/search`   | `subject`, `top`                                 | Flows nach `flowSubject` suchen       |
 | GET     | `/api/exceptions`     | `sort`, `top`, `skip`, `flowHash`, `from`, `to`  | Exceptions (paginiert, filterbar)     |
 
