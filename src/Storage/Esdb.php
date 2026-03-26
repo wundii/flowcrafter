@@ -868,11 +868,45 @@ class Esdb implements StorageInterface
             $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
+        $runEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
+            $timeFilter .
+            'ORDER BY e.data.time DESC ' .
+            'PROJECT INTO e.data'
+        );
+
+        /** @var array<string, string> $runTimeLastMap flowHash => max run time */
+        $runTimeLastMap = [];
+        foreach ($runEvents as $runEvent) {
+            /** @var array{flowHash: string, time: string} $runEvent */
+            $flowHash = $runEvent['flowHash'];
+            $time = $runEvent['time'];
+
+            if (array_key_exists($flowHash, $runTimeLastMap)) {
+                continue;
+            }
+
+            $runTimeLastMap[$flowHash] = $time;
+        }
+
+        if ($runTimeLastMap === []) {
+            return;
+        }
+
+        if ($sortEnum === SortEnum::ASC) {
+            ksort($runTimeLastMap);
+        }
+
+        $orClauses = array_map(
+            static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
+            array_keys($runTimeLastMap),
+        );
+
         $flowEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
-            $timeFilter .
-            'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'AND (' . implode(' OR ', $orClauses) . ') ' .
             'SKIP ' . $skip . ' ' .
             'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
@@ -884,14 +918,15 @@ class Esdb implements StorageInterface
 
         foreach ($flowEvents as $flowEvent) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
+            $flowHash = $flowEvent['flowHash'];
             yield new FlowEntity(
-                flowHash: $flowEvent['flowHash'],
+                flowHash: $flowHash,
                 flowType: $flowEvent['flowType'],
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
-                timeLastRun: new DateTimeImmutable($flowEvent['time']),
-                exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
+                timeLastRun: new DateTimeImmutable($runTimeLastMap[$flowHash] ?? $flowEvent['time']),
+                exceptionCount: $exceptionCounts[$flowHash] ?? 0,
             );
         }
     }
@@ -914,12 +949,46 @@ class Esdb implements StorageInterface
             $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
+        $runEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
+            $timeFilter .
+            'ORDER BY e.data.time DESC ' .
+            'PROJECT INTO e.data'
+        );
+
+        /** @var array<string, string> $runTimeLastMap flowHash => max run time */
+        $runTimeLastMap = [];
+        foreach ($runEvents as $runEvent) {
+            /** @var array{flowHash: string, time: string} $runEvent */
+            $flowHash = $runEvent['flowHash'];
+            $time = $runEvent['time'];
+
+            if (array_key_exists($flowHash, $runTimeLastMap)) {
+                continue;
+            }
+
+            $runTimeLastMap[$flowHash] = $time;
+        }
+
+        if ($runTimeLastMap === []) {
+            return;
+        }
+
+        if ($sortEnum === SortEnum::ASC) {
+            ksort($runTimeLastMap);
+        }
+
+        $orClauses = array_map(
+            static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
+            array_keys($runTimeLastMap),
+        );
+
         $flowEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'AND e.data.flowSource == "' . $flowSource . '" ' .
-            $timeFilter .
-            'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'AND (' . implode(' OR ', $orClauses) . ') ' .
             'SKIP ' . $skip . ' ' .
             'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
@@ -931,18 +1000,23 @@ class Esdb implements StorageInterface
 
         foreach ($flowEvents as $flowEvent) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
+            $flowHash = $flowEvent['flowHash'];
             yield new FlowEntity(
-                flowHash: $flowEvent['flowHash'],
+                flowHash: $flowHash,
                 flowType: $flowEvent['flowType'],
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
-                timeLastRun: new DateTimeImmutable($flowEvent['time']),
-                exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
+                timeLastRun: new DateTimeImmutable($runTimeLastMap[$flowHash] ?? $flowEvent['time']),
+                exceptionCount: $exceptionCounts[$flowHash] ?? 0,
             );
         }
     }
 
+    /**
+     * @return FlowEntity[]
+     * @throws Exception
+     */
     public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         $skip = max(0, $skip);
@@ -957,12 +1031,46 @@ class Esdb implements StorageInterface
             $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
         }
 
+        $runEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
+            $timeFilter .
+            'ORDER BY e.data.time DESC ' .
+            'PROJECT INTO e.data'
+        );
+
+        /** @var array<string, string> $runTimeLastMap flowHash => max run time */
+        $runTimeLastMap = [];
+        foreach ($runEvents as $runEvent) {
+            /** @var array{flowHash: string, time: string} $runEvent */
+            $flowHash = $runEvent['flowHash'];
+            $time = $runEvent['time'];
+
+            if (array_key_exists($flowHash, $runTimeLastMap)) {
+                continue;
+            }
+
+            $runTimeLastMap[$flowHash] = $time;
+        }
+
+        if ($runTimeLastMap === []) {
+            return;
+        }
+
+        if ($sortEnum === SortEnum::ASC) {
+            ksort($runTimeLastMap);
+        }
+
+        $orClauses = array_map(
+            static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
+            array_keys($runTimeLastMap),
+        );
+
         $flowEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'AND STARTSWITH(e.data.flowType, "' . $flowType . '.v") ' .
-            $timeFilter .
-            'ORDER BY e.id ' . $sortEnum->name . ' ' .
+            'AND (' . implode(' OR ', $orClauses) . ') ' .
             'SKIP ' . $skip . ' ' .
             'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
@@ -974,14 +1082,15 @@ class Esdb implements StorageInterface
 
         foreach ($flowEvents as $flowEvent) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
+            $flowHash = $flowEvent['flowHash'];
             yield new FlowEntity(
-                flowHash: $flowEvent['flowHash'],
+                flowHash: $flowHash,
                 flowType: $flowEvent['flowType'],
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
-                timeLastRun: new DateTimeImmutable($flowEvent['time']),
-                exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
+                timeLastRun: new DateTimeImmutable($runTimeLastMap[$flowHash] ?? $flowEvent['time']),
+                exceptionCount: $exceptionCounts[$flowHash] ?? 0,
             );
         }
     }
@@ -1218,6 +1327,7 @@ class Esdb implements StorageInterface
         $query .= 'WHERE (e.type == "' . self::TYPE_INSTANCE . '" OR e.type == "' . self::TYPE_RUN . '") ';
         $query .= $where !== [] ? 'AND ' . implode(' AND ', $where) : '';
         $query .= ' PROJECT INTO e';
+
         foreach ($this->client->runEventQlQuery($query) as $event) {
             if (!is_array($event)) {
                 continue;
@@ -1234,12 +1344,13 @@ class Esdb implements StorageInterface
 
             $date = (new DateTimeImmutable($time))->format('Y-m-d');
 
+
             switch ($event['type']) {
                 case self::TYPE_INSTANCE:
-                    ++$instanceCounts[$date];
+                    $instanceCounts[$date] = ($instanceCounts[$date] ?? 0) + 1;
                     break;
                 case self::TYPE_RUN:
-                    ++$runCounts[$date];
+                    $runCounts[$date] = ($runCounts[$date] ?? 0) + 1;
                     break;
                 default:
                     break;
