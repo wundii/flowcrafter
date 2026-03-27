@@ -449,7 +449,13 @@ class MySql implements StorageInterface
         }
 
         foreach ($stmt->fetchAll() as $row) {
-            yield $row['flow_schema'];
+            $flowSchema = $row['flow_schema'];
+            $flowSchemaArray = json_decode($flowSchema, true);
+            if (!is_array($flowSchemaArray)) {
+                throw new RuntimeException('Could not validate flow schema payload.');
+            }
+
+            yield $flowSchemaArray;
         }
     }
 
