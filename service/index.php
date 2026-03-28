@@ -111,23 +111,41 @@ $route->add(
     }
 );
 
-$observerPidFile = sys_get_temp_dir() . '/flowcrafter-observer.pid';
-$isObserverRunning = static function () use ($observerPidFile): bool {
-    if (file_exists($observerPidFile)) {
-        $pid = (int) file_get_contents($observerPidFile);
-        return $pid > 0 && file_exists('/proc/' . $pid);
+$observerHeartbeatDir = sys_get_temp_dir() . '/flowcrafter';
+$getObserverWorkers = static function () use ($observerHeartbeatDir): array {
+    $workers = [];
+    foreach (glob($observerHeartbeatDir . '/observer.*.heartbeat') ?: [] as $file) {
+        $mtime = filemtime($file);
+        if ($mtime === false) {
+            continue;
+        }
+
+        if ((time() - $mtime) > 60) {
+            continue;
+        }
+
+        $baseName = basename($file, '.heartbeat');
+        if (!preg_match('/^observer\.(.+)\.(\d+)$/', $baseName, $m)) {
+            continue;
+        }
+
+        $workers[] = [
+            'hostname' => $m[1],
+            'pid' => (int) $m[2],
+            'lastHeartbeat' => date(DateTimeInterface::RFC3339, $mtime),
+        ];
     }
 
-    return false;
+    return $workers;
 };
 
 $route->add(
     '/api/info',
     MethodEnum::GET,
-    function () use ($flowcrafterConfig, $isObserverRunning): JsonResponse {
+    function () use ($flowcrafterConfig, $getObserverWorkers): JsonResponse {
         return new JsonResponse([
             'description' => $flowcrafterConfig->getServerDescription(),
-            'observerRunning' => $isObserverRunning(),
+            'workers' => $getObserverWorkers(),
         ]);
     }
 );
@@ -136,8 +154,8 @@ $route->add(
 $route->add(
     '/metrics',
     MethodEnum::GET,
-    function () use ($storage, $flowcrafterConfig, $isObserverRunning): Response {
-        $observerRunning = $isObserverRunning();
+    function () use ($storage, $flowcrafterConfig, $getObserverWorkers): Response {
+        $observerRunning = $getObserverWorkers() !== [];
 
         $queueSize = $storage->openQueues();
 

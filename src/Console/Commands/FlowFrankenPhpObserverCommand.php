@@ -70,11 +70,11 @@ final class FlowFrankenPhpObserverCommand extends Command
 
     private function runObserver(FlowSymfonyStyle $flowSymfonyStyle): int
     {
-        $pidFile = sys_get_temp_dir() . '/flowcrafter-observer.pid';
-        file_put_contents($pidFile, (string) getmypid());
+        $heartbeatFile = sys_get_temp_dir() . '/flowcrafter/observer.' . gethostname() . '.' . getmypid() . '.heartbeat';
+        @mkdir(dirname($heartbeatFile), 0755, true);
 
-        register_shutdown_function(static function () use ($pidFile): void {
-            @unlink($pidFile);
+        register_shutdown_function(static function () use ($heartbeatFile): void {
+            @unlink($heartbeatFile);
         });
 
         $storage = $this->flowcrafterConfig->getStorage();
@@ -85,14 +85,18 @@ final class FlowFrankenPhpObserverCommand extends Command
             $flowSymfonyStyle->writeln($message);
         };
 
+        @touch($heartbeatFile);
+
         /** @phpstan-ignore while.alwaysTrue */
         while (true) {
             try {
-                $flowObserver->run(logger: $logger);
+                $flowObserver->run(maxExecutionTimeInSeconds: 10.0, logger: $logger);
             } catch (Throwable $e) {
                 $flowSymfonyStyle->writeln('[Observer] error: ' . $e->getMessage());
                 sleep(2);
             }
+
+            @touch($heartbeatFile);
         }
     }
 
@@ -137,7 +141,7 @@ final class FlowFrankenPhpObserverCommand extends Command
     private function startWorker(string $frankenPhpBinary, string $flowcrafterScript, array $env, int $index, FlowSymfonyStyle $flowSymfonyStyle): Process
     {
         $process = new Process(
-            [$frankenPhpBinary, $flowcrafterScript, 'frankenphp:observer', '--workers', '1'],
+            [$frankenPhpBinary, 'php-cli', $flowcrafterScript, 'frankenphp:observer', '--workers', '1'],
             null,
             $env,
         );

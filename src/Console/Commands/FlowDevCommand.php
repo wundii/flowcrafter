@@ -28,7 +28,7 @@ final class FlowDevCommand extends Command
         private FlowcrafterConfig $flowcrafterConfig,
         private BootstrapConfig $bootstrapConfig,
     ) {
-        $this->pidFile = sys_get_temp_dir() . '/flowcrafter-observer.pid';
+        $this->pidFile = sys_get_temp_dir() . '/flowcrafter/observer.' . getmypid() . '.heartbeat';
         parent::__construct();
     }
 
@@ -94,7 +94,7 @@ final class FlowDevCommand extends Command
         ));
         $output->writeln('');
 
-        file_put_contents($this->pidFile, (string) getmypid());
+        @mkdir(dirname($this->pidFile), 0755, true);
 
         $storage = $this->flowcrafterConfig->getStorage();
         $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
@@ -104,6 +104,8 @@ final class FlowDevCommand extends Command
             $output->writeln($message);
         };
 
+        $lastHeartbeat = 0;
+
         /** @phpstan-ignore while.alwaysTrue */
         while ($serverProcess->isRunning()) {
             try {
@@ -111,6 +113,11 @@ final class FlowDevCommand extends Command
             } catch (Throwable $e) {
                 $output->writeln('[Observer] error: ' . $e->getMessage());
                 sleep(2);
+            }
+
+            if (time() - $lastHeartbeat >= 10) {
+                @touch($this->pidFile);
+                $lastHeartbeat = time();
             }
         }
 

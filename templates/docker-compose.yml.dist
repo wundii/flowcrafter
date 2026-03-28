@@ -7,6 +7,8 @@ services:
       - "8000:8000"
     environment:
       FLOWCRAFTER_CONFIG: /app/flowcrafter.php
+    volumes:
+      - flowcrafter_run:/tmp/flowcrafter
     restart: unless-stopped
 
   observer:
@@ -15,4 +17,17 @@ services:
       dockerfile: Dockerfile.observer
     environment:
       FLOWCRAFTER_CONFIG: /app/flowcrafter.php
+    volumes:
+      - flowcrafter_run:/tmp/flowcrafter
     restart: unless-stopped
+
+  ui:
+    image: wundii/flowcrafter-ui:latest
+    ports:
+      - '3000:3000'
+    volumes:
+      - ui-data:/flowcrafter/data
+
+volumes:
+  flowcrafter_run:
+  ui-data:
