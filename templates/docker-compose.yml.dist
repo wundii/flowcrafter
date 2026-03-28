@@ -1,0 +1,18 @@
+services:
+  service:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    ports:
+      - "8000:8000"
+    environment:
+      FLOWCRAFTER_CONFIG: /app/flowcrafter.php
+    restart: unless-stopped
+
+  observer:
+    build:
+      context: .
+      dockerfile: Dockerfile.observer
+    environment:
+      FLOWCRAFTER_CONFIG: /app/flowcrafter.php
+    restart: unless-stopped

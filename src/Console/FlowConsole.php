@@ -16,10 +16,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
 use Wundii\Flowcrafter\Console\Commands\FlowCreateCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowDevCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowDockerInitCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowFrankenPhpObserverCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowFrankenPhpServiceCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowInitCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowMermaidCommand;
-use Wundii\Flowcrafter\Console\Commands\FlowObserverCommand;
-use Wundii\Flowcrafter\Console\Commands\FlowServeCommand;
 
 final class FlowConsole extends BaseApplication
 {
@@ -30,19 +32,23 @@ final class FlowConsole extends BaseApplication
 
     public function __construct(
         FlowCreateCommand $flowCreateCommand,
+        FlowDevCommand $flowDevCommand,
+        FlowDockerInitCommand $flowDockerInitCommand,
+        FlowFrankenPhpObserverCommand $flowFrankenPhpObserverCommand,
+        FlowFrankenPhpServiceCommand $flowFrankenPhpServiceCommand,
         FlowInitCommand $flowInitCommand,
         FlowMermaidCommand $flowMermaidCommand,
-        FlowObserverCommand $flowObserverCommand,
-        FlowServeCommand $flowServeCommand,
     ) {
         parent::__construct(self::NAME, self::vendorVersion());
 
         $this->addCommands([
             $flowCreateCommand,
+            $flowDevCommand,
+            $flowDockerInitCommand,
+            $flowFrankenPhpObserverCommand,
+            $flowFrankenPhpServiceCommand,
             $flowInitCommand,
             $flowMermaidCommand,
-            $flowObserverCommand,
-            $flowServeCommand,
         ]);
         $this->setDefaultCommand('list');
         $this->setDefinition($this->getInputDefinition());

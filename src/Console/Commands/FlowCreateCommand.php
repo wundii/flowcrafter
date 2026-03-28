@@ -13,7 +13,7 @@ use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 
-class FlowCreateCommand extends Command
+final class FlowCreateCommand extends Command
 {
     public function __construct(
         private readonly BootstrapConfigInitializer $bootstrapConfigInitializer

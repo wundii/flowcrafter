@@ -14,7 +14,7 @@ use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 
-class FlowInitCommand extends Command
+final class FlowInitCommand extends Command
 {
     public function __construct(
         private FlowcrafterConfig $flowcrafterConfig

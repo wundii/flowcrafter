@@ -18,7 +18,7 @@ use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\FlowObserver;
 
-final class FlowServeCommand extends Command
+final class FlowDevCommand extends Command
 {
     private ?Process $serverProcess = null;
 
@@ -34,8 +34,8 @@ final class FlowServeCommand extends Command
 
     protected function configure(): void
     {
-        $this->setName('serve');
-        $this->setDescription('Start the API server and observer process together');
+        $this->setName('dev');
+        $this->setDescription('Start the API server (PHP built-in) and observer process for development');
         $this->addOption('host', null, InputOption::VALUE_REQUIRED, 'Server host', '0.0.0.0');
         $this->addOption('port', null, InputOption::VALUE_REQUIRED, 'Server port', '8000');
     }
@@ -55,7 +55,7 @@ final class FlowServeCommand extends Command
         $serviceIndex = dirname(__DIR__, 3) . '/service/index.php';
 
         $output->writeln(sprintf(
-            '<fg=%s>starting API server on %s:%s</>',
+            '<fg=%s>starting API server (PHP built-in) on %s:%s</>',
             OutputColorEnum::BLUE->value,
             $host,
             $port,

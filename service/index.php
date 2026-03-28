@@ -24,7 +24,26 @@ use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flower\Flower;
 use Wundii\Flower\MethodEnum;
 
-require getcwd() . '/vendor/autoload.php';
+$autoloadCandidates = [
+    dirname(__DIR__) . '/vendor/autoload.php',    // flowcrafter repo / FrankenPHP root
+    dirname(__DIR__, 4) . '/vendor/autoload.php', // installed as composer package
+    getcwd() . '/vendor/autoload.php',             // PHP built-in server (dev)
+];
+$autoloadFile = null;
+foreach ($autoloadCandidates as $autoloadCandidate) {
+    if (file_exists($autoloadCandidate)) {
+        $autoloadFile = $autoloadCandidate;
+        break;
+    }
+}
+
+if ($autoloadFile === null) {
+    http_response_code(503);
+    echo 'vendor/autoload.php not found';
+    exit;
+}
+
+require $autoloadFile;
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');

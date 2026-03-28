@@ -1,0 +1,18 @@
+FROM dunglas/frankenphp
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+RUN apt-get update && apt-get install -y git unzip && rm -rf /var/lib/apt/lists/*
+
+RUN install-php-extensions pdo_mysql redis
+
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["vendor/bin/flowcrafter", "frankenphp:service", "--host", "0.0.0.0", "--port", "8000"]
