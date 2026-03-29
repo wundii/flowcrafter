@@ -555,6 +555,7 @@ $route->add(
         }
 
         try {
+            ob_start();
             $messageReturn = $flowRunner->run(
                 message: $messageInstance,
                 flowHash: $flowHash,
@@ -562,6 +563,8 @@ $route->add(
             );
         } catch (Throwable $throwable) {
             // the exception is recorded in storage
+        } finally {
+            ob_end_clean();
         }
 
         return new JsonResponse([
