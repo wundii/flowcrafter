@@ -949,14 +949,11 @@ class Redis implements StorageInterface
         $flowArray['flowSchema'] = $this->findSchemaByHash($schemaHash);
         $flowArray['time'] = $this->timestampToRFC3339Extended($flowArray['time'] ?? 0);
 
-        /** @var list<array<mixed, mixed>> $flowMessages */
-        $flowMessages = [];
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_MESSAGE, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         $flowMessages = self::fetchData($result);
 
         $flowArray['flowMessages'] = $flowMessages;
 
-        /** @var list<array<mixed, mixed>> $flowExceptions */
         $flowExceptions = [];
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $exceptionEvent) {
@@ -966,7 +963,6 @@ class Redis implements StorageInterface
 
         $flowArray['flowExceptions'] = $flowExceptions;
 
-        /** @var list<array<mixed, mixed>> $flowResults */
         $flowResults = [];
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RESULT, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $resultEvent) {
@@ -977,7 +973,6 @@ class Redis implements StorageInterface
 
         $flowArray['flowResults'] = $flowResults;
 
-        /** @var list<array<mixed, mixed>> $flowRuns */
         $flowRuns = [];
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $runEvent) {
