@@ -826,11 +826,21 @@ class Esdb implements StorageInterface
         return $flowEvents[0] ?? 0;
     }
 
-    public function countExceptions(): int
+    public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
     {
+        $timeFilter = '';
+        if ($from instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
+        }
+
         $flowEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
+            $timeFilter .
             'PROJECT INTO COUNT()'
         );
         $flowEvents = iterator_to_array($flowEvents);

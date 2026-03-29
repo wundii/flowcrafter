@@ -12,6 +12,7 @@ use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfigRequirer;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
@@ -111,8 +112,11 @@ $getObserverWorkers = static function () use ($observerHeartbeatDir): array {
 $route->add(
     '/api/info',
     MethodEnum::GET,
-    function () use ($flowcrafterConfig, $getObserverWorkers): JsonResponse {
+    function () use ($flowcrafterConfig, $storage, $getObserverWorkers): JsonResponse {
         return new JsonResponse([
+            'version' => FlowConsole::vendorVersion(),
+            'php' => PHP_VERSION,
+            'storage' => (new ReflectionClass($storage))->getShortName(),
             'description' => $flowcrafterConfig->getServerDescription(),
             'workers' => $getObserverWorkers(),
         ]);
@@ -124,26 +128,43 @@ $route->add(
     '/metrics',
     MethodEnum::GET,
     function () use ($storage, $flowcrafterConfig, $getObserverWorkers): Response {
-        $observerRunning = $getObserverWorkers() !== [];
+        $observerWorkers = $getObserverWorkers();
 
         $queueSize = $storage->openQueues();
+        $flowsTotal = $storage->countFlows();
+        $exceptions7d = $storage->countExceptions(
+            from: new DateTimeImmutable('-7 days'),
+        );
 
         $description = $flowcrafterConfig->getServerDescription() ?? '';
         $safeDescription = str_replace(['"', "\n", "\r"], ['\"', ' ', ' '], $description);
+        $storageType = strtolower((new ReflectionClass($storage))->getShortName());
 
         $lines = [];
 
         $lines[] = '# HELP flowcrafter_info FlowCrafter service information';
         $lines[] = '# TYPE flowcrafter_info gauge';
-        $lines[] = sprintf('flowcrafter_info{description="%s"} 1', $safeDescription);
+        $lines[] = sprintf('flowcrafter_info{description="%s",storage="%s"} 1', $safeDescription, $storageType);
 
         $lines[] = '# HELP flowcrafter_observer_up Whether the FlowCrafter observer process is running (1 = up, 0 = down)';
         $lines[] = '# TYPE flowcrafter_observer_up gauge';
-        $lines[] = sprintf('flowcrafter_observer_up %d', $observerRunning ? 1 : 0);
+        $lines[] = sprintf('flowcrafter_observer_up %d', $observerWorkers !== [] ? 1 : 0);
+
+        $lines[] = '# HELP flowcrafter_observer_workers Number of active observer worker processes';
+        $lines[] = '# TYPE flowcrafter_observer_workers gauge';
+        $lines[] = sprintf('flowcrafter_observer_workers %d', count($observerWorkers));
 
         $lines[] = '# HELP flowcrafter_queue_size Number of items currently pending in the queue';
         $lines[] = '# TYPE flowcrafter_queue_size gauge';
         $lines[] = sprintf('flowcrafter_queue_size %d', $queueSize);
+
+        $lines[] = '# HELP flowcrafter_flows_total Total number of flow instances';
+        $lines[] = '# TYPE flowcrafter_flows_total gauge';
+        $lines[] = sprintf('flowcrafter_flows_total %d', $flowsTotal);
+
+        $lines[] = '# HELP flowcrafter_exceptions_7d Number of exceptions in the last 7 days';
+        $lines[] = '# TYPE flowcrafter_exceptions_7d gauge';
+        $lines[] = sprintf('flowcrafter_exceptions_7d %d', $exceptions7d);
 
         $body = implode("\n", $lines) . "\n";
 

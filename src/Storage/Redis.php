@@ -676,19 +676,28 @@ class Redis implements StorageInterface
         return is_array($result) && is_int($result[0] ?? null) ? $result[0] : 0;
     }
 
-    public function countExceptions(): int
+    public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
     {
-        return $this->countExceptionsByFlowHash('*');
+        return $this->countExceptionsByFlowHash('*', $from, $to);
     }
 
-    public function countExceptionsByFlowHash(string $flowHash = ''): int
+    public function countExceptionsByFlowHash(string $flowHash = '', ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
     {
         $flowHash = self::escapeValue($flowHash);
         $value = match ($flowHash) {
             '*', '' => '*',
             default => '@flowHash:{' . $flowHash . '}',
         };
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, $value, 'LIMIT', '0', '0');
+
+        $args = ['FT.SEARCH', self::INDEX_EXCEPTION, $value, 'LIMIT', '0', '0'];
+        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
+            $args[] = 'FILTER';
+            $args[] = 'time';
+            $args[] = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
+            $args[] = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
+        }
+
+        $result = $this->client->rawCommand(...$args);
 
         return is_array($result) && is_int($result[0] ?? null) ? $result[0] : 0;
     }

@@ -68,7 +68,7 @@ interface StorageInterface
 
     public function countFlowsByType(string $flowType = ''): int;
 
-    public function countExceptions(): int;
+    public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
 
     public function countExceptionsByFlowHash(string $flowHash = ''): int;
 

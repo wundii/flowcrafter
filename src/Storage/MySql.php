@@ -533,12 +533,32 @@ class MySql implements StorageInterface
         return (int) $stmt->fetchColumn();
     }
 
-    public function countExceptions(): int
+    public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
     {
-        $stmt = $this->client->query('SELECT COUNT(*) FROM flow_exception');
-        if ($stmt === false) {
-            return 0;
+        $conditions = [];
+        $params = [];
+
+        if ($from instanceof \DateTimeInterface) {
+            $conditions[] = 'time >= :from';
+            $params[':from'] = $from->format('Y-m-d H:i:s.u');
         }
+
+        if ($to instanceof \DateTimeInterface) {
+            $conditions[] = 'time <= :to';
+            $params[':to'] = $to->format('Y-m-d H:i:s.u');
+        }
+
+        $sql = 'SELECT COUNT(*) FROM flow_exception';
+        if ($conditions !== []) {
+            $sql .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $stmt = $this->client->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+
+        $stmt->execute();
 
         return (int) $stmt->fetchColumn();
     }
