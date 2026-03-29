@@ -1441,7 +1441,7 @@ class Esdb implements StorageInterface
 
         $counts = [];
         foreach ($result as $row) {
-            /** @var array{flowHash: string, cnt: int} $row */
+            /** @var array{0: array{flowHash: string, cnt: int}} $row */
             $counts[$row[0]['flowHash']] = $row[0]['cnt'];
         }
 
