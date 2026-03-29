@@ -28,7 +28,7 @@ final class FlowDevCommand extends Command
         private FlowcrafterConfig $flowcrafterConfig,
         private BootstrapConfig $bootstrapConfig,
     ) {
-        $this->pidFile = sys_get_temp_dir() . '/flowcrafter/observer.' . getmypid() . '.heartbeat';
+        $this->pidFile = sys_get_temp_dir() . '/flowcrafter/observer.' . gethostname() . '.' . getmypid() . '.heartbeat';
         parent::__construct();
     }
 
@@ -61,10 +61,12 @@ final class FlowDevCommand extends Command
             $port,
         ));
 
-        $env = [];
+        $env = null;
         $configFile = $this->bootstrapConfig->getBootstrapConfigFile();
         if ($configFile !== null) {
-            $env['FLOWCRAFTER_CONFIG'] = $configFile;
+            $env = [
+                'FLOWCRAFTER_CONFIG' => $configFile,
+            ] + getenv();
         }
 
         $serverProcess = new Process(

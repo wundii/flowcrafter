@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Config;
 
 use RuntimeException;
-use Wundii\DataMapper\DataConfig;
-use Wundii\DataMapper\DataMapper;
-use Wundii\DataMapper\Enum\ApproachEnum;
-use Wundii\Flowcrafter\Assert;
+use Wundii\Flowcrafter\Interface\StorageConfigInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 
 final class FlowcrafterConfig extends FlowcrafterConfigParameter
@@ -16,13 +13,11 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
     public function __construct()
     {
         $this->setParameter(OptionEnum::STORAGE_CLASS, null);
-        $this->setParameter(OptionEnum::STORAGE_URL, null);
-        $this->setParameter(OptionEnum::STORAGE_APITOKEN, null);
-        $this->setParameter(OptionEnum::STORAGE_HOST, null);
-        $this->setParameter(OptionEnum::STORAGE_PORT, null);
-        $this->setParameter(OptionEnum::STORAGE_USERNAME, null);
-        $this->setParameter(OptionEnum::STORAGE_PASSWORD, null);
-        $this->setParameter(OptionEnum::STORAGE_DATABASE, null);
+        $this->setParameter(OptionEnum::STORAGE_CONFIG, null);
+        $this->setParameter(OptionEnum::SERVER_HOST, null);
+        $this->setParameter(OptionEnum::SERVER_PORT, null);
+        $this->setParameter(OptionEnum::SERVER_WORKERS, null);
+        $this->setParameter(OptionEnum::SERVER_HTTPS, false);
         $this->setParameter(OptionEnum::SERVER_SECRET, null);
         $this->setParameter(OptionEnum::SERVER_DESCRIPTION, null);
         $this->setParameter(OptionEnum::DEPENDENCIES_INJECTION, []);
@@ -33,39 +28,49 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::STORAGE_CLASS, $storageClass);
     }
 
-    public function setStorageUrl(?string $storageUrl = null): void
+    public function setStorageConfig(StorageConfigInterface $storageConfig): void
     {
-        $this->setParameter(OptionEnum::STORAGE_URL, $storageUrl);
+        $this->setParameter(OptionEnum::STORAGE_CONFIG, $storageConfig);
     }
 
-    public function setStorageApiToken(?string $storageApiToken = null): void
+    public function setServerHost(?string $serverHost = null): void
     {
-        $this->setParameter(OptionEnum::STORAGE_APITOKEN, $storageApiToken);
+        $this->setParameter(OptionEnum::SERVER_HOST, $serverHost);
     }
 
-    public function setStorageHost(?string $storageHost = null): void
+    public function getServerHost(): ?string
     {
-        $this->setParameter(OptionEnum::STORAGE_HOST, $storageHost);
+        return $this->getNullOrString(OptionEnum::SERVER_HOST);
     }
 
-    public function setStoragePort(?int $storagePort = null): void
+    public function setServerPort(?int $serverPort = null): void
     {
-        $this->setParameter(OptionEnum::STORAGE_PORT, $storagePort);
+        $this->setParameter(OptionEnum::SERVER_PORT, $serverPort);
     }
 
-    public function setStorageUsername(?string $storageUsername = null): void
+    public function getServerPort(): ?int
     {
-        $this->setParameter(OptionEnum::STORAGE_USERNAME, $storageUsername);
+        return $this->getNullOrInt(OptionEnum::SERVER_PORT);
     }
 
-    public function setStoragePassword(?string $storagePassword = null): void
+    public function setServerWorkers(?int $serverWorkers = null): void
     {
-        $this->setParameter(OptionEnum::STORAGE_PASSWORD, $storagePassword);
+        $this->setParameter(OptionEnum::SERVER_WORKERS, $serverWorkers);
     }
 
-    public function setStorageDatabase(?string $storageDatabase = null): void
+    public function getServerWorkers(): ?int
     {
-        $this->setParameter(OptionEnum::STORAGE_DATABASE, $storageDatabase);
+        return $this->getNullOrInt(OptionEnum::SERVER_WORKERS);
+    }
+
+    public function setServerHttps(bool $serverHttps = true): void
+    {
+        $this->setParameter(OptionEnum::SERVER_HTTPS, $serverHttps);
+    }
+
+    public function getServerHttps(): bool
+    {
+        return $this->getBoolean(OptionEnum::SERVER_HTTPS);
     }
 
     public function setServerSecret(?string $serverSecret = null): void
@@ -107,35 +112,22 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         return $dependencies;
     }
 
-    /**
-     * @return mixed[]
-     */
-    public function toArray(): array
-    {
-        return [
-            OptionEnum::STORAGE_URL->value => $this->getNullOrString(OptionEnum::STORAGE_URL),
-            OptionEnum::STORAGE_APITOKEN->value => $this->getNullOrString(OptionEnum::STORAGE_APITOKEN),
-            OptionEnum::STORAGE_HOST->value => $this->getNullOrString(OptionEnum::STORAGE_HOST),
-            OptionEnum::STORAGE_PORT->value => $this->getNullOrInt(OptionEnum::STORAGE_PORT),
-            OptionEnum::STORAGE_USERNAME->value => $this->getNullOrString(OptionEnum::STORAGE_USERNAME),
-            OptionEnum::STORAGE_PASSWORD->value => $this->getNullOrString(OptionEnum::STORAGE_PASSWORD),
-            OptionEnum::STORAGE_DATABASE->value => $this->getNullOrString(OptionEnum::STORAGE_DATABASE),
-        ];
-    }
-
     public function getStorage(): StorageInterface
     {
-        $dataConfig = new DataConfig(
-            approachEnum: ApproachEnum::CONSTRUCTOR,
-        );
-        $dataMapper = new DataMapper($dataConfig);
+        $storageConfig = $this->getParameter(OptionEnum::STORAGE_CONFIG);
+        if (!$storageConfig instanceof StorageConfigInterface) {
+            throw new RuntimeException('Storage config is not set. Call setStorageConfig() first.');
+        }
 
         $storageClass = $this->getString(OptionEnum::STORAGE_CLASS);
-        $storageClass = Assert::classString($storageClass, StorageInterface::class);
 
-        $storage = $dataMapper->array($this->toArray(), $storageClass);
+        if (!class_exists($storageClass)) {
+            throw new RuntimeException('The storage class ' . $storageClass . ' does not exist.');
+        }
+
+        $storage = new $storageClass($storageConfig);
         if (!$storage instanceof StorageInterface) {
-            throw new RuntimeException('The storage class ' . $storageClass . ' could not be loaded via the config.');
+            throw new RuntimeException('The storage class ' . $storageClass . ' does not implement StorageInterface.');
         }
 
         return $storage;

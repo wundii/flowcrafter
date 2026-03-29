@@ -3,16 +3,16 @@
 declare(strict_types=1);
 
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\Storage\Config\RedisConfig;
+use Wundii\Flowcrafter\Storage\Redis;
 
 return static function (FlowcrafterConfig $flowcrafterConfig): void {
-    $flowcrafterConfig->setStorageClass('Wundii\Flowcrafter\Storage\Redis');
-    $flowcrafterConfig->setStorageUrl();
-    $flowcrafterConfig->setStorageApiToken();
-    $flowcrafterConfig->setStorageHost('localhost');
-    $flowcrafterConfig->setStoragePort(6379);
-    $flowcrafterConfig->setStorageUsername();
-    $flowcrafterConfig->setStoragePassword();
-    $flowcrafterConfig->setStorageDatabase();
+    $flowcrafterConfig->setStorageClass(Redis::class);
+    $flowcrafterConfig->setStorageConfig(new RedisConfig('localhost', 6379));
+    $flowcrafterConfig->setServerHost('0.0.0.0');
+    $flowcrafterConfig->setServerPort(8000);
+    $flowcrafterConfig->setServerWorkers(4);
+    $flowcrafterConfig->setServerHttps(false);
     $flowcrafterConfig->setServerSecret();
     $flowcrafterConfig->setServerDescription();
     $flowcrafterConfig->setDependenciesInjection();

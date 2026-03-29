@@ -8,6 +8,7 @@ use Redis;
 use Testcontainers\Container\GenericContainer;
 use Testcontainers\Container\StartedGenericContainer;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Storage\Config\RedisConfig;
 use Wundii\Flowcrafter\Storage\Redis as RedisStorage;
 
 trait RedisClientTestTrait
@@ -41,8 +42,10 @@ trait RedisClientTestTrait
     public function storage(): StorageInterface
     {
         $redis = new RedisStorage(
-            $this->container->getHost(),
-            $this->container->getMappedPort(6379),
+            new RedisConfig(
+                $this->container->getHost(),
+                $this->container->getMappedPort(6379),
+            ),
         );
         $redis->initializeDatabase();
 

@@ -24,6 +24,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
@@ -49,19 +50,24 @@ class MySql implements StorageInterface
 
     protected Client $client;
 
-    public function __construct(
-        string $host,
-        int $port,
-        string $database,
-        string $username,
-        string $password = '',
-    ) {
-        $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $host, $port, $database);
-        $this->client = new Client($dsn, $username, $password, [
-            Client::ATTR_ERRMODE => Client::ERRMODE_EXCEPTION,
-            Client::ATTR_DEFAULT_FETCH_MODE => Client::FETCH_ASSOC,
-            Client::ATTR_EMULATE_PREPARES => false,
-        ]);
+    public function __construct(MySqlConfig $mySqlConfig)
+    {
+        $dsn = sprintf(
+            'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
+            $mySqlConfig->getHost(),
+            $mySqlConfig->getPort(),
+            $mySqlConfig->getDatabase(),
+        );
+        $this->client = new Client(
+            $dsn,
+            $mySqlConfig->getUsername(),
+            $mySqlConfig->getPassword(),
+            [
+                Client::ATTR_ERRMODE => Client::ERRMODE_EXCEPTION,
+                Client::ATTR_DEFAULT_FETCH_MODE => Client::FETCH_ASSOC,
+                Client::ATTR_EMULATE_PREPARES => false,
+            ]
+        );
     }
 
     public function initializeDatabase(): void

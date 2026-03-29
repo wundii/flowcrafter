@@ -8,6 +8,7 @@ use PDO as Client;
 use Testcontainers\Container\StartedGenericContainer;
 use Testcontainers\Modules\MariaDBContainer;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
 use Wundii\Flowcrafter\Storage\MySql;
 
 trait MySqlClientTestTrait
@@ -53,11 +54,13 @@ trait MySqlClientTestTrait
     public function storage(): StorageInterface
     {
         $mySql = new MySql(
-            $this->container->getHost(),
-            $this->container->getMappedPort(self::PORT),
-            self::DATABASE,
-            self::USERNAME,
-            self::PASSWORD
+            new MysqlConfig(
+                $this->container->getHost(),
+                $this->container->getMappedPort(self::PORT),
+                self::DATABASE,
+                self::USERNAME,
+                self::PASSWORD,
+            ),
         );
         $mySql->initializeDatabase();
 

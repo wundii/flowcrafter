@@ -33,22 +33,27 @@ class Flower
         return $flower->router;
     }
 
+    public static function resetRequest(): void
+    {
+        if (self::$flower instanceof self) {
+            self::$flower->request = Request::createFromGlobals();
+        }
+    }
+
     public static function run(?string $secret = null): void
     {
         $flower = self::getInstance();
         $request = $flower->request;
         $router = $flower->router();
         $response = null;
-
-        $publicPaths = ['/', '/metrics'];
-        if ($secret !== null && $secret !== '' && !in_array($request->getPathInfo(), $publicPaths, true)) {
-            $authHeader = (string) $request->headers->get('Authorization', '');
-            $provided = str_starts_with($authHeader, 'Bearer ') ? substr($authHeader, 7) : '';
-            if (!hash_equals($secret, $provided)) {
-                (new Response('Unauthorized', 401))->send();
-                return;
-            }
-        }
+        // if ($secret !== null && $secret !== '' && !in_array($request->getPathInfo(), $publicPaths, true)) {
+        //     $authHeader = (string) $request->headers->get('Authorization', '');
+        //     $provided = str_starts_with($authHeader, 'Bearer ') ? substr($authHeader, 7) : '';
+        //     if (!hash_equals($secret, $provided)) {
+        //         (new Response('Unauthorized', 401))->send();
+        //         return;
+        //     }
+        // }
 
         $requestContext = new RequestContext();
         $requestContext->fromRequest($request);

@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Console\Commands;
 
-use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 use Throwable;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
@@ -19,7 +17,7 @@ use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\FlowObserver;
 
-final class FlowFrankenPhpObserverCommand extends Command
+final class FlowObserverCommand extends Command
 {
     /**
      * @var Process[]
@@ -35,8 +33,8 @@ final class FlowFrankenPhpObserverCommand extends Command
 
     protected function configure(): void
     {
-        $this->setName('frankenphp:observer');
-        $this->setDescription('Start observer worker(s) via FrankenPHP');
+        $this->setName('observer');
+        $this->setDescription('Start observer worker(s) for queue processing');
         $this->addOption('workers', null, InputOption::VALUE_REQUIRED, 'Number of observer workers', '1');
     }
 
@@ -44,11 +42,6 @@ final class FlowFrankenPhpObserverCommand extends Command
     {
         $output = new FlowSymfonyStyle($input, $output);
         $output->startApplication(FlowConsole::vendorVersion());
-
-        $frankenPhpBinary = (new ExecutableFinder())->find('frankenphp');
-        if ($frankenPhpBinary === null) {
-            throw new RuntimeException('FrankenPHP binary not found — install FrankenPHP to use this command');
-        }
 
         /** @var string $workersOption */
         $workersOption = $input->getOption('workers');
@@ -65,7 +58,7 @@ final class FlowFrankenPhpObserverCommand extends Command
             return $this->runObserver($output);
         }
 
-        return $this->runWorkers($frankenPhpBinary, $workers, $output);
+        return $this->runWorkers($workers, $output);
     }
 
     private function runObserver(FlowSymfonyStyle $flowSymfonyStyle): int
@@ -100,14 +93,16 @@ final class FlowFrankenPhpObserverCommand extends Command
         }
     }
 
-    private function runWorkers(string $frankenPhpBinary, int $workers, FlowSymfonyStyle $flowSymfonyStyle): int
+    private function runWorkers(int $workers, FlowSymfonyStyle $flowSymfonyStyle): int
     {
         $flowcrafterScript = dirname(__DIR__, 3) . '/bin/flowcrafter.php';
 
-        $env = [];
+        $env = null;
         $configFile = $this->bootstrapConfig->getBootstrapConfigFile();
         if ($configFile !== null) {
-            $env['FLOWCRAFTER_CONFIG'] = $configFile;
+            $env = [
+                'FLOWCRAFTER_CONFIG' => $configFile,
+            ] + getenv();
         }
 
         register_shutdown_function(function (): void {
@@ -115,7 +110,7 @@ final class FlowFrankenPhpObserverCommand extends Command
         });
 
         for ($i = 0; $i < $workers; ++$i) {
-            $this->workerProcesses[$i] = $this->startWorker($frankenPhpBinary, $flowcrafterScript, $env, $i, $flowSymfonyStyle);
+            $this->workerProcesses[$i] = $this->startWorker($flowcrafterScript, $env, $i, $flowSymfonyStyle);
         }
 
         /** @phpstan-ignore while.alwaysTrue */
@@ -127,7 +122,7 @@ final class FlowFrankenPhpObserverCommand extends Command
                         OutputColorEnum::YELLOW->value,
                         $i,
                     ));
-                    $this->workerProcesses[$i] = $this->startWorker($frankenPhpBinary, $flowcrafterScript, $env, $i, $flowSymfonyStyle);
+                    $this->workerProcesses[$i] = $this->startWorker($flowcrafterScript, $env, $i, $flowSymfonyStyle);
                 }
             }
 
@@ -136,12 +131,12 @@ final class FlowFrankenPhpObserverCommand extends Command
     }
 
     /**
-     * @param array<string, string> $env
+     * @param array<string, string>|null $env
      */
-    private function startWorker(string $frankenPhpBinary, string $flowcrafterScript, array $env, int $index, FlowSymfonyStyle $flowSymfonyStyle): Process
+    private function startWorker(string $flowcrafterScript, ?array $env, int $index, FlowSymfonyStyle $flowSymfonyStyle): Process
     {
         $process = new Process(
-            [$frankenPhpBinary, 'php-cli', $flowcrafterScript, 'frankenphp:observer', '--workers', '1'],
+            [PHP_BINARY, $flowcrafterScript, 'observer', '--workers', '1'],
             null,
             $env,
         );

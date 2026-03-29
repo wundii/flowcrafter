@@ -31,6 +31,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
@@ -60,13 +61,11 @@ class Esdb implements StorageInterface
 
     protected Client $client;
 
-    public function __construct(
-        string $url,
-        string $apiToken,
-    ) {
+    public function __construct(EsdbConfig $esdbConfig)
+    {
         $this->client = new Client(
-            $url,
-            $apiToken,
+            $esdbConfig->getUrl(),
+            $esdbConfig->getApiToken(),
         );
     }
 

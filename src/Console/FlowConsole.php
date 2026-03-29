@@ -18,10 +18,10 @@ use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
 use Wundii\Flowcrafter\Console\Commands\FlowCreateCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowDevCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowDockerInitCommand;
-use Wundii\Flowcrafter\Console\Commands\FlowFrankenPhpObserverCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowFrankenPhpServiceCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowInitCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowMermaidCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowObserverCommand;
 
 final class FlowConsole extends BaseApplication
 {
@@ -34,7 +34,7 @@ final class FlowConsole extends BaseApplication
         FlowCreateCommand $flowCreateCommand,
         FlowDevCommand $flowDevCommand,
         FlowDockerInitCommand $flowDockerInitCommand,
-        FlowFrankenPhpObserverCommand $flowFrankenPhpObserverCommand,
+        FlowObserverCommand $flowFrankenPhpObserverCommand,
         FlowFrankenPhpServiceCommand $flowFrankenPhpServiceCommand,
         FlowInitCommand $flowInitCommand,
         FlowMermaidCommand $flowMermaidCommand,

@@ -23,6 +23,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\Storage\Config\RedisConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
@@ -61,10 +62,10 @@ class Redis implements StorageInterface
 
     protected Client $client;
 
-    public function __construct(string $host, int $port)
+    public function __construct(RedisConfig $redisConfig)
     {
         $this->client = new Client();
-        $this->client->connect($host, $port);
+        $this->client->connect($redisConfig->getHost(), $redisConfig->getPort());
     }
 
     public static function escapeValue(string $value): string
