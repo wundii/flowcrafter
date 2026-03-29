@@ -6,4 +6,5 @@ namespace Wundii\Flowcrafter\Interface;
 
 interface StorageConfigInterface
 {
+    public function getStorageClass(): string;
 }

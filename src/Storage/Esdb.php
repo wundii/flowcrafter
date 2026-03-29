@@ -882,49 +882,60 @@ class Esdb implements StorageInterface
             'WHERE e.type == "' . self::TYPE_RUN . '" ' .
             $timeFilter .
             'ORDER BY e.data.time DESC ' .
-            'PROJECT INTO e.data.flowHash'
+            'PROJECT INTO {time: e.data.time, flowHash: e.data.flowHash}'
         );
 
-        $runTimeLastMap = iterator_to_array($runEvents);
-        $runTimeLastMap = array_unique($runTimeLastMap);
+        $runTimeLastMap = [];
+        $orderedHashes = [];
+        foreach ($runEvents as $runEvent) {
+            /** @var array{time: string, flowHash: string} $runEvent */
+            $hash = $runEvent['flowHash'];
+            if (!isset($runTimeLastMap[$hash])) {
+                $runTimeLastMap[$hash] = $runEvent['time'];
+                $orderedHashes[] = $hash;
+            }
+        }
 
-        if ($runTimeLastMap === []) {
+        if ($orderedHashes === []) {
             return;
         }
 
         if ($sortEnum === SortEnum::ASC) {
-            sort($runTimeLastMap);
+            $orderedHashes = array_reverse($orderedHashes);
         }
 
         $orClauses = array_map(
             static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
-            $runTimeLastMap,
+            $orderedHashes,
         );
 
         $flowEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'AND (' . implode(' OR ', $orClauses) . ') ' .
-            'SKIP ' . $skip . ' ' .
-            'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
         );
 
-        $flowEvents = iterator_to_array($flowEvents);
-
-        $exceptionCounts = $this->batchCountExceptions(array_column($flowEvents, 'flowHash'));
-
+        $flowEventMap = [];
         foreach ($flowEvents as $flowEvent) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
-            $flowHash = $flowEvent['flowHash'];
+            $flowEventMap[$flowEvent['flowHash']] = $flowEvent;
+        }
+
+        $matchingHashes = array_values(array_intersect($orderedHashes, array_keys($flowEventMap)));
+        $exceptionCounts = $this->batchCountExceptions($matchingHashes);
+
+        $sliced = array_slice($matchingHashes, $skip, $top);
+        foreach ($sliced as $hash) {
+            $flowEvent = $flowEventMap[$hash];
             yield new FlowEntity(
-                flowHash: $flowHash,
+                flowHash: $hash,
                 flowType: $flowEvent['flowType'],
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
-                timeLastRun: new DateTimeImmutable($runTimeLastMap[$flowHash] ?? $flowEvent['time']),
-                exceptionCount: $exceptionCounts[$flowHash] ?? 0,
+                timeLastRun: new DateTimeImmutable($runTimeLastMap[$hash]),
+                exceptionCount: $exceptionCounts[$hash] ?? 0,
             );
         }
     }
@@ -955,20 +966,28 @@ class Esdb implements StorageInterface
             'PROJECT INTO {time: e.data.time, flowHash: e.data.flowHash}'
         );
 
-        $runTimeLastMap = iterator_to_array($runEvents);
-        $runTimeLastMap = array_unique($runTimeLastMap);
+        $runTimeLastMap = [];
+        $orderedHashes = [];
+        foreach ($runEvents as $runEvent) {
+            /** @var array{time: string, flowHash: string} $runEvent */
+            $hash = $runEvent['flowHash'];
+            if (!isset($runTimeLastMap[$hash])) {
+                $runTimeLastMap[$hash] = $runEvent['time'];
+                $orderedHashes[] = $hash;
+            }
+        }
 
-        if ($runTimeLastMap === []) {
+        if ($orderedHashes === []) {
             return;
         }
 
         if ($sortEnum === SortEnum::ASC) {
-            sort($runTimeLastMap);
+            $orderedHashes = array_reverse($orderedHashes);
         }
 
         $orClauses = array_map(
             static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
-            $runTimeLastMap,
+            $orderedHashes,
         );
 
         $flowEvents = $this->client->runEventQlQuery(
@@ -976,26 +995,29 @@ class Esdb implements StorageInterface
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'AND e.data.flowSource == "' . $flowSource . '" ' .
             'AND (' . implode(' OR ', $orClauses) . ') ' .
-            'SKIP ' . $skip . ' ' .
-            'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
         );
 
-        $flowEvents = iterator_to_array($flowEvents);
-
-        $exceptionCounts = $this->batchCountExceptions(array_column($flowEvents, 'flowHash'));
-
+        $flowEventMap = [];
         foreach ($flowEvents as $flowEvent) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
-            $flowHash = $flowEvent['flowHash'];
+            $flowEventMap[$flowEvent['flowHash']] = $flowEvent;
+        }
+
+        $matchingHashes = array_values(array_intersect($orderedHashes, array_keys($flowEventMap)));
+        $exceptionCounts = $this->batchCountExceptions($matchingHashes);
+
+        $sliced = array_slice($matchingHashes, $skip, $top);
+        foreach ($sliced as $hash) {
+            $flowEvent = $flowEventMap[$hash];
             yield new FlowEntity(
-                flowHash: $flowHash,
+                flowHash: $hash,
                 flowType: $flowEvent['flowType'],
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
-                timeLastRun: new DateTimeImmutable($runTimeLastMap[$flowHash] ?? $flowEvent['time']),
-                exceptionCount: $exceptionCounts[$flowHash] ?? 0,
+                timeLastRun: new DateTimeImmutable($runTimeLastMap[$hash]),
+                exceptionCount: $exceptionCounts[$hash] ?? 0,
             );
         }
     }
@@ -1023,23 +1045,31 @@ class Esdb implements StorageInterface
             'WHERE e.type == "' . self::TYPE_RUN . '" ' .
             $timeFilter .
             'ORDER BY e.data.time DESC ' .
-            'PROJECT INTO e.data.flowHash'
+            'PROJECT INTO {time: e.data.time, flowHash: e.data.flowHash}'
         );
 
-        $runTimeLastMap = iterator_to_array($runEvents);
-        $runTimeLastMap = array_unique($runTimeLastMap);
+        $runTimeLastMap = [];
+        $orderedHashes = [];
+        foreach ($runEvents as $runEvent) {
+            /** @var array{time: string, flowHash: string} $runEvent */
+            $hash = $runEvent['flowHash'];
+            if (!isset($runTimeLastMap[$hash])) {
+                $runTimeLastMap[$hash] = $runEvent['time'];
+                $orderedHashes[] = $hash;
+            }
+        }
 
-        if ($runTimeLastMap === []) {
+        if ($orderedHashes === []) {
             return;
         }
 
         if ($sortEnum === SortEnum::ASC) {
-            sort($runTimeLastMap);
+            $orderedHashes = array_reverse($orderedHashes);
         }
 
         $orClauses = array_map(
             static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
-            $runTimeLastMap,
+            $orderedHashes,
         );
 
         $flowEvents = $this->client->runEventQlQuery(
@@ -1047,26 +1077,29 @@ class Esdb implements StorageInterface
             'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
             'AND STARTSWITH(e.data.flowType, "' . $flowType . '.v") ' .
             'AND (' . implode(' OR ', $orClauses) . ') ' .
-            'SKIP ' . $skip . ' ' .
-            'TOP ' . $top . ' ' .
             'PROJECT INTO e.data'
         );
 
-        $flowEvents = iterator_to_array($flowEvents);
-
-        $exceptionCounts = $this->batchCountExceptions(array_column($flowEvents, 'flowHash'));
-
+        $flowEventMap = [];
         foreach ($flowEvents as $flowEvent) {
             /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
-            $flowHash = $flowEvent['flowHash'];
+            $flowEventMap[$flowEvent['flowHash']] = $flowEvent;
+        }
+
+        $matchingHashes = array_values(array_intersect($orderedHashes, array_keys($flowEventMap)));
+        $exceptionCounts = $this->batchCountExceptions($matchingHashes);
+
+        $sliced = array_slice($matchingHashes, $skip, $top);
+        foreach ($sliced as $hash) {
+            $flowEvent = $flowEventMap[$hash];
             yield new FlowEntity(
-                flowHash: $flowHash,
+                flowHash: $hash,
                 flowType: $flowEvent['flowType'],
                 flowSource: $flowEvent['flowSource'],
                 flowSubject: $flowEvent['flowSubject'],
                 time: new DateTimeImmutable($flowEvent['time']),
-                timeLastRun: new DateTimeImmutable($runTimeLastMap[$flowHash] ?? $flowEvent['time']),
-                exceptionCount: $exceptionCounts[$flowHash] ?? 0,
+                timeLastRun: new DateTimeImmutable($runTimeLastMap[$hash]),
+                exceptionCount: $exceptionCounts[$hash] ?? 0,
             );
         }
     }

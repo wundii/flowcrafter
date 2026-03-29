@@ -12,7 +12,6 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
 {
     public function __construct()
     {
-        $this->setParameter(OptionEnum::STORAGE_CLASS, null);
         $this->setParameter(OptionEnum::STORAGE_CONFIG, null);
         $this->setParameter(OptionEnum::SERVER_HOST, null);
         $this->setParameter(OptionEnum::SERVER_PORT, null);
@@ -21,11 +20,6 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::SERVER_SECRET, null);
         $this->setParameter(OptionEnum::SERVER_DESCRIPTION, null);
         $this->setParameter(OptionEnum::DEPENDENCIES_INJECTION, []);
-    }
-
-    public function setStorageClass(string $storageClass): void
-    {
-        $this->setParameter(OptionEnum::STORAGE_CLASS, $storageClass);
     }
 
     public function setStorageConfig(StorageConfigInterface $storageConfig): void
@@ -119,7 +113,7 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
             throw new RuntimeException('Storage config is not set. Call setStorageConfig() first.');
         }
 
-        $storageClass = $this->getString(OptionEnum::STORAGE_CLASS);
+        $storageClass = $storageConfig->getStorageClass();
 
         if (!class_exists($storageClass)) {
             throw new RuntimeException('The storage class ' . $storageClass . ' does not exist.');

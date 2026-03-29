@@ -46,36 +46,53 @@ Erstelle eine `flowcrafter.php` im Projektstamm (oder via `vendor/bin/flowcrafte
 declare(strict_types=1);
 
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\Storage\Config\RedisConfig;
 
 return static function (FlowcrafterConfig $flowcrafterConfig): void {
-    $flowcrafterConfig->setStorageClass('Wundii\Flowcrafter\Storage\Redis');
-    $flowcrafterConfig->setStorageUrl();
-    $flowcrafterConfig->setStorageApiToken();
-    $flowcrafterConfig->setStorageHost('localhost');
-    $flowcrafterConfig->setStoragePort(6379);
-    $flowcrafterConfig->setStorageUsername();
-    $flowcrafterConfig->setStoragePassword();
-    $flowcrafterConfig->setStorageDatabase();
+    $flowcrafterConfig->setStorageConfig(new RedisConfig('localhost', 6379));
+    $flowcrafterConfig->setServerHost('0.0.0.0');
+    $flowcrafterConfig->setServerPort(8000);
+    $flowcrafterConfig->setServerWorkers(4);
+    $flowcrafterConfig->setServerHttps(false);
     $flowcrafterConfig->setServerSecret();
     $flowcrafterConfig->setServerDescription();
+    $flowcrafterConfig->setDependenciesInjection();
 };
 ```
 
 ### Storage-Backends im Überblick
 
-| Backend         | Klasse          | Besonderheit                              |
-| --------------- | --------------- | ----------------------------------------- |
-| MySQL           | `Storage\MySql` | Relationales Schema, Transaktionen, PDO   |
-| Redis           | `Storage\Redis` | In-Memory, RediSearch-Indizes             |
-| EventSourcingDB | `Storage\Esdb`  | Event Sourcing, Append-Only               |
+Das Storage-Backend wird über typisierte Config-Objekte konfiguriert:
+
+| Backend         | Config-Klasse                  | Parameter                                    | Besonderheit                              |
+| --------------- | ------------------------------ | -------------------------------------------- | ----------------------------------------- |
+| MySQL           | `Storage\Config\MySqlConfig`   | `host`, `port`, `database`, `username`, `password` | Relationales Schema, Transaktionen, PDO   |
+| Redis           | `Storage\Config\RedisConfig`   | `host`, `port`                               | In-Memory, RediSearch-Indizes             |
+| EventSourcingDB | `Storage\Config\EsdbConfig`    | `url`, `apiToken`                            | Event Sourcing, Append-Only               |
+
+**Beispiel MySQL:**
+```php
+use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
+$flowcrafterConfig->setStorageConfig(new MySqlConfig('localhost', 3306, 'flowcrafter', 'root', 'secret'));
+```
+
+**Beispiel EventSourcingDB:**
+```php
+use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
+$flowcrafterConfig->setStorageConfig(new EsdbConfig('http://localhost:3000', 'my-api-token'));
+```
 
 ### Optionale Einstellungen
 
-| Methode                        | Beschreibung                                                                      |
-| ------------------------------ | --------------------------------------------------------------------------------- |
+| Methode                        | Beschreibung                                                                         |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| `setServerHost()`              | Server-Host (Default: `0.0.0.0`)                                                    |
+| `setServerPort()`              | Server-Port (Default: `8000`)                                                        |
+| `setServerWorkers()`           | Anzahl FrankenPHP-Worker (Default: `4`)                                              |
+| `setServerHttps()`             | HTTPS aktivieren für FrankenPHP (Default: `false`)                                   |
 | `setServerSecret()`            | Bearer-Token für die API-Authentifizierung (ohne Secret sind alle Routen öffentlich) |
-| `setServerDescription()`       | Beschreibung, die über `/api/info` und `/metrics` exponiert wird                  |
-| `setDependenciesInjection()`   | Service-Instanzen, die in Stub-Konstruktoren injiziert werden                     |
+| `setServerDescription()`       | Beschreibung, die über `/api/info` und `/metrics` exponiert wird                     |
+| `setDependenciesInjection()`   | Service-Instanzen, die in Stub-Konstruktoren injiziert werden                        |
 
 ---
 
@@ -95,28 +112,47 @@ vendor/bin/flowcrafter init
 
 Legt alle Tabellen / Indizes im konfigurierten Backend an.
 
-### 3. API-Server + Observer starten
+### 3. Entwicklung: API-Server + Observer starten
 
 ```bash
-vendor/bin/flowcrafter serve
+vendor/bin/flowcrafter dev
 ```
 
-Startet den API-Server und den Observer zusammen in einem Kommando. Ctrl+C beendet beide Prozesse.
+Startet den PHP-Built-in-Server und den Observer zusammen in einem Kommando. Ctrl+C beendet beide Prozesse. Nur für Entwicklung gedacht.
 
 | Option   | Default   | Beschreibung |
 | -------- | --------- | ------------ |
 | `--host` | `0.0.0.0` | Server-Host  |
 | `--port` | `8000`    | Server-Port  |
 
-**Alternativ einzeln starten:**
+### 4. Produktion: FrankenPHP + Docker
+
+Für den Produktionsbetrieb werden API-Server und Observer als getrennte Container betrieben.
+
+**Docker-Dateien generieren:**
 
 ```bash
-# Nur API-Server
-php -S localhost:8000 service/index.php
-
-# Nur Observer
-vendor/bin/flowcrafter observer
+vendor/bin/flowcrafter docker:init
 ```
+
+Erzeugt `Dockerfile.service`, `Dockerfile.observer` und `docker-compose.yml` im Projektstamm.
+
+**Einzeln starten (ohne Docker):**
+
+```bash
+# API-Server (FrankenPHP Worker Mode)
+vendor/bin/flowcrafter frankenphp:service [--host=0.0.0.0] [--port=8000] [--workers=4]
+
+# Observer (ein oder mehrere Worker)
+vendor/bin/flowcrafter observer [--workers=1]
+```
+
+| Container    | Command                         | Skalierung                                    |
+| ------------ | ------------------------------- | --------------------------------------------- |
+| **service**  | `vendor/bin/flowcrafter frankenphp:service` | vertikal (FrankenPHP Worker)         |
+| **observer** | `vendor/bin/flowcrafter observer --workers N` | horizontal (mehrere Worker-Prozesse) |
+
+> **Hinweis:** Horizontale Skalierung des Observers erfordert, dass die `StorageInterface`-Implementierung atomaren Queue-Zugriff garantiert.
 
 ---
 
@@ -132,15 +168,18 @@ flowcrafter/
 │   │   └── FlowcrafterConfig.php      # Konfigurationsklasse
 │   ├── Console/
 │   │   ├── Commands/
-│   │   │   ├── FlowCreateCommand.php  # Konfigurationsdatei erzeugen
-│   │   │   ├── FlowInitCommand.php    # Storage initialisieren
-│   │   │   ├── FlowMermaidCommand.php # Mermaid-Diagramm erzeugen
-│   │   │   ├── FlowObserverCommand.php # Observer-Daemon starten
-│   │   │   └── FlowServeCommand.php   # API-Server + Observer starten
-│   │   └── Output/                    # Console-Output-Helfer
+│   │   │   ├── FlowCreateCommand.php           # Konfigurationsdatei erzeugen
+│   │   │   ├── FlowDevCommand.php              # API-Server + Observer (Entwicklung)
+│   │   │   ├── FlowDockerInitCommand.php       # Dockerfiles + docker-compose generieren
+│   │   │   ├── FlowFrankenPhpServiceCommand.php # API-Server (FrankenPHP, Produktion)
+│   │   │   ├── FlowInitCommand.php             # Storage initialisieren
+│   │   │   ├── FlowMermaidCommand.php          # Mermaid-Diagramm erzeugen
+│   │   │   └── FlowObserverCommand.php         # Observer-Worker starten
+│   │   └── Output/                             # Console-Output-Helfer
 │   ├── Enum/                          # Message-, MessageType- und Sort-Enums
 │   ├── Interface/
 │   │   ├── StorageInterface.php       # Backend-Abstraktion
+│   │   ├── StorageConfigInterface.php # Config-Vertrag für Storage-Backends
 │   │   ├── FlowInterface.php          # Flow-Implementierungsvertrag
 │   │   ├── MessageInterface.php       # Basistyp für alle Messages
 │   │   ├── MessageInitInterface.php   # Marker: Startnachricht
@@ -148,6 +187,10 @@ flowcrafter/
 │   │   ├── MessageReturnInterface.php # Marker: Rückgabewert (Flow-Ende)
 │   │   └── StubInterface.php          # Prozessoreinheit
 │   ├── Storage/
+│   │   ├── Config/
+│   │   │   ├── EsdbConfig.php         # EventSourcingDB-Konfiguration
+│   │   │   ├── MySqlConfig.php        # MySQL-Konfiguration
+│   │   │   └── RedisConfig.php        # Redis-Konfiguration
 │   │   ├── MySql.php                  # MySQL-Implementierung
 │   │   ├── Redis.php                  # Redis-Implementierung
 │   │   ├── Esdb.php                   # EventSourcingDB-Implementierung
@@ -176,9 +219,14 @@ flowcrafter/
 │   │   ├── Flower.php                 # Singleton: Request-Handling, Auth
 │   │   ├── Router.php                 # Routen-Registry (Symfony Routing)
 │   │   └── MethodEnum.php             # GET, POST
-│   └── index.php                      # API-Einstiegspunkt
+│   ├── bootstrap.php                  # Config-Initialisierung & Routen-Definition
+│   ├── index.php                      # API-Einstiegspunkt (PHP Built-in Server)
+│   └── worker.php                     # FrankenPHP Worker-Einstiegspunkt
 ├── templates/
-│   └── flowcrafter.php.dist           # Vorlage für flowcrafter create
+│   ├── flowcrafter.php.dist           # Vorlage für flowcrafter create
+│   ├── Dockerfile.service.dist        # Vorlage für Service-Container
+│   ├── Dockerfile.observer.dist       # Vorlage für Observer-Container
+│   └── docker-compose.yml.dist        # Vorlage für Docker Compose
 ├── tests/                             # PHPUnit + Testcontainers (MySQL, Redis, ESDB)
 └── composer.json
 ```
@@ -288,24 +336,36 @@ Der Endpunkt `GET /metrics` gibt Metriken im [Prometheus-Textformat](https://pro
 
 **Exportierte Metriken:**
 
-| Metrik                    | Typ   | Beschreibung                                                       |
-| ------------------------- | ----- | ------------------------------------------------------------------ |
-| `flowcrafter_info`        | gauge | Immer `1`, Label `description` enthält die Server-Beschreibung     |
-| `flowcrafter_observer_up` | gauge | `1` = Observer läuft, `0` = Observer gestoppt                      |
-| `flowcrafter_queue_size`  | gauge | Aktuelle Anzahl der Einträge in der Queue                          |
+| Metrik                         | Typ   | Beschreibung                                                              |
+| ------------------------------ | ----- | ------------------------------------------------------------------------- |
+| `flowcrafter_info`             | gauge | Immer `1`, Labels `description` und `storage` enthalten Metadaten        |
+| `flowcrafter_observer_up`      | gauge | `1` = Observer läuft, `0` = Observer gestoppt                             |
+| `flowcrafter_observer_workers` | gauge | Anzahl der aktiven Observer-Worker-Prozesse                               |
+| `flowcrafter_queue_size`       | gauge | Aktuelle Anzahl der Einträge in der Queue                                 |
+| `flowcrafter_flows_total`      | gauge | Gesamtanzahl aller Flow-Instanzen                                         |
+| `flowcrafter_exceptions_7d`    | gauge | Anzahl der Exceptions in den letzten 7 Tagen                              |
 
 **Beispielausgabe:**
 
 ```
 # HELP flowcrafter_info FlowCrafter service information
 # TYPE flowcrafter_info gauge
-flowcrafter_info{description="Production"} 1
+flowcrafter_info{description="Production",storage="Redis"} 1
 # HELP flowcrafter_observer_up Whether the FlowCrafter observer process is running (1 = up, 0 = down)
 # TYPE flowcrafter_observer_up gauge
 flowcrafter_observer_up 1
+# HELP flowcrafter_observer_workers Number of active observer worker processes
+# TYPE flowcrafter_observer_workers gauge
+flowcrafter_observer_workers 2
 # HELP flowcrafter_queue_size Number of items currently pending in the queue
 # TYPE flowcrafter_queue_size gauge
 flowcrafter_queue_size 0
+# HELP flowcrafter_flows_total Total number of flow instances
+# TYPE flowcrafter_flows_total gauge
+flowcrafter_flows_total 42
+# HELP flowcrafter_exceptions_7d Number of exceptions in the last 7 days
+# TYPE flowcrafter_exceptions_7d gauge
+flowcrafter_exceptions_7d 3
 ```
 
 ### Prometheus-Konfiguration
@@ -333,11 +393,17 @@ vendor/bin/flowcrafter create
 # Storage-Tabellen / -Indizes anlegen
 vendor/bin/flowcrafter init
 
-# API-Server + Observer zusammen starten
-vendor/bin/flowcrafter serve [--host=0.0.0.0] [--port=8000]
+# Entwicklung: API-Server + Observer zusammen starten
+vendor/bin/flowcrafter dev [--host=0.0.0.0] [--port=8000]
 
-# Observer-Daemon einzeln starten
-vendor/bin/flowcrafter observer
+# Produktion: API-Server (FrankenPHP Worker Mode)
+vendor/bin/flowcrafter frankenphp:service [--host=0.0.0.0] [--port=8000] [--workers=4]
+
+# Observer-Worker starten (ein oder mehrere)
+vendor/bin/flowcrafter observer [--workers=1]
+
+# Dockerfiles + docker-compose.yml generieren
+vendor/bin/flowcrafter docker:init
 
 # Mermaid-Diagramm für einen Flow generieren
 vendor/bin/flowcrafter mermaid App\\MyFlow [--output=./]

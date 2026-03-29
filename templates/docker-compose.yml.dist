@@ -9,7 +9,6 @@ services:
       FLOWCRAFTER_CONFIG: /app/flowcrafter.php
     volumes:
       - flowcrafter_run:/tmp/flowcrafter
-    restart: unless-stopped
 
   observer:
     build:
@@ -19,7 +18,6 @@ services:
       FLOWCRAFTER_CONFIG: /app/flowcrafter.php
     volumes:
       - flowcrafter_run:/tmp/flowcrafter
-    restart: unless-stopped
 
   ui:
     image: wundii/flowcrafter-ui:latest

@@ -612,7 +612,7 @@ class MySql implements StorageInterface
             ' WHERE 1=1' .
             $where .
             ' GROUP BY fi.flow_hash' .
-            ' ORDER BY fi.flow_hash ' . $sortEnum->name .
+            ' ORDER BY time_last_run ' . $sortEnum->name . ', fi.flow_hash ' . $sortEnum->name .
             ' LIMIT ' . $skip . ', ' . $top;
 
         $stmt = $this->client->prepare($sql);
@@ -668,7 +668,7 @@ class MySql implements StorageInterface
             ' WHERE fi.flow_source = :flow_source' .
             $where .
             ' GROUP BY fi.flow_hash' .
-            ' ORDER BY fi.flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
+            ' ORDER BY time_last_run ' . $sortEnum->name . ', fi.flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
         );
         $stmt->bindValue(':flow_source', $flowSource);
         $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
@@ -721,7 +721,7 @@ class MySql implements StorageInterface
             ' WHERE fi.flow_type LIKE :flow_type' .
             $where .
             ' GROUP BY fi.flow_hash' .
-            ' ORDER BY fi.flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
+            ' ORDER BY time_last_run ' . $sortEnum->name . ', fi.flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
         );
         $stmt->bindValue(':flow_type', $flowType . '.v%');
         $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
@@ -773,7 +773,7 @@ class MySql implements StorageInterface
             ' WHERE fi.flow_subject LIKE :flow_subject' .
             $where .
             ' GROUP BY fi.flow_hash' .
-            ' ORDER BY fi.flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
+            ' ORDER BY time_last_run ' . $sortEnum->name . ' LIMIT :skip, :top'
         );
         $stmt->bindValue(':flow_subject', '%' . $flowSubject . '%');
         $stmt->bindValue(':skip', $skip, Client::PARAM_INT);

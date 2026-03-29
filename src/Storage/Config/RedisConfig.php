@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Storage\Config;
 
 use Wundii\Flowcrafter\Interface\StorageConfigInterface;
+use Wundii\Flowcrafter\Storage\Redis;
 
 final readonly class RedisConfig implements StorageConfigInterface
 {
@@ -12,6 +13,11 @@ final readonly class RedisConfig implements StorageConfigInterface
         private string $host,
         private int $port,
     ) {
+    }
+
+    public function getStorageClass(): string
+    {
+        return Redis::class;
     }
 
     public function getHost(): string

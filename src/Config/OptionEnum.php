@@ -9,11 +9,6 @@ enum OptionEnum: string
     /**
      * @internal
      */
-    case STORAGE_CLASS = 'storage_class';
-
-    /**
-     * @internal
-     */
     case STORAGE_CONFIG = 'storage_config';
 
     /**

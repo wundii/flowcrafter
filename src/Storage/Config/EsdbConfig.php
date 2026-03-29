@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Storage\Config;
 
 use Wundii\Flowcrafter\Interface\StorageConfigInterface;
+use Wundii\Flowcrafter\Storage\Esdb;
 
 final readonly class EsdbConfig implements StorageConfigInterface
 {
@@ -12,6 +13,11 @@ final readonly class EsdbConfig implements StorageConfigInterface
         private string $url,
         private string $apiToken,
     ) {
+    }
+
+    public function getStorageClass(): string
+    {
+        return Esdb::class;
     }
 
     public function getUrl(): string

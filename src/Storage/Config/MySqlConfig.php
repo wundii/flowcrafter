@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Storage\Config;
 
 use Wundii\Flowcrafter\Interface\StorageConfigInterface;
+use Wundii\Flowcrafter\Storage\MySql;
 
 final readonly class MySqlConfig implements StorageConfigInterface
 {
@@ -15,6 +16,11 @@ final readonly class MySqlConfig implements StorageConfigInterface
         private string $username,
         private string $password = '',
     ) {
+    }
+
+    public function getStorageClass(): string
+    {
+        return MySql::class;
     }
 
     public function getHost(): string
