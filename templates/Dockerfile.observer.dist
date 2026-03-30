@@ -13,4 +13,7 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 COPY . .
 
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD find /tmp/flowcrafter -name "*.heartbeat" -mmin -1 -type f | grep -q .
+
 CMD ["vendor/bin/flowcrafter", "observer", "--workers", "1"]

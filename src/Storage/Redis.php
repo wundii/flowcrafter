@@ -459,6 +459,7 @@ class Redis implements StorageInterface
         unset($data['flowExceptions']);
         unset($data['flowResults']);
         unset($data['flowRuns']);
+        unset($data['flowStatus']);
         unset($data['isExecutable']);
         unset($data['isReadOnly']);
         $data['time'] = $flow->getTime()->getTimestamp();
@@ -955,7 +956,7 @@ class Redis implements StorageInterface
         $flowArray['flowMessages'] = $flowMessages;
 
         $flowExceptions = [];
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_EXCEPTION, '@flowHash:{' . $flowHash . '}', 'SORTBY', 'time', 'ASC', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $exceptionEvent) {
             $exceptionEvent['time'] = $this->timestampToRFC3339Extended($exceptionEvent['time'] ?? 0);
             $flowExceptions[] = $exceptionEvent;
@@ -964,7 +965,7 @@ class Redis implements StorageInterface
         $flowArray['flowExceptions'] = $flowExceptions;
 
         $flowResults = [];
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RESULT, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RESULT, '@flowHash:{' . $flowHash . '}', 'SORTBY', 'time', 'ASC', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $resultEvent) {
             $resultEvent['time'] = $this->timestampToRFC3339Extended($resultEvent['time'] ?? 0);
             $resultEvent['result'] = (bool) ($resultEvent['result'] ?? false);
@@ -974,7 +975,7 @@ class Redis implements StorageInterface
         $flowArray['flowResults'] = $flowResults;
 
         $flowRuns = [];
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowHash:{' . $flowHash . '}', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowHash:{' . $flowHash . '}', 'SORTBY', 'time', 'ASC', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $runEvent) {
             $runEvent['time'] = $this->timestampToRFC3339Extended($runEvent['time'] ?? 0);
             $flowRuns[] = $runEvent;

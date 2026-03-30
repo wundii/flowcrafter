@@ -71,6 +71,7 @@ final class ConverterTest extends TestCase
             'flowExceptions' => [],
             'flowResults' => [],
             'flowRuns' => [],
+            'flowStatus' => 'IN_PROGRESS',
             'isExecutable' => true,
             'isReadOnly' => false,
         ]);
@@ -209,6 +210,7 @@ final class ConverterTest extends TestCase
                     'queueId' => null,
                 ],
             ],
+            'flowStatus' => 'FAILED',
             'isExecutable' => true,
             'isReadOnly' => false,
         ]);

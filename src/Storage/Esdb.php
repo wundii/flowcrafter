@@ -500,6 +500,7 @@ class Esdb implements StorageInterface
         unset($data['flowExceptions']);
         unset($data['flowResults']);
         unset($data['flowRuns']);
+        unset($data['flowStatus']);
         unset($data['isExecutable']);
         unset($data['isReadOnly']);
 

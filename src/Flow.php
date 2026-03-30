@@ -9,6 +9,7 @@ use DateTimeInterface;
 use InvalidArgumentException;
 use JsonSerializable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
+use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
@@ -214,7 +215,7 @@ class Flow implements JsonSerializable
     /**
      * @return FlowRun[]
      */
-    public function getFlowRuns(): array
+    public function runs(): array
     {
         return array_values($this->flowRuns);
     }
@@ -297,6 +298,76 @@ class Flow implements JsonSerializable
         return $this->flowReadOnly;
     }
 
+    public function status(): StatusEnum
+    {
+        if ($this->flowRuns === []) {
+            return StatusEnum::IN_PROGRESS;
+        }
+
+        $flowRuns = count($this->flowRuns);
+        $flowRun = end($this->flowRuns);
+        $lastRuntimeHash = $flowRun->getFlowRuntimeHash();
+        $lastRunTime = $flowRun->getTime();
+        $leafStubs = $this->flowSchema->getLeafStubs();
+        $leafStubsClassStrings = array_map(
+            static fn (Stub $stub): string => $stub->getSource(),
+            $leafStubs,
+        );
+
+        $status = StatusEnum::IN_PROGRESS;
+
+        foreach ($this->flowMessages as $flowMessage) {
+            if ($flowMessage->getFlowRuntimeHash() !== $lastRuntimeHash) {
+                continue;
+            }
+
+            $arrayKey = array_search($flowMessage->getStubSource(), $leafStubsClassStrings, true);
+            if ($arrayKey === false) {
+                continue;
+            }
+
+            if ($flowRuns > 1) {
+                $leafStubsClassStrings = [];
+                continue;
+            }
+
+            unset($leafStubsClassStrings[$arrayKey]);
+        }
+
+        if ($leafStubsClassStrings === []) {
+            $status = StatusEnum::OK;
+        }
+
+        $datetime = new DateTimeImmutable('now', $lastRunTime->getTimezone());
+        if ($status === StatusEnum::IN_PROGRESS && $lastRunTime->modify('+1 hour') < $datetime) {
+            $status = StatusEnum::IN_PROGRESS_EXCEEDED;
+        }
+
+        foreach ($this->flowResults as $flowResult) {
+            if ($leafStubsClassStrings !== []) {
+                continue;
+            }
+
+            if ($flowResult->getFlowRuntimeHash() !== $lastRuntimeHash) {
+                continue;
+            }
+
+            $status = $flowResult->getResult() && $status->value < StatusEnum::WARNING->value
+                ? $status
+                : StatusEnum::WARNING;
+        }
+
+        foreach ($this->flowExceptions as $flowException) {
+            if ($flowException->getFlowRuntimeHash() !== $lastRuntimeHash) {
+                continue;
+            }
+
+            $status = StatusEnum::FAILED;
+        }
+
+        return $status;
+    }
+
     /**
      * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowResult|FlowRun>|FlowSchema>
      */
@@ -313,7 +384,8 @@ class Flow implements JsonSerializable
             'flowMessages' => $this->flowMessages,
             'flowExceptions' => $this->flowExceptions,
             'flowResults' => $this->flowResults,
-            'flowRuns' => $this->getFlowRuns(),
+            'flowRuns' => $this->runs(),
+            'flowStatus' => $this->status()->name,
             'isExecutable' => $this->isExecutable(),
             'isReadOnly' => $this->flowReadOnly,
         ];

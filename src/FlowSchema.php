@@ -125,6 +125,30 @@ readonly class FlowSchema implements JsonSerializable
     }
 
     /**
+     * @return Stub[]
+     */
+    public function getLeafStubs(): array
+    {
+        $allMessages = [];
+
+        foreach ($this->stubs as $stub) {
+            foreach ($stub->getMessages() as $message) {
+                $allMessages[] = $message;
+            }
+        }
+
+        return array_values(array_filter($this->stubs, function (Stub $stub) use ($allMessages): bool {
+            foreach ($stub->getReturnTypes() as $returnType) {
+                if (in_array($returnType, $allMessages, true)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
+    }
+
+    /**
      * @return array<mixed>
      */
     public function jsonSerialize(): array

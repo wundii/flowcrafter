@@ -39,7 +39,7 @@ final class FlowRunnerTest extends TestCase
         $this->assertSame('1234', $flow->getSubject());
 
         $exceptions = $flow->getFlowExceptions();
-        $runs = $flow->getFlowRuns();
+        $runs = $flow->runs();
         $this->assertCount(0, $exceptions);
         $this->assertCount(1, $runs);
 
@@ -71,7 +71,7 @@ final class FlowRunnerTest extends TestCase
         $result = $flowRunner->run(new MessageDataMock('test data round two'), $flow->getHash());
 
         $exceptions = $flow->getFlowExceptions();
-        $runs = $flow->getFlowRuns();
+        $runs = $flow->runs();
         $this->assertCount(0, $exceptions);
         $this->assertCount(1, $runs);
 
@@ -95,7 +95,7 @@ final class FlowRunnerTest extends TestCase
 
         $flow = $flowRunner->getFlow();
         $exceptions = $flow->getFlowExceptions();
-        $runs = $flow->getFlowRuns();
+        $runs = $flow->runs();
         $this->assertCount(1, $exceptions);
         $this->assertCount(1, $runs);
 
@@ -196,7 +196,7 @@ final class FlowRunnerTest extends TestCase
         $this->assertInstanceOf(Flow::class, $flow);
 
         $exceptions = $flow->getFlowExceptions();
-        $runs = $flow->getFlowRuns();
+        $runs = $flow->runs();
         $this->assertCount(0, $exceptions);
         $this->assertCount(1, $runs);
 
