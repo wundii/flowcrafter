@@ -22,10 +22,7 @@ interface StorageInterface
 
     public function registerFlowSchema(FlowSchema $flowSchema): void;
 
-    /**
-     * @param class-string $stubSource
-     */
-    public function registerStubSource(string $stubSource): string;
+    public function registerStubSource(StubSourceEntity $stubSourceEntity): void;
 
     public function registerFlowInstance(Flow $flow): void;
 

@@ -35,7 +35,6 @@ use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
-use Wundii\Flowcrafter\Stub;
 
 class Esdb implements StorageInterface
 {
@@ -452,25 +451,20 @@ class Esdb implements StorageInterface
         );
     }
 
-    /**
-     * @param class-string $stubSource
-     */
-    public function registerStubSource(string $stubSource): string
+    public function registerStubSource(StubSourceEntity $stubSourceEntity): void
     {
-        $stubSource = Stub::source($stubSource);
-
-        $subject = '/flow/source/stub/' . $stubSource->stubHash;
+        $subject = '/flow/source/stub/' . $stubSourceEntity->stubHash;
 
         $readEventsOptions = new ReadEventsOptions(false);
         if (iterator_to_array($this->client->readEvents($subject, $readEventsOptions)) !== []) {
-            return $stubSource->stubHash;
+            return;
         }
 
         $eventCandidate = new EventCandidate(
             source: self::SOURCE,
             subject: $subject,
             type: self::TYPE_SOURCE_STUB,
-            data: $stubSource->jsonSerialize(),
+            data: $stubSourceEntity->jsonSerialize(),
         );
 
         $this->client->writeEvents(
@@ -481,8 +475,6 @@ class Esdb implements StorageInterface
                 new IsSubjectPristine($subject),
             ]
         );
-
-        return $stubSource->stubHash;
     }
 
     public function registerFlowInstance(Flow $flow): void
@@ -1181,7 +1173,7 @@ class Esdb implements StorageInterface
         );
 
         foreach ($exceptionEvents as $exceptionEvent) {
-            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
+            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
             yield new FlowException(
                 flowHash: $exceptionEvent['flowHash'],
                 flowRuntimeHash: $exceptionEvent['flowRuntimeHash'],
@@ -1229,7 +1221,7 @@ class Esdb implements StorageInterface
         );
 
         foreach ($exceptionEvents as $exceptionEvent) {
-            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
+            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
             yield new FlowException(
                 flowHash: $exceptionEvent['flowHash'],
                 flowRuntimeHash: $exceptionEvent['flowRuntimeHash'],
@@ -1380,7 +1372,7 @@ class Esdb implements StorageInterface
             return null;
         }
 
-        /** @var array{stubHash: string, stubSource: class-string, sourceContent: string, time: string} $data */
+        /** @var array{stubHash: string, stubSource: class-string<StubInterface>, sourceContent: string, time: string} $data */
         $data = $stubSourceEvent->data;
         return new StubSourceEntity(
             stubHash: $data['stubHash'],
@@ -1405,7 +1397,7 @@ class Esdb implements StorageInterface
         );
 
         foreach ($stubSourceEvents as $stubSourceEvent) {
-            /** @var array{stubHash: string, stubSource: class-string, sourceContent: string, time: string} $stubSourceEvent */
+            /** @var array{stubHash: string, stubSource: class-string<StubInterface>, sourceContent: string, time: string} $stubSourceEvent */
             yield new StubSourceEntity(
                 stubHash: $stubSourceEvent['stubHash'],
                 stubSource: $stubSourceEvent['stubSource'],

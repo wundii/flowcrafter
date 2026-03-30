@@ -18,7 +18,7 @@ class FlowResult implements JsonSerializable
         private readonly string $flowHash,
         private readonly string $flowRuntimeHash,
         private readonly string $stubSource,
-        private readonly ?string $stubHash,
+        private readonly string $stubHash,
         private readonly bool $result,
         private readonly DateTimeInterface $time,
         private readonly string $hash,
@@ -40,7 +40,7 @@ class FlowResult implements JsonSerializable
         string $flowHash,
         string $flowRuntimeHash,
         string $stubSource,
-        ?string $stubHash,
+        string $stubHash,
         bool $result,
         ?DateTimeInterface $time = null,
         ?string $hash = null,
@@ -71,7 +71,7 @@ class FlowResult implements JsonSerializable
         return $this->stubSource;
     }
 
-    public function getStubHash(): ?string
+    public function getStubHash(): string
     {
         return $this->stubHash;
     }

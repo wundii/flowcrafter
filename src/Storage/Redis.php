@@ -27,7 +27,6 @@ use Wundii\Flowcrafter\Storage\Config\RedisConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
-use Wundii\Flowcrafter\Stub;
 use Wundii\Flowcrafter\Uuid;
 
 class Redis implements StorageInterface
@@ -426,24 +425,17 @@ class Redis implements StorageInterface
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($flowSchema));
     }
 
-    /**
-     * @param class-string $stubSource
-     */
-    public function registerStubSource(string $stubSource): string
+    public function registerStubSource(StubSourceEntity $stubSourceEntity): void
     {
-        $stubSource = Stub::source($stubSource);
-
-        $key = self::PREFIX_TYPE_SOURCE_STUB . $stubSource->stubHash;
+        $key = self::PREFIX_TYPE_SOURCE_STUB . $stubSourceEntity->stubHash;
         if ($this->client->exists($key)) {
-            return $stubSource->stubHash;
+            return;
         }
 
-        $data = $stubSource->jsonSerialize();
-        $data['time'] = $stubSource->time->getTimestamp();
+        $data = $stubSourceEntity->jsonSerialize();
+        $data['time'] = $stubSourceEntity->time->getTimestamp();
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
-
-        return $stubSource->stubHash;
     }
 
     public function registerFlowInstance(Flow $flow): void
@@ -912,13 +904,13 @@ class Redis implements StorageInterface
         $result = $this->client->rawcommand(...$args);
 
         foreach (self::fetchData($result) as $event) {
-            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: ?string, code: int, message: string, file: string, line: int, traceString: string, time: int, hash: string} $event */
+            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: string, code: int, message: string, file: string, line: int, traceString: string, time: int, hash: string} $event */
             yield new FlowException(
                 flowHash: $event['flowHash'],
                 flowRuntimeHash: $event['flowRuntimeHash'],
                 flowType: $event['flowType'],
                 stubSource: $event['stubSource'],
-                stubHash: $event['stubHash'] ?? null,
+                stubHash: $event['stubHash'],
                 code: $event['code'],
                 message: $event['message'],
                 file: $event['file'],
@@ -1081,7 +1073,7 @@ class Redis implements StorageInterface
             return null;
         }
 
-        /** @var array{stubHash: string, stubSource: class-string, sourceContent: string, time: int} $stubSourceArray */
+        /** @var array{stubHash: string, stubSource: class-string<StubInterface>, sourceContent: string, time: int} $stubSourceArray */
         return new StubSourceEntity(
             stubHash: $stubSourceArray['stubHash'],
             stubSource: $stubSourceArray['stubSource'],
@@ -1100,7 +1092,7 @@ class Redis implements StorageInterface
 
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SOURCE_STUB, '@stubSource:{' . $stubSource . '}', 'RETURN', '1', '$');
         foreach (self::fetchData($result) as $stubSourceEvent) {
-            /** @var array{stubHash: string, stubSource: class-string, sourceContent: string, time: int} $stubSourceEvent */
+            /** @var array{stubHash: string, stubSource: class-string<StubInterface>, sourceContent: string, time: int} $stubSourceEvent */
             yield new StubSourceEntity(
                 stubHash: $stubSourceEvent['stubHash'],
                 stubSource: $stubSourceEvent['stubSource'],

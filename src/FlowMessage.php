@@ -22,7 +22,7 @@ class FlowMessage implements JsonSerializable
         private readonly string $flowHash,
         private readonly string $flowRuntimeHash,
         private readonly string $stubSource,
-        private ?string $stubHash,
+        private readonly string $stubHash,
         private MessageTypeEnum $messageTypeEnum,
         private readonly string $messageSource,
         private readonly MessageInterface $message,
@@ -52,7 +52,7 @@ class FlowMessage implements JsonSerializable
         string $flowHash,
         string $flowRuntimeHash,
         string $stubSource,
-        ?string $stubHash,
+        string $stubHash,
         MessageTypeEnum $messageTypeEnum,
         ?string $predecessorHash,
         MessageInterface $message,
@@ -82,10 +82,8 @@ class FlowMessage implements JsonSerializable
         $this->messageTypeEnum = MessageTypeEnum::PROCESS;
     }
 
-    public function setFinish(?string $stubHash): void
+    public function setFinish(): void
     {
-        $this->stubHash = $stubHash;
-
         if ($this->messageTypeEnum === MessageTypeEnum::FINISH) {
             throw new InvalidArgumentException('FlowMessage is already marked as FINISH.');
         }

@@ -179,44 +179,44 @@ class FlowRunner
         }
 
         foreach ($this->messageToStubsMap[$messageClass] as $stub) {
-            $stubSource = $stub->getSource();
+            $stubSource = Stub::source($stub->getSource());
 
-            if ($this->includeStubs !== [] && !in_array($stubSource, $this->includeStubs, true)) {
+            if ($this->includeStubs !== [] && !in_array($stubSource->stubSource, $this->includeStubs, true)) {
                 continue;
             }
 
-            $stubKey = $stubSource . ':' . $messageClass;
+            $stubKey = $stubSource->stubSource . ':' . $messageClass;
             if (in_array($stubKey, $this->executedStubKey, true)) {
                 continue;
             }
 
-            $flowMessage = FlowMessage::create(
+            $flowMessageWait = FlowMessage::create(
                 flowHash: $flow->getHash(),
                 flowRuntimeHash: $flow->getRuntimeHash(),
-                stubSource: $stubSource,
-                stubHash: null,
+                stubSource: $stubSource->stubSource,
+                stubHash: $stubSource->stubHash,
                 messageTypeEnum: MessageTypeEnum::WAIT,
                 predecessorHash: $flowMessageHash,
                 message: $message,
             );
 
-            $flow->addMessage($flowMessage);
+            $flow->addMessage($flowMessageWait);
 
-            $flowMessages = $flow->executableMessages($stubSource);
+            $flowMessages = $flow->executableMessages($stubSource->stubSource);
             if ($flowMessages === []) {
                 continue;
             }
 
             $this->executedStubKey[] = $stubKey;
 
-            $stubHash = $this->storage?->registerStubSource($stubSource);
+            $this->storage?->registerStubSource($stubSource);
 
             try {
-                $stubInstance = $this->createInstance($stubSource, $flowMessages);
+                $stubInstance = $this->createInstance($stubSource->stubSource, $flowMessages);
                 $processResult = $stubInstance->process();
             } catch (Throwable $exception) {
                 foreach ($flowMessages as $flowMessage) {
-                    $flowMessage->setFinish($stubHash);
+                    $flowMessage->setFinish();
                     $this->storage?->appendFlowMessage($flowMessage);
                 }
 
@@ -224,8 +224,8 @@ class FlowRunner
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
                     flowType: $flow->getType(),
-                    stubSource: $stubSource,
-                    stubHash: $stubHash,
+                    stubSource: $stubSource->stubSource,
+                    stubHash: $stubSource->stubHash,
                     code: $exception->getCode(),
                     message: $exception->getMessage(),
                     file: $exception->getFile(),
@@ -239,12 +239,12 @@ class FlowRunner
             }
 
             foreach ($flowMessages as $flowMessage) {
-                $flowMessage->setFinish($stubHash);
+                $flowMessage->setFinish();
                 $this->storage?->appendFlowMessage($flowMessage);
             }
 
             if (is_object($processResult) && !$processResult instanceof MessageReturnInterface) {
-                $this->executeStubsRecursive($processResult, $flowMessage->getHash());
+                $this->executeStubsRecursive($processResult, $flowMessageWait->getHash());
                 continue;
             }
 
@@ -258,8 +258,8 @@ class FlowRunner
                 $flowResult = FlowResult::create(
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
-                    stubSource: $stubSource,
-                    stubHash: $stubHash,
+                    stubSource: $stubSource->stubSource,
+                    stubHash: $stubSource->stubHash,
                     result: $processResult,
                 );
                 $flow->addResult($flowResult);
@@ -270,10 +270,10 @@ class FlowRunner
                 $returnFlowMessage = FlowMessage::create(
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
-                    stubSource: $stubSource,
-                    stubHash: $stubHash,
+                    stubSource: $stubSource->stubSource,
+                    stubHash: $stubSource->stubHash,
                     messageTypeEnum: MessageTypeEnum::FINISH,
-                    predecessorHash: $flowMessage->getHash(),
+                    predecessorHash: $flowMessageWait->getHash(),
                     message: $processResult,
                 );
                 $flow->addMessage($returnFlowMessage);

@@ -141,38 +141,6 @@ class Flow implements JsonSerializable
         return $this->time;
     }
 
-    public function getLatestMessageTime(): ?DateTimeImmutable
-    {
-        $messageDates = array_map(
-            static fn (FlowMessage $flowMessage): DateTimeImmutable => $flowMessage->getTime(),
-            $this->flowMessages,
-        );
-
-        if ($messageDates === []) {
-            return null;
-        }
-
-        return max($messageDates);
-    }
-
-    public function getFinishTime(): ?DateTimeImmutable
-    {
-        $messages = array_filter(
-            $this->flowMessages,
-            static fn (FlowMessage $flowMessage): bool => $flowMessage->getMessageType() === MessageTypeEnum::FINISH,
-        );
-
-        if ($messages === []) {
-            return null;
-        }
-
-        if (count($messages) > 1) {
-            throw new InvalidArgumentException('Multiple FINISH messages found in the flow.');
-        }
-
-        return current($messages)->getTime();
-    }
-
     /**
      * @return FlowMessage[]
      */
@@ -339,7 +307,7 @@ class Flow implements JsonSerializable
         }
 
         $datetime = new DateTimeImmutable('now', $lastRunTime->getTimezone());
-        if ($status === StatusEnum::IN_PROGRESS && $lastRunTime->modify('+1 hour') < $datetime) {
+        if ($status === StatusEnum::IN_PROGRESS && DateTimeImmutable::createFromInterface($lastRunTime)->modify('+1 hour') < $datetime) {
             $status = StatusEnum::IN_PROGRESS_EXCEEDED;
         }
 

@@ -28,7 +28,6 @@ use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
-use Wundii\Flowcrafter\Stub;
 
 class MySql implements StorageInterface
 {
@@ -252,25 +251,18 @@ class MySql implements StorageInterface
         ]);
     }
 
-    /**
-     * @param class-string $stubSource
-     */
-    public function registerStubSource(string $stubSource): string
+    public function registerStubSource(StubSourceEntity $stubSourceEntity): void
     {
-        $stubSource = Stub::source($stubSource);
-
         $stmt = $this->client->prepare(
             'INSERT IGNORE INTO flow_source_stub (stub_hash, stub_source, source_content, time) ' .
             'VALUES (:stub_hash, :stub_source, :source_content, :time)'
         );
         $stmt->execute([
-            ':stub_hash' => $stubSource->stubHash,
-            ':stub_source' => $stubSource->stubSource,
-            ':source_content' => $stubSource->sourceContent,
-            ':time' => $stubSource->time->format('Y-m-d H:i:s.u'),
+            ':stub_hash' => $stubSourceEntity->stubHash,
+            ':stub_source' => $stubSourceEntity->stubSource,
+            ':source_content' => $stubSourceEntity->sourceContent,
+            ':time' => $stubSourceEntity->time->format('Y-m-d H:i:s.u'),
         ]);
-
-        return $stubSource->stubHash;
     }
 
     public function registerFlowInstance(Flow $flow): void
@@ -832,7 +824,7 @@ class MySql implements StorageInterface
         $stmt->execute();
 
         foreach ($stmt->fetchAll() as $row) {
-            /** @var array{flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: class-string<StubInterface>, stub_hash: ?string, code: int, message: string, file: string, line: int, trace_string: string, time: string, hash: string} $row */
+            /** @var array{flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: class-string<StubInterface>, stub_hash: string, code: int, message: string, file: string, line: int, trace_string: string, time: string, hash: string} $row */
             yield new FlowException(
                 flowHash: $row['flow_hash'],
                 flowRuntimeHash: $row['flow_runtime_hash'],
@@ -893,7 +885,7 @@ class MySql implements StorageInterface
         $stmt->execute();
 
         foreach ($stmt->fetchAll() as $row) {
-            /** @var array{flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: class-string<StubInterface>, stub_hash: ?string, code: int, message: string, file: string, line: int, trace_string: string, time: string, hash: string} $row */
+            /** @var array{flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: class-string<StubInterface>, stub_hash: string, code: int, message: string, file: string, line: int, trace_string: string, time: string, hash: string} $row */
             yield new FlowException(
                 flowHash: $row['flow_hash'],
                 flowRuntimeHash: $row['flow_runtime_hash'],
@@ -1164,7 +1156,7 @@ class MySql implements StorageInterface
             return null;
         }
 
-        /** @var array{stub_hash: string, stub_source: class-string, source_content: string, time: string} $stubSource */
+        /** @var array{stub_hash: string, stub_source: class-string<StubInterface>, source_content: string, time: string} $stubSource */
         return new StubSourceEntity(
             stubHash: $stubSource['stub_hash'],
             stubSource: $stubSource['stub_source'],
@@ -1189,7 +1181,7 @@ class MySql implements StorageInterface
         ]);
 
         foreach ($stmt->fetchAll() as $stubSource) {
-            /** @var array{stub_hash: string, stub_source: class-string, source_content: string, time: string} $stubSource */
+            /** @var array{stub_hash: string, stub_source: class-string<StubInterface>, source_content: string, time: string} $stubSource */
             yield new StubSourceEntity(
                 stubHash: $stubSource['stub_hash'],
                 stubSource: $stubSource['stub_source'],

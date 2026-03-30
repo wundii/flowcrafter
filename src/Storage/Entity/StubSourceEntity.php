@@ -6,11 +6,12 @@ namespace Wundii\Flowcrafter\Storage\Entity;
 
 use DateTimeInterface;
 use JsonSerializable;
+use Wundii\Flowcrafter\Interface\StubInterface;
 
 class StubSourceEntity implements JsonSerializable
 {
     /**
-     * @param class-string $stubSource
+     * @param class-string<StubInterface> $stubSource
      */
     public function __construct(
         public string $stubHash,

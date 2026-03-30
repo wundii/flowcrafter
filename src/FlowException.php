@@ -19,7 +19,7 @@ class FlowException implements JsonSerializable
         private readonly string $flowRuntimeHash,
         private readonly string $flowType,
         private readonly string $stubSource,
-        private readonly ?string $stubHash,
+        private readonly string $stubHash,
         private readonly int $code,
         private readonly string $message,
         private readonly string $file,
@@ -46,7 +46,7 @@ class FlowException implements JsonSerializable
         string $flowRuntimeHash,
         string $flowType,
         string $stubSource,
-        ?string $stubHash,
+        string $stubHash,
         int $code,
         string $message,
         string $file,
@@ -91,7 +91,7 @@ class FlowException implements JsonSerializable
         return $this->stubSource;
     }
 
-    public function getStubHash(): ?string
+    public function getStubHash(): string
     {
         return $this->stubHash;
     }
