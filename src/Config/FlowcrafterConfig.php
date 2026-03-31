@@ -19,6 +19,7 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::SERVER_HTTPS, false);
         $this->setParameter(OptionEnum::SERVER_SECRET, null);
         $this->setParameter(OptionEnum::SERVER_DESCRIPTION, null);
+        $this->setParameter(OptionEnum::SERVER_STORAGE, getcwd() . '/data/database.sqlite');
         $this->setParameter(OptionEnum::DEPENDENCIES_INJECTION, []);
     }
 
@@ -87,6 +88,16 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         return $this->getNullOrString(OptionEnum::SERVER_DESCRIPTION);
     }
 
+    public function setServerStorage(string $file): void
+    {
+        $this->setParameter(OptionEnum::SERVER_STORAGE, $file);
+    }
+
+    public function getServerStorage(): string
+    {
+        return $this->getString(OptionEnum::SERVER_STORAGE);
+    }
+
     /**
      * @param array<class-string|object> $dependenciesInjection
      */
@@ -119,7 +130,7 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
             throw new RuntimeException('The storage class ' . $storageClass . ' does not exist.');
         }
 
-        $storage = new $storageClass($storageConfig);
+        $storage = new $storageClass($storageConfig, $this->getServerStorage());
         if (!$storage instanceof StorageInterface) {
             throw new RuntimeException('The storage class ' . $storageClass . ' does not implement StorageInterface.');
         }

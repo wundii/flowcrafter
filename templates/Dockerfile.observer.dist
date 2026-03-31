@@ -4,7 +4,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 RUN apt-get update && apt-get install -y git unzip && rm -rf /var/lib/apt/lists/*
 
-RUN install-php-extensions pdo_mysql redis
+# required: pdo_sqlite - optional: pdo_mysql redis
+RUN install-php-extensions pdo_sqlite pdo_mysql redis
 
 WORKDIR /app
 

@@ -98,9 +98,11 @@ class FlowRunner
         $this->includeStubs = $includeStubs;
         $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
 
-        $this->executeStubsRecursive($message);
+        $this->executeStubsRecursive($this->flow, $message);
 
-        return $this->messageReturn ?? false;
+        $this->storage?->saveFlow($this->flow);
+
+        return $this->messageReturn ?: false;
     }
 
     /**
@@ -166,13 +168,8 @@ class FlowRunner
     /**
      * @throws Throwable
      */
-    private function executeStubsRecursive(MessageInterface $message, ?string $flowMessageHash = null): void
+    private function executeStubsRecursive(Flow $flow, MessageInterface $message, ?string $flowMessageHash = null): void
     {
-        $flow = $this->flow;
-        if (!$flow instanceof Flow) {
-            return;
-        }
-
         $messageClass = get_class($message);
 
         if (!isset($this->messageToStubsMap[$messageClass])) {
@@ -236,7 +233,7 @@ class FlowRunner
 
                 $flow->addException($flowException);
                 $this->storage?->appendFlowException($flowException);
-                $this->storage?->saveFlow($this->flow);
+                $this->storage?->saveFlow($flow);
                 throw $exception;
             }
 
@@ -246,7 +243,7 @@ class FlowRunner
             }
 
             if (is_object($processResult) && !$processResult instanceof MessageReturnInterface) {
-                $this->executeStubsRecursive($processResult, $flowMessageWait->getHash());
+                $this->executeStubsRecursive($flow, $processResult, $flowMessageWait->getHash());
                 continue;
             }
 
@@ -281,8 +278,6 @@ class FlowRunner
                 $flow->addMessage($returnFlowMessage);
                 $this->storage?->appendFlowMessage($returnFlowMessage);
             }
-
-            $this->storage?->saveFlow($this->flow);
         }
     }
 }

@@ -24,7 +24,6 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Config\RedisConfig;
-use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Uuid;
 
@@ -60,7 +59,7 @@ class Redis extends Service implements StorageInterface
 
     protected Client $client;
 
-    public function __construct(RedisConfig $redisConfig, ?string $sqliteFile = null)
+    public function __construct(RedisConfig $redisConfig, string $sqliteFile)
     {
         parent::__construct($sqliteFile);
 
@@ -588,6 +587,20 @@ class Redis extends Service implements StorageInterface
     }
 
     /**
+     * @return iterable<string>
+     */
+    public function findAllFlowHashes(): iterable
+    {
+        $iterator = null;
+        do {
+            $keys = $this->client->scan($iterator, self::PREFIX_TYPE_INSTANCE . '*', 1000);
+            foreach (is_array($keys) ? $keys : [] as $key) {
+                yield substr((string) $key, strlen(self::PREFIX_TYPE_INSTANCE));
+            }
+        } while ((int) $iterator !== 0);
+    }
+
+    /**
      * @return iterable<array<mixed>>
      */
     public function findAllSchemas(): iterable
@@ -707,7 +720,7 @@ class Redis extends Service implements StorageInterface
                 flowRuntimeHash: $event['flowRuntimeHash'],
                 flowType: $event['flowType'],
                 stubSource: $event['stubSource'],
-                stubHash: $event['stubHash'] ?? '',
+                stubHash: $event['stubHash'],
                 code: $event['code'],
                 message: $event['message'],
                 file: $event['file'],
@@ -785,75 +798,6 @@ class Redis extends Service implements StorageInterface
         }
 
         return $this->findFlowByHash($flowHash);
-    }
-
-    /**
-     * @return FlowStatsEntity[]
-     */
-    public function findFlowStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
-    {
-        $fromVal = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
-        $toVal = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
-        $flowType = self::escapeValue((string) $flowType);
-
-        $value = match ($flowType) {
-            '*', '' => '*',
-            default => '@flowType:{' . $flowType . '\.v*}',
-        };
-
-        $defaultArgs = [$value];
-        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
-            $defaultArgs[] = 'FILTER';
-            $defaultArgs[] = 'time';
-            $defaultArgs[] = $fromVal;
-            $defaultArgs[] = $toVal;
-        }
-
-        $defaultArgs[] = 'LIMIT';
-        $defaultArgs[] = '0';
-        $defaultArgs[] = '10000';
-        $defaultArgs[] = 'RETURN';
-        $defaultArgs[] = '1';
-        $defaultArgs[] = '$';
-
-        // Instance counts
-        $instanceArgs = ['FT.SEARCH', self::INDEX_INSTANCE];
-        $instanceArgs = array_merge($instanceArgs, $defaultArgs);
-
-        $instanceResult = $this->client->rawCommand(...$instanceArgs);
-        $instanceEvents = self::fetchData($instanceResult);
-
-        $instances = [];
-        foreach ($instanceEvents as $instanceEvent) {
-            /** @phpstan-ignore-next-line */
-            $date = (new DateTimeImmutable())->setTimestamp((int) $instanceEvent['time'])->format('Y-m-d');
-            $instances[$date] = ($instances[$date] ?? 0) + 1;
-        }
-
-        // Run counts
-        $runArgs = ['FT.SEARCH', self::INDEX_RUN];
-        $runArgs = array_merge($runArgs, $defaultArgs);
-
-        $runResult = $this->client->rawCommand(...$runArgs);
-        $runEvents = self::fetchData($runResult);
-
-        $runs = [];
-        foreach ($runEvents as $runEvent) {
-            /** @phpstan-ignore-next-line */
-            $date = (new DateTimeImmutable())->setTimestamp((int) $runEvent['time'])->format('Y-m-d');
-            $runs[$date] = ($runs[$date] ?? 0) + 1;
-        }
-
-        $dates = array_unique(array_merge(array_keys($instances), array_keys($runs)));
-        sort($dates);
-
-        foreach ($dates as $date) {
-            yield new FlowStatsEntity(
-                date: $date,
-                instances: $instances[$date] ?? 0,
-                runs: $runs[$date] ?? 0,
-            );
-        }
     }
 
     public function findStubSourceByHash(string $stubHash): ?StubSourceEntity

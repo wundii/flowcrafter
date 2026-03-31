@@ -9,7 +9,7 @@ services:
       FLOWCRAFTER_CONFIG: /app/flowcrafter.php
     volumes:
       - observer-tmp:/tmp/flowcrafter
-      - service-data:/app/flowcrafter-data
+      - service-data:/app/data
 
   observer:
     build:
@@ -17,13 +17,18 @@ services:
       dockerfile: Dockerfile.observer
     environment:
       FLOWCRAFTER_CONFIG: /app/flowcrafter.php
+    depends_on:
+      - service
     volumes:
       - observer-tmp:/tmp/flowcrafter
+      - service-data:/app/data
 
   ui:
     image: wundii/flowcrafter-ui:latest
     ports:
       - '3000:3000'
+    depends_on:
+      - service
     volumes:
       - ui-data:/flowcrafter/data
 

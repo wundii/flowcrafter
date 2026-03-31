@@ -22,6 +22,7 @@ use Wundii\Flowcrafter\Console\Commands\FlowFrankenPhpServiceCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowInitCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowMermaidCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowObserverCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowServiceRebuildCommand;
 
 final class FlowConsole extends BaseApplication
 {
@@ -38,6 +39,7 @@ final class FlowConsole extends BaseApplication
         FlowFrankenPhpServiceCommand $flowFrankenPhpServiceCommand,
         FlowInitCommand $flowInitCommand,
         FlowMermaidCommand $flowMermaidCommand,
+        FlowServiceRebuildCommand $flowServiceRebuildCommand,
     ) {
         parent::__construct(self::NAME, self::vendorVersion());
 
@@ -49,6 +51,7 @@ final class FlowConsole extends BaseApplication
             $flowFrankenPhpServiceCommand,
             $flowInitCommand,
             $flowMermaidCommand,
+            $flowServiceRebuildCommand,
         ]);
         $this->setDefaultCommand('list');
         $this->setDefinition($this->getInputDefinition());

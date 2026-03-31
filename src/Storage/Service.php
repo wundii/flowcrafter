@@ -11,15 +11,16 @@ use Symfony\Component\Filesystem\Filesystem;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\Interface\ServiceInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 
-class Service
+class Service implements ServiceInterface
 {
     private Client $client;
 
-    public function __construct(?string $file = null)
+    public function __construct(string $file)
     {
-        $file = $file ?? getcwd() . '/data/database.sqlite';
         $directory = dirname($file);
         if (!is_dir($directory)) {
             $fileSystem = new Filesystem();
@@ -56,6 +57,16 @@ class Service
             CREATE INDEX IF NOT EXISTS flow_list_source ON flow_list(flow_source);
             CREATE INDEX IF NOT EXISTS flow_list_subject ON flow_list(flow_subject);
             CREATE INDEX IF NOT EXISTS flow_list_status ON flow_list(status);
+
+            CREATE TABLE IF NOT EXISTS flow_run_list (
+                flow_runtime_hash TEXT PRIMARY KEY,
+                flow_hash TEXT NOT NULL,
+                flow_type TEXT NOT NULL,
+                flow_time TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS flow_run_list_hash ON flow_run_list(flow_hash);
+            CREATE INDEX IF NOT EXISTS flow_run_list_type ON flow_run_list(flow_type);
             SQL
         );
     }
@@ -82,6 +93,83 @@ class Service
             ':last_term' => $lastRun !== false ? $lastRun->getTime()->format('Y-m-d H:i:s.u') : $flow->getTime()->format('Y-m-d H:i:s.u'),
             ':status' => $flow->status()->name,
         ]);
+
+        $stmt = $this->client->prepare(
+            'INSERT OR IGNORE INTO flow_run_list (flow_runtime_hash, flow_hash, flow_type, flow_time) ' .
+            'VALUES (:flow_runtime_hash, :flow_hash, :flow_type, :flow_time)'
+        );
+
+        foreach ($flow->runs() as $flowRun) {
+            $stmt->execute([
+                ':flow_runtime_hash' => $flowRun->getFlowRuntimeHash(),
+                ':flow_hash' => $flowRun->getFlowHash(),
+                ':flow_type' => $flowRun->getFlowType(),
+                ':flow_time' => $flowRun->getTime()->format('Y-m-d H:i:s.u'),
+            ]);
+        }
+    }
+
+    /**
+     * @return iterable<FlowStatsEntity>
+     */
+    public function findFlowStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
+    {
+        $where = '1=1';
+        $params = [];
+
+        if ($from instanceof DateTimeInterface) {
+            $where .= ' AND flow_time >= :from';
+            $params[':from'] = $from->format('Y-m-d H:i:s.u');
+        }
+
+        if ($to instanceof DateTimeInterface) {
+            $where .= ' AND flow_time <= :to';
+            $params[':to'] = $to->format('Y-m-d H:i:s.u');
+        }
+
+        if ($flowType !== null && $flowType !== '') {
+            $where .= ' AND flow_type LIKE :flow_type';
+            $params[':flow_type'] = $flowType . '.v%';
+        }
+
+        $instances = [];
+        $stmt = $this->client->prepare(
+            'SELECT DATE(flow_time) AS date, COUNT(*) AS count FROM flow_list WHERE ' . $where .
+            ' GROUP BY DATE(flow_time) ORDER BY date ASC'
+        );
+        $stmt->execute($params);
+        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
+            /** @var array{date: string, count: int|string} $row */
+            $instances[$row['date']] = (int) $row['count'];
+        }
+
+        $runs = [];
+        $stmt = $this->client->prepare(
+            'SELECT DATE(flow_time) AS date, COUNT(*) AS count FROM flow_run_list WHERE ' . $where .
+            ' GROUP BY DATE(flow_time) ORDER BY date ASC'
+        );
+        $stmt->execute($params);
+        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
+            /** @var array{date: string, count: int|string} $row */
+            $runs[$row['date']] = (int) $row['count'];
+        }
+
+        $dates = array_unique(array_merge(array_keys($instances), array_keys($runs)));
+        sort($dates);
+
+        foreach ($dates as $date) {
+            yield new FlowStatsEntity(
+                date: $date,
+                instances: $instances[$date] ?? 0,
+                runs: $runs[$date] ?? 0,
+            );
+        }
+    }
+
+    public function truncateFlowList(): void
+    {
+        $this->client->exec('DELETE FROM flow_list');
+        $this->client->exec('DELETE FROM flow_run_list');
     }
 
     public function countFlows(): int
@@ -219,7 +307,7 @@ class Service
      */
     private function mapRow(array $row): FlowListEntity
     {
-        /** @var array{flow_hash: string, flow_type: string, flow_source: string, flow_subject: string|null, flow_time: string, last_term: string, status: int} $row */
+        /** @var array{flow_hash: string, flow_type: string, flow_source: string, flow_subject: string|null, flow_time: string, last_term: string, status: string} $row */
         return new FlowListEntity(
             flowHash: $row['flow_hash'],
             flowType: $row['flow_type'],

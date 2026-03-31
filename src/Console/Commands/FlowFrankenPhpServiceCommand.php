@@ -69,6 +69,12 @@ final class FlowFrankenPhpServiceCommand extends Command
             $env['FLOWCRAFTER_CONFIG'] = $configFile;
         }
 
+        $this->flowcrafterConfig->getStorage()->initializeDatabase();
+        $output->writeln(sprintf(
+            '<fg=%s>database initialized</>',
+            OutputColorEnum::DEFAULT->value,
+        ));
+
         $output->writeln(sprintf(
             '<fg=%s>starting API server (FrankenPHP worker mode) on %s:%s with %s worker(s)</>',
             OutputColorEnum::BLUE->value,

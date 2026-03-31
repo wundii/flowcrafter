@@ -9,7 +9,6 @@ use Thenativeweb\Eventsourcingdb\Container;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
 use Wundii\Flowcrafter\Storage\Esdb;
-use Wundii\Flowcrafter\Storage\Service;
 
 trait EsdbClientTestTrait
 {

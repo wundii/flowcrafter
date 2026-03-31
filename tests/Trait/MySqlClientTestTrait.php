@@ -10,7 +10,6 @@ use Testcontainers\Modules\MariaDBContainer;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
 use Wundii\Flowcrafter\Storage\MySql;
-use Wundii\Flowcrafter\Storage\Service;
 
 trait MySqlClientTestTrait
 {

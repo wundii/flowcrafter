@@ -90,4 +90,11 @@ interface StorageInterface
     public function findStubSourcesByStubSource(string $stubSource): iterable;
 
     public function saveFlow(Flow $flow): void;
+
+    /**
+     * @return iterable<string>
+     */
+    public function findAllFlowHashes(): iterable;
+
+    public function truncateFlowList(): void;
 }

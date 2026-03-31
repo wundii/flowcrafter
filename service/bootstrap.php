@@ -18,6 +18,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\ServiceInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
@@ -50,6 +51,9 @@ $bootstrapConfigRequirer = new BootstrapConfigRequirer($bootstrapConfig);
 $flowcrafterConfig = $bootstrapConfigRequirer->loadConfigFile(new FlowcrafterConfig());
 
 $storage = $flowcrafterConfig->getStorage();
+if (!$storage instanceof ServiceInterface) {
+    throw new RuntimeException('Flowcrafter config file is not valid');
+}
 
 $serializeEntity = static fn (FlowListEntity $flowListEntity): array => [
     'flowHash' => $flowListEntity->flowHash,
@@ -57,7 +61,7 @@ $serializeEntity = static fn (FlowListEntity $flowListEntity): array => [
     'flowSource' => $flowListEntity->flowSource,
     'flowSubject' => $flowListEntity->flowSubject,
     'flowTime' => $flowListEntity->flowTime->format(DateTimeInterface::RFC3339_EXTENDED),
-    'timeLastRun' => $flowListEntity->lastTerm->format(DateTimeInterface::RFC3339_EXTENDED),
+    'lastTerm' => $flowListEntity->lastTerm->format(DateTimeInterface::RFC3339_EXTENDED),
     'status' => $flowListEntity->statusEnum->name,
 ];
 

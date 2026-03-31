@@ -47,6 +47,12 @@ final class FlowObserverCommand extends Command
         $workersOption = $input->getOption('workers');
         $workers = max(1, (int) $workersOption);
 
+        $this->flowcrafterConfig->getStorage()->initializeDatabase();
+        $output->writeln(sprintf(
+            '<fg=%s>database initialized</>',
+            OutputColorEnum::DEFAULT->value,
+        ));
+
         $output->writeln(sprintf(
             '<fg=%s>starting %d observer worker(s)</>',
             OutputColorEnum::BLUE->value,

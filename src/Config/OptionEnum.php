@@ -44,5 +44,10 @@ enum OptionEnum: string
     /**
      * @internal
      */
+    case SERVER_STORAGE = 'server_storage';
+
+    /**
+     * @internal
+     */
     case DEPENDENCIES_INJECTION = 'dependencies_injections';
 }

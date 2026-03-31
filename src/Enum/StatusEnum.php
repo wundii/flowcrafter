@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Enum;
 
+use UnexpectedValueException;
+
 enum StatusEnum: int
 {
     case IN_PROGRESS = 0;
@@ -14,6 +16,11 @@ enum StatusEnum: int
 
     public static function fromName(string $name): self
     {
-        return constant(self::class . "::{$name}");
+        $enum = constant(self::class . ('::' . $name));
+        if (!$enum instanceof self) {
+            throw new UnexpectedValueException('Unknown status: ' . $name);
+        }
+
+        return $enum;
     }
 }

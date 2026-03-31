@@ -23,7 +23,7 @@
   "require-dev": {
     "ext-pdo": "*",
     "ext-redis": "*",
-    "phpstan/phpstan": "^2.1.42",
+    "phpstan/phpstan": "^2.1.45",
     "phpunit/phpunit": "^11.5.55",
     "rector/rector": "^2.3.9",
     "symfony/var-dumper": "^6.4 | ^7.0 | ^8.0.6",

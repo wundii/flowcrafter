@@ -10,7 +10,6 @@ use Testcontainers\Container\StartedGenericContainer;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Config\RedisConfig;
 use Wundii\Flowcrafter\Storage\Redis as RedisStorage;
-use Wundii\Flowcrafter\Storage\Service;
 
 trait RedisClientTestTrait
 {

@@ -25,7 +25,6 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
-use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 class MySql extends Service implements StorageInterface
@@ -48,7 +47,7 @@ class MySql extends Service implements StorageInterface
 
     protected Client $client;
 
-    public function __construct(MySqlConfig $mySqlConfig, ?string $sqliteFile = null)
+    public function __construct(MySqlConfig $mySqlConfig, string $sqliteFile)
     {
         parent::__construct($sqliteFile);
 
@@ -442,6 +441,21 @@ class MySql extends Service implements StorageInterface
     }
 
     /**
+     * @return iterable<string>
+     */
+    public function findAllFlowHashes(): iterable
+    {
+        $stmt = $this->client->query('SELECT flow_hash FROM flow_instance ORDER BY time ASC');
+        if ($stmt === false) {
+            return;
+        }
+
+        foreach ($stmt->fetchAll(Client::FETCH_COLUMN) as $hash) {
+            yield (string) $hash;
+        }
+    }
+
+    /**
      * @return iterable<array<mixed>>
      */
     public function findAllSchemas(): iterable
@@ -821,72 +835,6 @@ class MySql extends Service implements StorageInterface
         }
 
         return $this->findFlowByHash($flowHash);
-    }
-
-    /**
-     * @return FlowStatsEntity[]
-     */
-    public function findFlowStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
-    {
-        $where = '';
-        $params = [];
-        if ($from instanceof DateTimeInterface) {
-            $where .= ' AND f.`time` >= :from';
-            $params[':from'] = $from->format('Y-m-d H:i:s');
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $where .= ' AND f.`time` <= :to';
-            $params[':to'] = $to->format('Y-m-d H:i:s');
-        }
-
-        if ($flowType !== null && $flowType !== '') {
-            $where .= ' AND f.flow_type LIKE :flow_type';
-            $params[':flow_type'] = $flowType . '.v%';
-        }
-
-        // Run counts
-        $stmt = $this->client->prepare(
-            'SELECT DATE(f.`time`) AS `date`, COUNT(*) AS `count` FROM flow_run f' .
-            ' WHERE 1=1' .
-            $where .
-            ' GROUP BY DATE(f.`time`)' .
-            ' ORDER BY `date` ASC'
-        );
-        $stmt->execute($params);
-
-        $runs = [];
-        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
-            /** @var array{date: string, count: int|string} $row */
-            $runs[$row['date']] = (int) $row['count'];
-        }
-
-        // Instance counts
-        $stmt = $this->client->prepare(
-            'SELECT DATE(f.`time`) AS `date`, COUNT(*) AS `count` FROM flow_instance f' .
-            ' WHERE 1=1' .
-            $where .
-            ' GROUP BY DATE(f.`time`)' .
-            ' ORDER BY `date` ASC'
-        );
-        $stmt->execute($params);
-
-        $instances = [];
-        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
-            /** @var array{date: string, count: int|string} $row */
-            $instances[$row['date']] = (int) $row['count'];
-        }
-
-        $dates = array_unique(array_merge(array_keys($instances), array_keys($runs)));
-        sort($dates);
-
-        foreach ($dates as $date) {
-            yield new FlowStatsEntity(
-                date: $date,
-                instances: $instances[$date] ?? 0,
-                runs: $runs[$date] ?? 0,
-            );
-        }
     }
 
     /**
