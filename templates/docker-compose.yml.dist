@@ -8,7 +8,8 @@ services:
     environment:
       FLOWCRAFTER_CONFIG: /app/flowcrafter.php
     volumes:
-      - flowcrafter_run:/tmp/flowcrafter
+      - observer-tmp:/tmp/flowcrafter
+      - service-data:/app/flowcrafter-data
 
   observer:
     build:
@@ -17,7 +18,7 @@ services:
     environment:
       FLOWCRAFTER_CONFIG: /app/flowcrafter.php
     volumes:
-      - flowcrafter_run:/tmp/flowcrafter
+      - observer-tmp:/tmp/flowcrafter
 
   ui:
     image: wundii/flowcrafter-ui:latest
@@ -27,5 +28,6 @@ services:
       - ui-data:/flowcrafter/data
 
 volumes:
-  flowcrafter_run:
+  observer-tmp:
+  service-data:
   ui-data:

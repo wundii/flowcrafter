@@ -93,6 +93,7 @@ class FlowRunner
         $this->storage?->registerFlowSchema($flowSchema);
         $this->storage?->registerFlowInstance($this->flow);
         $this->storage?->appendFlowRun($this->flow, $queueId); #start to run the flow
+        $this->storage?->saveFlow($this->flow);
         $this->executedStubKey = [];
         $this->includeStubs = $includeStubs;
         $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
@@ -235,6 +236,7 @@ class FlowRunner
 
                 $flow->addException($flowException);
                 $this->storage?->appendFlowException($flowException);
+                $this->storage?->saveFlow($this->flow);
                 throw $exception;
             }
 
@@ -279,6 +281,8 @@ class FlowRunner
                 $flow->addMessage($returnFlowMessage);
                 $this->storage?->appendFlowMessage($returnFlowMessage);
             }
+
+            $this->storage?->saveFlow($this->flow);
         }
     }
 }

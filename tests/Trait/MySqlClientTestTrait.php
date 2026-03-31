@@ -10,6 +10,7 @@ use Testcontainers\Modules\MariaDBContainer;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
 use Wundii\Flowcrafter\Storage\MySql;
+use Wundii\Flowcrafter\Storage\Service;
 
 trait MySqlClientTestTrait
 {
@@ -20,6 +21,8 @@ trait MySqlClientTestTrait
     private const USERNAME = 'weyland';
 
     private const PASSWORD = 'yutani';
+
+    private const SQLiteFile = '/tmp/flowcrafter.sqlite';
 
     private StartedGenericContainer $container;
 
@@ -47,11 +50,12 @@ trait MySqlClientTestTrait
 
     protected function tearDown(): void
     {
+        @unlink(self::SQLiteFile);
         $this->container->stop();
         parent::tearDown();
     }
 
-    public function storage(): StorageInterface
+    protected function storage(): StorageInterface
     {
         $mySql = new MySql(
             new MysqlConfig(
@@ -61,6 +65,7 @@ trait MySqlClientTestTrait
                 self::USERNAME,
                 self::PASSWORD,
             ),
+            self::SQLiteFile,
         );
         $mySql->initializeDatabase();
 

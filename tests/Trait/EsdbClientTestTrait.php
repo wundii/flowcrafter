@@ -9,9 +9,12 @@ use Thenativeweb\Eventsourcingdb\Container;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
 use Wundii\Flowcrafter\Storage\Esdb;
+use Wundii\Flowcrafter\Storage\Service;
 
 trait EsdbClientTestTrait
 {
+    private const SQLiteFile = '/tmp/flowcrafter.sqlite';
+
     private Container $container;
 
     private Client $client;
@@ -26,6 +29,7 @@ trait EsdbClientTestTrait
 
     protected function tearDown(): void
     {
+        @unlink(self::SQLiteFile);
         $this->container->stop();
         parent::tearDown();
     }
@@ -45,6 +49,7 @@ trait EsdbClientTestTrait
                 $this->container->getBaseUrl(),
                 $this->container->getApiToken(),
             ),
+            self::SQLiteFile,
         );
         $esdb->initializeDatabase();
 

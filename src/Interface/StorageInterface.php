@@ -12,7 +12,6 @@ use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
-use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
@@ -59,37 +58,9 @@ interface StorageInterface
      */
     public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable;
 
-    public function countFlows(): int;
-
-    public function countFlowsBySource(string $flowSource = ''): int;
-
-    public function countFlowsByType(string $flowType = ''): int;
-
     public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
 
     public function countExceptionsByFlowHash(string $flowHash = ''): int;
-
-    public function countFlowsBySubject(string $flowSubject): int;
-
-    /**
-     * @return FlowEntity[]
-     */
-    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
-
-    /**
-     * @return FlowEntity[]
-     */
-    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
-
-    /**
-     * @return FlowEntity[]
-     */
-    public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
-
-    /**
-     * @return FlowEntity[]
-     */
-    public function findFlowsBySubject(string $flowSubject, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
 
     /**
      * @return FlowException[]
@@ -117,4 +88,6 @@ interface StorageInterface
      * @return iterable<StubSourceEntity>
      */
     public function findStubSourcesByStubSource(string $stubSource): iterable;
+
+    public function saveFlow(Flow $flow): void;
 }

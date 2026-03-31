@@ -123,7 +123,7 @@ final class Converter
                         Assert::string($message['flowRuntimeHash'] ?? null, 'Each Message must have a string flowRuntimeHash.'),
                         /** @phpstan-ignore argument.type */
                         $stubSource,
-                        Assert::string($message['stubHash'] ?? null, 'Each stubHash must have a string or null.'),
+                        Assert::string($message['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
                         MessageTypeEnum::from(Assert::string($message['messageType'] ?? null, 'Each Message must have a string messageType.')),
                         /** @phpstan-ignore argument.type */
                         $messageSource,
@@ -145,7 +145,7 @@ final class Converter
                         Assert::string($exception['flowRuntimeHash'] ?? null, 'Each Exception must have a string flowRuntimeHash.'),
                         Assert::string($exception['flowType'] ?? null, 'Each Exception must have a string flowType.'),
                         Assert::string($exception['stubSource'] ?? null, 'Each Exception must have a string stubSource.'), /** @phpstan-ignore argument.type */
-                        Assert::string($exception['stubHash'] ?? null, 'Each stubHash must have a string or null.'),
+                        Assert::string($exception['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
                         Assert::int($exception['code'] ?? null, 'Each Exception must have an integer code.'),
                         Assert::string($exception['message'] ?? null, 'Each Exception must have a string message.'),
                         Assert::string($exception['file'] ?? null, 'Each Exception must have a string file.'),
@@ -180,7 +180,7 @@ final class Converter
                         Assert::string($result['flowHash'] ?? null, 'Each Result must have a string flowHash.'),
                         Assert::string($result['flowRuntimeHash'] ?? null, 'Each Result must have a string flowRuntimeHash.'),
                         Assert::string($result['stubSource'] ?? null, 'Each Result must have a string stubSource.'), /** @phpstan-ignore argument.type */
-                        Assert::string($result['stubHash'] ?? null, 'Each stubHash must have a string or null.'),
+                        Assert::string($result['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
                         Assert::bool($result['result'] ?? null, 'Each Result must have a bool result.'),
                         Assert::datetimeImmutable($result['time'] ?? null, 'Time must be a valid date string.'),
                         Assert::string($result['hash'] ?? null, 'Each Result must have a string hash.'),

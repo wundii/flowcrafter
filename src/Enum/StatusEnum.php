@@ -11,4 +11,9 @@ enum StatusEnum: int
     case OK = 2;
     case WARNING = 3;
     case FAILED = 4;
+
+    public static function fromName(string $name): self
+    {
+        return constant(self::class . "::{$name}");
+    }
 }

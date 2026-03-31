@@ -25,11 +25,10 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
-use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
-class MySql implements StorageInterface
+class MySql extends Service implements StorageInterface
 {
     public const TYPE_INSTANCE = 'flow_instance';
 
@@ -49,8 +48,10 @@ class MySql implements StorageInterface
 
     protected Client $client;
 
-    public function __construct(MySqlConfig $mySqlConfig)
+    public function __construct(MySqlConfig $mySqlConfig, ?string $sqliteFile = null)
     {
+        parent::__construct($sqliteFile);
+
         $dsn = sprintf(
             'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
             $mySqlConfig->getHost(),
@@ -71,6 +72,8 @@ class MySql implements StorageInterface
 
     public function initializeDatabase(): void
     {
+        parent::initializeDatabase();
+
         $this->client->exec(
             <<<'SQL'
             CREATE TABLE IF NOT EXISTS flow_schema (
@@ -212,6 +215,11 @@ class MySql implements StorageInterface
             )
             SQL
         );
+    }
+
+    public function saveFlow(Flow $flow): void
+    {
+        parent::saveFlow($flow);
     }
 
     public function registerFlowSchema(FlowSchema $flowSchema): void
@@ -489,42 +497,6 @@ class MySql implements StorageInterface
         }
     }
 
-    public function countFlows(): int
-    {
-        $stmt = $this->client->query('SELECT COUNT(*) FROM flow_instance');
-        if ($stmt === false) {
-            return 0;
-        }
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    public function countFlowsBySource(string $flowSource = ''): int
-    {
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_instance WHERE flow_source = :flow_source');
-        $stmt->bindValue(':flow_source', $flowSource);
-        $stmt->execute();
-
-        if ($stmt === false) {
-            return 0;
-        }
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    public function countFlowsByType(string $flowType = ''): int
-    {
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_instance WHERE flow_type LIKE :flow_type');
-        $stmt->bindValue(':flow_type', $flowType . '.v%');
-        $stmt->execute();
-
-        if ($stmt === false) {
-            return 0;
-        }
-
-        return (int) $stmt->fetchColumn();
-    }
-
     public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
     {
         $conditions = [];
@@ -566,227 +538,6 @@ class MySql implements StorageInterface
         }
 
         return (int) $stmt->fetchColumn();
-    }
-
-    public function countFlowsBySubject(string $flowSubject): int
-    {
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_instance WHERE flow_subject LIKE :flow_subject');
-        $stmt->bindValue(':flow_subject', '%' . $flowSubject . '%');
-        $stmt->execute();
-
-        if ($stmt === false) {
-            return 0;
-        }
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        $skip = max(0, $skip);
-        $top = max(1, $top);
-
-        $where = '';
-        $params = [];
-        if ($from instanceof DateTimeInterface) {
-            $where .= ' AND fr.`time` >= :from';
-            $params[':from'] = $from->format('Y-m-d H:i:s');
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $where .= ' AND fr.`time` <= :to';
-            $params[':to'] = $to->format('Y-m-d H:i:s');
-        }
-
-        $sql = 'SELECT fi.*, MAX(fr.`time`) AS time_last_run, COUNT(DISTINCT fe.flow_hash) AS exception_count FROM flow_instance fi' .
-            ' JOIN flow_run fr ON fi.flow_hash = fr.flow_hash' .
-            ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
-            ' WHERE 1=1' .
-            $where .
-            ' GROUP BY fi.flow_hash' .
-            ' ORDER BY time_last_run ' . $sortEnum->name . ', fi.flow_hash ' . $sortEnum->name .
-            ' LIMIT ' . $skip . ', ' . $top;
-
-        $stmt = $this->client->prepare($sql);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-
-        $stmt->execute();
-
-        foreach ($stmt->fetchAll() as $row) {
-            yield new FlowEntity(
-                flowHash: $row['flow_hash'] ?? '',
-                flowType: $row['flow_type'] ?? '',
-                flowSource: $row['flow_source'] ?? '',
-                flowSubject: $row['flow_subject'] ?? null,
-                time: new DateTimeImmutable($row['time'] ?? 'now'),
-                timeLastRun: new DateTimeImmutable($row['time_last_run'] ?? 'now'),
-                exceptionCount: $row['exception_count'] ?? 0,
-            );
-        }
-    }
-
-    /**
-     * @return FlowEntity[]
-     * @throws Exception
-     */
-    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        if ($flowSource === '' || $flowSource === '*') {
-            yield from $this->findAllFlows($sortEnum, $top, $skip, $from, $to);
-            return;
-        }
-
-        $skip = max(0, $skip);
-        $top = max(1, $top);
-
-        $where = '';
-        $params = [];
-        if ($from instanceof DateTimeInterface) {
-            $where .= ' AND fr.`time` >= :from';
-            $params[':from'] = $from->format('Y-m-d H:i:s');
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $where .= ' AND fr.`time` <= :to';
-            $params[':to'] = $to->format('Y-m-d H:i:s');
-        }
-
-        $stmt = $this->client->prepare(
-            'SELECT fi.*, MAX(fr.`time`) AS time_last_run, COUNT(DISTINCT fe.flow_hash) AS exception_count FROM flow_instance fi' .
-            ' JOIN flow_run fr ON fi.flow_hash = fr.flow_hash' .
-            ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
-            ' WHERE fi.flow_source = :flow_source' .
-            $where .
-            ' GROUP BY fi.flow_hash' .
-            ' ORDER BY time_last_run ' . $sortEnum->name . ', fi.flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
-        );
-        $stmt->bindValue(':flow_source', $flowSource);
-        $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
-        $stmt->bindValue(':top', $top, Client::PARAM_INT);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-
-        $stmt->execute();
-
-        foreach ($stmt->fetchAll() as $row) {
-            yield new FlowEntity(
-                flowHash: $row['flow_hash'] ?? '',
-                flowType: $row['flow_type'] ?? '',
-                flowSource: $row['flow_source'] ?? '',
-                flowSubject: $row['flow_subject'] ?? null,
-                time: new DateTimeImmutable($row['time'] ?? 'now'),
-                timeLastRun: new DateTimeImmutable($row['time_last_run'] ?? 'now'),
-                exceptionCount: $row['exception_count'] ?? 0,
-            );
-        }
-    }
-
-    public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        if ($flowType === '' || $flowType === '*') {
-            yield from $this->findAllFlows($sortEnum, $top, $skip, $from, $to);
-            return;
-        }
-
-        $skip = max(0, $skip);
-        $top = max(1, $top);
-
-        $where = '';
-        $params = [];
-        if ($from instanceof DateTimeInterface) {
-            $where .= ' AND fr.`time` >= :from';
-            $params[':from'] = $from->format('Y-m-d H:i:s');
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $where .= ' AND fr.`time` <= :to';
-            $params[':to'] = $to->format('Y-m-d H:i:s');
-        }
-
-        $stmt = $this->client->prepare(
-            'SELECT fi.*, MAX(fr.`time`) AS time_last_run, COUNT(DISTINCT fe.flow_hash) AS exception_count FROM flow_instance fi' .
-            ' JOIN flow_run fr ON fi.flow_hash = fr.flow_hash' .
-            ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
-            ' WHERE fi.flow_type LIKE :flow_type' .
-            $where .
-            ' GROUP BY fi.flow_hash' .
-            ' ORDER BY time_last_run ' . $sortEnum->name . ', fi.flow_hash ' . $sortEnum->name . ' LIMIT :skip, :top'
-        );
-        $stmt->bindValue(':flow_type', $flowType . '.v%');
-        $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
-        $stmt->bindValue(':top', $top, Client::PARAM_INT);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-
-        $stmt->execute();
-
-        foreach ($stmt->fetchAll() as $row) {
-            yield new FlowEntity(
-                flowHash: $row['flow_hash'] ?? '',
-                flowType: $row['flow_type'] ?? '',
-                flowSource: $row['flow_source'] ?? '',
-                flowSubject: $row['flow_subject'] ?? null,
-                time: new DateTimeImmutable($row['time'] ?? 'now'),
-                timeLastRun: new DateTimeImmutable($row['time_last_run'] ?? 'now'),
-                exceptionCount: $row['exception_count'] ?? 0,
-            );
-        }
-    }
-
-    /**
-     * @return FlowEntity[]
-     * @throws Exception
-     */
-    public function findFlowsBySubject(string $flowSubject, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        $skip = max(0, $skip);
-        $top = max(1, $top);
-
-        $where = '';
-        $params = [];
-        if ($from instanceof DateTimeInterface) {
-            $where .= ' AND fr.`time` >= :from';
-            $params[':from'] = $from->format('Y-m-d H:i:s');
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $where .= ' AND fr.`time` <= :to';
-            $params[':to'] = $to->format('Y-m-d H:i:s');
-        }
-
-        $stmt = $this->client->prepare(
-            'SELECT fi.*, MAX(fr.`time`) AS time_last_run, COUNT(DISTINCT fe.flow_hash) AS exception_count FROM flow_instance fi' .
-            ' JOIN flow_run fr ON fi.flow_hash = fr.flow_hash' .
-            ' LEFT JOIN flow_exception fe ON fi.flow_hash = fe.flow_hash' .
-            ' WHERE fi.flow_subject LIKE :flow_subject' .
-            $where .
-            ' GROUP BY fi.flow_hash' .
-            ' ORDER BY time_last_run ' . $sortEnum->name . ' LIMIT :skip, :top'
-        );
-        $stmt->bindValue(':flow_subject', '%' . $flowSubject . '%');
-        $stmt->bindValue(':skip', $skip, Client::PARAM_INT);
-        $stmt->bindValue(':top', $top, Client::PARAM_INT);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-
-        $stmt->execute();
-
-        foreach ($stmt->fetchAll() as $row) {
-            yield new FlowEntity(
-                flowHash: $row['flow_hash'] ?? '',
-                flowType: $row['flow_type'] ?? '',
-                flowSource: $row['flow_source'] ?? '',
-                flowSubject: $row['flow_subject'] ?? null,
-                time: new DateTimeImmutable($row['time'] ?? 'now'),
-                timeLastRun: new DateTimeImmutable($row['time_last_run'] ?? 'now'),
-                exceptionCount: $row['exception_count'] ?? 0,
-            );
-        }
     }
 
     /**

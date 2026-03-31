@@ -32,11 +32,10 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
-use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
-class Esdb implements StorageInterface
+class Esdb extends Service implements StorageInterface
 {
     public const SOURCE = 'https://flowcrafter';
 
@@ -60,8 +59,10 @@ class Esdb implements StorageInterface
 
     protected Client $client;
 
-    public function __construct(EsdbConfig $esdbConfig)
+    public function __construct(EsdbConfig $esdbConfig, ?string $sqliteFile = null)
     {
+        parent::__construct($sqliteFile);
+
         $this->client = new Client(
             $esdbConfig->getUrl(),
             $esdbConfig->getApiToken(),
@@ -70,6 +71,8 @@ class Esdb implements StorageInterface
 
     public function initializeDatabase(): void
     {
+        parent::initializeDatabase();
+
         $eventTypesQl = 'FROM e IN eventtypes PROJECT INTO e';
         $eventTypes = $this->client->runEventQlQuery($eventTypesQl);
         $eventTypes = iterator_to_array($eventTypes);
@@ -417,6 +420,11 @@ class Esdb implements StorageInterface
 
             $this->client->registerEventSchema($eventType, $registerEventSchema);
         }
+    }
+
+    public function saveFlow(Flow $flow): void
+    {
+        parent::saveFlow($flow);
     }
 
     public function registerFlowSchema(FlowSchema $flowSchema): void
@@ -772,53 +780,6 @@ class Esdb implements StorageInterface
         }
     }
 
-    public function countFlows(): int
-    {
-        $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
-            'PROJECT INTO COUNT()'
-        );
-        $flowEvents = iterator_to_array($flowEvents);
-        return $flowEvents[0] ?? 0;
-    }
-
-    public function countFlowsBySource(string $flowSource = ''): int
-    {
-        $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
-            'AND e.data.flowSource == "' . $flowSource . '" ' .
-            'PROJECT INTO COUNT()'
-        );
-        $flowEvents = iterator_to_array($flowEvents);
-        return $flowEvents[0] ?? 0;
-    }
-
-    public function countFlowsByType(string $flowType = ''): int
-    {
-        $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
-            'AND STARTSWITH(e.data.flowType, "' . $flowType . '.v") ' .
-            'PROJECT INTO COUNT()'
-        );
-        $flowEvents = iterator_to_array($flowEvents);
-        return $flowEvents[0] ?? 0;
-    }
-
-    public function countFlowsBySubject(string $flowSubject): int
-    {
-        $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
-            'AND INSTR(LOWER(IF(e.data.flowSubject == NULL, "", e.data.flowSubject)), LOWER("' . $flowSubject . '")) > -1 ' .
-            'PROJECT INTO COUNT()'
-        );
-        $flowEvents = iterator_to_array($flowEvents);
-        return $flowEvents[0] ?? 0;
-    }
-
     public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
     {
         $timeFilter = '';
@@ -850,298 +811,6 @@ class Esdb implements StorageInterface
         );
         $flowEvents = iterator_to_array($flowEvents);
         return $flowEvents[0] ?? 0;
-    }
-
-    /**
-     * @return FlowEntity[]
-     * @throws Exception
-     */
-    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        $skip = max(0, $skip);
-        $top = max(1, $top);
-
-        $timeFilter = '';
-        if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        $runEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
-            $timeFilter .
-            'ORDER BY e.data.time DESC ' .
-            'PROJECT INTO {time: e.data.time, flowHash: e.data.flowHash}'
-        );
-
-        $runTimeLastMap = [];
-        $orderedHashes = [];
-        foreach ($runEvents as $runEvent) {
-            /** @var array{time: string, flowHash: string} $runEvent */
-            $hash = $runEvent['flowHash'];
-            if (!isset($runTimeLastMap[$hash])) {
-                $runTimeLastMap[$hash] = $runEvent['time'];
-                $orderedHashes[] = $hash;
-            }
-        }
-
-        if ($orderedHashes === []) {
-            return;
-        }
-
-        if ($sortEnum === SortEnum::ASC) {
-            $orderedHashes = array_reverse($orderedHashes);
-        }
-
-        $orClauses = array_map(
-            static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
-            $orderedHashes,
-        );
-
-        $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
-            'AND (' . implode(' OR ', $orClauses) . ') ' .
-            'PROJECT INTO e.data'
-        );
-
-        $flowEventMap = [];
-        foreach ($flowEvents as $flowEvent) {
-            /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
-            $flowEventMap[$flowEvent['flowHash']] = $flowEvent;
-        }
-
-        $matchingHashes = array_values(array_intersect($orderedHashes, array_keys($flowEventMap)));
-        $exceptionCounts = $this->batchCountExceptions($matchingHashes);
-
-        $sliced = array_slice($matchingHashes, $skip, $top);
-        foreach ($sliced as $hash) {
-            $flowEvent = $flowEventMap[$hash];
-            yield new FlowEntity(
-                flowHash: $hash,
-                flowType: $flowEvent['flowType'],
-                flowSource: $flowEvent['flowSource'],
-                flowSubject: $flowEvent['flowSubject'],
-                time: new DateTimeImmutable($flowEvent['time']),
-                timeLastRun: new DateTimeImmutable($runTimeLastMap[$hash]),
-                exceptionCount: $exceptionCounts[$hash] ?? 0,
-            );
-        }
-    }
-
-    /**
-     * @return FlowEntity[]
-     * @throws Exception
-     */
-    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        $skip = max(0, $skip);
-        $top = max(1, $top);
-
-        $timeFilter = '';
-        if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        $runEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
-            $timeFilter .
-            'ORDER BY e.data.time DESC ' .
-            'PROJECT INTO {time: e.data.time, flowHash: e.data.flowHash}'
-        );
-
-        $runTimeLastMap = [];
-        $orderedHashes = [];
-        foreach ($runEvents as $runEvent) {
-            /** @var array{time: string, flowHash: string} $runEvent */
-            $hash = $runEvent['flowHash'];
-            if (!isset($runTimeLastMap[$hash])) {
-                $runTimeLastMap[$hash] = $runEvent['time'];
-                $orderedHashes[] = $hash;
-            }
-        }
-
-        if ($orderedHashes === []) {
-            return;
-        }
-
-        if ($sortEnum === SortEnum::ASC) {
-            $orderedHashes = array_reverse($orderedHashes);
-        }
-
-        $orClauses = array_map(
-            static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
-            $orderedHashes,
-        );
-
-        $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
-            'AND e.data.flowSource == "' . $flowSource . '" ' .
-            'AND (' . implode(' OR ', $orClauses) . ') ' .
-            'PROJECT INTO e.data'
-        );
-
-        $flowEventMap = [];
-        foreach ($flowEvents as $flowEvent) {
-            /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
-            $flowEventMap[$flowEvent['flowHash']] = $flowEvent;
-        }
-
-        $matchingHashes = array_values(array_intersect($orderedHashes, array_keys($flowEventMap)));
-        $exceptionCounts = $this->batchCountExceptions($matchingHashes);
-
-        $sliced = array_slice($matchingHashes, $skip, $top);
-        foreach ($sliced as $hash) {
-            $flowEvent = $flowEventMap[$hash];
-            yield new FlowEntity(
-                flowHash: $hash,
-                flowType: $flowEvent['flowType'],
-                flowSource: $flowEvent['flowSource'],
-                flowSubject: $flowEvent['flowSubject'],
-                time: new DateTimeImmutable($flowEvent['time']),
-                timeLastRun: new DateTimeImmutable($runTimeLastMap[$hash]),
-                exceptionCount: $exceptionCounts[$hash] ?? 0,
-            );
-        }
-    }
-
-    /**
-     * @return FlowEntity[]
-     * @throws Exception
-     */
-    public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        $skip = max(0, $skip);
-        $top = max(1, $top);
-
-        $timeFilter = '';
-        if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        $runEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
-            $timeFilter .
-            'ORDER BY e.data.time DESC ' .
-            'PROJECT INTO {time: e.data.time, flowHash: e.data.flowHash}'
-        );
-
-        $runTimeLastMap = [];
-        $orderedHashes = [];
-        foreach ($runEvents as $runEvent) {
-            /** @var array{time: string, flowHash: string} $runEvent */
-            $hash = $runEvent['flowHash'];
-            if (!isset($runTimeLastMap[$hash])) {
-                $runTimeLastMap[$hash] = $runEvent['time'];
-                $orderedHashes[] = $hash;
-            }
-        }
-
-        if ($orderedHashes === []) {
-            return;
-        }
-
-        if ($sortEnum === SortEnum::ASC) {
-            $orderedHashes = array_reverse($orderedHashes);
-        }
-
-        $orClauses = array_map(
-            static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
-            $orderedHashes,
-        );
-
-        $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
-            'AND STARTSWITH(e.data.flowType, "' . $flowType . '.v") ' .
-            'AND (' . implode(' OR ', $orClauses) . ') ' .
-            'PROJECT INTO e.data'
-        );
-
-        $flowEventMap = [];
-        foreach ($flowEvents as $flowEvent) {
-            /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
-            $flowEventMap[$flowEvent['flowHash']] = $flowEvent;
-        }
-
-        $matchingHashes = array_values(array_intersect($orderedHashes, array_keys($flowEventMap)));
-        $exceptionCounts = $this->batchCountExceptions($matchingHashes);
-
-        $sliced = array_slice($matchingHashes, $skip, $top);
-        foreach ($sliced as $hash) {
-            $flowEvent = $flowEventMap[$hash];
-            yield new FlowEntity(
-                flowHash: $hash,
-                flowType: $flowEvent['flowType'],
-                flowSource: $flowEvent['flowSource'],
-                flowSubject: $flowEvent['flowSubject'],
-                time: new DateTimeImmutable($flowEvent['time']),
-                timeLastRun: new DateTimeImmutable($runTimeLastMap[$hash]),
-                exceptionCount: $exceptionCounts[$hash] ?? 0,
-            );
-        }
-    }
-
-    /**
-     * @return FlowEntity[]
-     * @throws Exception
-     */
-    public function findFlowsBySubject(string $flowSubject, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        $skip = max(0, $skip);
-        $top = max(1, $top);
-
-        $timeFilter = '';
-        if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
-            'AND INSTR(LOWER(IF(e.data.flowSubject == NULL, "", e.data.flowSubject)), LOWER("' . $flowSubject . '")) > -1 ' .
-            $timeFilter .
-            'ORDER BY e.id ' . $sortEnum->name . ' ' .
-            'SKIP ' . $skip . ' ' .
-            'TOP ' . $top . ' ' .
-            'PROJECT INTO e.data'
-        );
-
-        $flowEvents = iterator_to_array($flowEvents);
-
-        $exceptionCounts = $this->batchCountExceptions(array_column($flowEvents, 'flowHash'));
-
-        foreach ($flowEvents as $flowEvent) {
-            /** @var array{flowHash: string, flowType: string, flowSource: string, flowSubject: string, time: string} $flowEvent */
-            yield new FlowEntity(
-                flowHash: $flowEvent['flowHash'],
-                flowType: $flowEvent['flowType'],
-                flowSource: $flowEvent['flowSource'],
-                flowSubject: $flowEvent['flowSubject'],
-                time: new DateTimeImmutable($flowEvent['time']),
-                timeLastRun: new DateTimeImmutable($flowEvent['time']),
-                exceptionCount: $exceptionCounts[$flowEvent['flowHash']] ?? 0,
-            );
-        }
     }
 
     /**
@@ -1405,39 +1074,5 @@ class Esdb implements StorageInterface
                 time: new DateTimeImmutable($stubSourceEvent['time']),
             );
         }
-    }
-
-    /**
-     * Batch-fetches exception counts for multiple flow hashes in a single EventQL query.
-     *
-     * @param string[] $flowHashes
-     * @return array<string, int> flowHash => count
-     */
-    private function batchCountExceptions(array $flowHashes): array
-    {
-        if ($flowHashes === []) {
-            return [];
-        }
-
-        $orClauses = array_map(
-            static fn (string $h): string => 'e.data.flowHash == "' . $h . '"',
-            $flowHashes,
-        );
-
-        $result = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
-            'AND (' . implode(' OR ', $orClauses) . ') ' .
-            'GROUP BY e.data.flowHash ' .
-            'PROJECT INTO { flowHash: UNIQUE(e.data.flowHash), cnt: COUNT() }'
-        );
-
-        $counts = [];
-        foreach ($result as $row) {
-            /** @var array{0: array{flowHash: string, cnt: int}} $row */
-            $counts[$row[0]['flowHash']] = $row[0]['cnt'];
-        }
-
-        return $counts;
     }
 }

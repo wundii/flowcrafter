@@ -10,10 +10,13 @@ use Testcontainers\Container\StartedGenericContainer;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Config\RedisConfig;
 use Wundii\Flowcrafter\Storage\Redis as RedisStorage;
+use Wundii\Flowcrafter\Storage\Service;
 
 trait RedisClientTestTrait
 {
     private const PORT = 6379;
+
+    private const SQLiteFile = '/tmp/flowcrafter.sqlite';
 
     private StartedGenericContainer $container;
 
@@ -35,17 +38,19 @@ trait RedisClientTestTrait
 
     protected function tearDown(): void
     {
+        @unlink(self::SQLiteFile);
         $this->container->stop();
         parent::tearDown();
     }
 
-    public function storage(): StorageInterface
+    protected function storage(): StorageInterface
     {
         $redis = new RedisStorage(
             new RedisConfig(
                 $this->container->getHost(),
                 $this->container->getMappedPort(6379),
             ),
+            self::SQLiteFile,
         );
         $redis->initializeDatabase();
 

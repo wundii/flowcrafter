@@ -16,7 +16,7 @@ use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
-use Wundii\Flowcrafter\Storage\Entity\FlowEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
@@ -40,8 +40,8 @@ final class FlowStorageMySqlTest extends TestCase
 
         $flows = iterator_to_array($storage->findAllFlows(SortEnum::ASC));
         $this->assertCount(2, $flows);
-        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
-        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[1]);
         $this->assertGreaterThan($flows[0]->flowHash, $flows[1]->flowHash);
     }
 
@@ -61,8 +61,8 @@ final class FlowStorageMySqlTest extends TestCase
 
         $flows = iterator_to_array($storage->findAllFlows());
         $this->assertCount(2, $flows);
-        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
-        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[1]);
         $this->assertLessThan($flows[0]->flowHash, $flows[1]->flowHash);
     }
 
@@ -82,8 +82,8 @@ final class FlowStorageMySqlTest extends TestCase
 
         $flows = iterator_to_array($storage->findFlowsBySource(WorkflowMock::class, SortEnum::ASC));
         $this->assertCount(2, $flows);
-        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
-        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[1]);
         $this->assertGreaterThan($flows[0]->flowHash, $flows[1]->flowHash);
     }
 
@@ -103,8 +103,8 @@ final class FlowStorageMySqlTest extends TestCase
 
         $flows = iterator_to_array($storage->findFlowsBySource(WorkflowMock::class));
         $this->assertCount(2, $flows);
-        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
-        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[1]);
         $this->assertLessThan($flows[0]->flowHash, $flows[1]->flowHash);
     }
 
@@ -233,8 +233,8 @@ final class FlowStorageMySqlTest extends TestCase
 
         $flows = iterator_to_array($storage->findAllFlows(SortEnum::DESC, 1000, 0, $from, $to));
         $this->assertCount(2, $flows);
-        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
-        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[1]);
     }
 
     /**
@@ -277,8 +277,8 @@ final class FlowStorageMySqlTest extends TestCase
 
         $flows = iterator_to_array($storage->findFlowsBySource(WorkflowMock::class, SortEnum::DESC, 1000, 0, $from, $to));
         $this->assertCount(2, $flows);
-        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
-        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[1]);
     }
 
     /**
@@ -318,8 +318,8 @@ final class FlowStorageMySqlTest extends TestCase
 
         $flows = iterator_to_array($storage->findFlowsByType('flow.workflow', SortEnum::ASC));
         $this->assertCount(2, $flows);
-        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
-        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[1]);
         $this->assertGreaterThan($flows[0]->flowHash, $flows[1]->flowHash);
     }
 
@@ -339,8 +339,8 @@ final class FlowStorageMySqlTest extends TestCase
 
         $flows = iterator_to_array($storage->findFlowsByType('flow.workflow'));
         $this->assertCount(2, $flows);
-        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
-        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[1]);
         $this->assertLessThan($flows[0]->flowHash, $flows[1]->flowHash);
     }
 
@@ -381,8 +381,8 @@ final class FlowStorageMySqlTest extends TestCase
 
         $flows = iterator_to_array($storage->findFlowsByType('flow.workflow', SortEnum::DESC, 1000, 0, $from, $to));
         $this->assertCount(2, $flows);
-        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
-        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[1]);
     }
 
     /**
@@ -591,8 +591,8 @@ final class FlowStorageMySqlTest extends TestCase
 
         $flows = iterator_to_array($storage->findFlowsBySubject('order'));
         $this->assertCount(2, $flows);
-        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
-        $this->assertInstanceOf(FlowEntity::class, $flows[1]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[1]);
 
         $flows = iterator_to_array($storage->findFlowsBySubject('12345'));
         $this->assertCount(1, $flows);
@@ -621,7 +621,7 @@ final class FlowStorageMySqlTest extends TestCase
 
         $flows = iterator_to_array($storage->findFlowsBySubject('order', SortEnum::DESC, 1000, 0, $from, $to));
         $this->assertCount(1, $flows);
-        $this->assertInstanceOf(FlowEntity::class, $flows[0]);
+        $this->assertInstanceOf(FlowListEntity::class, $flows[0]);
     }
 
     /**
