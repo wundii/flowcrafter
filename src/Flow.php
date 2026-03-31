@@ -19,6 +19,11 @@ class Flow implements JsonSerializable
     private string $flowRuntimeHash;
 
     /**
+     * @var class-string[]
+     */
+    private array $includeStubs = [];
+
+    /**
      * @param class-string<FlowInterface> $flowSource
      * @param FlowMessage[] $flowMessages
      * @param FlowException[] $flowExceptions
@@ -266,13 +271,20 @@ class Flow implements JsonSerializable
         return $this->flowReadOnly;
     }
 
+    /**
+     * @param class-string[] $includeStubs
+     */
+    public function setIncludeStubs(array $includeStubs): void
+    {
+        $this->includeStubs = $includeStubs;
+    }
+
     public function status(): StatusEnum
     {
         if ($this->flowRuns === []) {
             return StatusEnum::IN_PROGRESS;
         }
 
-        $flowRuns = count($this->flowRuns);
         $flowRun = end($this->flowRuns);
         $lastRuntimeHash = $flowRun->getFlowRuntimeHash();
         $lastRunTime = $flowRun->getTime();
@@ -281,6 +293,17 @@ class Flow implements JsonSerializable
             static fn (Stub $stub): string => $stub->getSource(),
             $leafStubs,
         );
+
+        if ($this->includeStubs !== []) {
+            $lastRunStubs = array_unique(array_map(
+                static fn (FlowMessage $flowMessage): string => $flowMessage->getStubSource(),
+                array_filter(
+                    $this->flowMessages,
+                    fn (FlowMessage $flowMessage): bool => $flowMessage->getFlowRuntimeHash() === $lastRuntimeHash,
+                ),
+            ));
+            $leafStubsClassStrings = array_values(array_intersect($leafStubsClassStrings, $lastRunStubs));
+        }
 
         $status = StatusEnum::IN_PROGRESS;
 
@@ -294,16 +317,33 @@ class Flow implements JsonSerializable
                 continue;
             }
 
-            if ($flowRuns > 1) {
-                $leafStubsClassStrings = [];
-                continue;
-            }
-
             unset($leafStubsClassStrings[$arrayKey]);
         }
 
         if ($leafStubsClassStrings === []) {
             $status = StatusEnum::OK;
+        } elseif (count($this->flowRuns) > 1) {
+            $previousRuntimeHashes = array_map(
+                static fn (FlowRun $flowRun): string => $flowRun->getFlowRuntimeHash(),
+                array_slice(array_values($this->flowRuns), 0, -1),
+            );
+
+            foreach ($this->flowMessages as $flowMessage) {
+                if (!in_array($flowMessage->getFlowRuntimeHash(), $previousRuntimeHashes, true)) {
+                    continue;
+                }
+
+                $arrayKey = array_search($flowMessage->getStubSource(), $leafStubsClassStrings, true);
+                if ($arrayKey === false) {
+                    continue;
+                }
+
+                unset($leafStubsClassStrings[$arrayKey]);
+            }
+
+            if ($leafStubsClassStrings === []) {
+                $status = StatusEnum::OK;
+            }
         }
 
         $datetime = new DateTimeImmutable('now', $lastRunTime->getTimezone());

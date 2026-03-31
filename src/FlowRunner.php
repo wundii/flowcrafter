@@ -13,6 +13,7 @@ use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\ServiceInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 
@@ -53,6 +54,14 @@ class FlowRunner
             FlowInterface::class,
             'The flow must be a class implementing FlowInterface'
         );
+
+        if ($storage instanceof StorageInterface) {
+            Assert::object(
+                $storage,
+                ServiceInterface::class,
+                'Storage not instance of ServiceInterface: ' . get_class($storage),
+            );
+        }
     }
 
     public function getFlow(): ?Flow
@@ -82,25 +91,28 @@ class FlowRunner
             flowHash: $flowHash,
         );
 
-        if (!$this->flow->isExecutable()) {
+        $flow = $this->flow;
+        $flow->setIncludeStubs($includeStubs);
+
+        if (!$flow->isExecutable()) {
             throw new RuntimeException('Flow is not executable, because the flowSchemaHash is different from the stored version');
         }
 
-        $this->flow->addRun($queueId);
+        $flow->addRun($queueId);
 
-        $flowSchema = $this->flow->getSchema();
+        $flowSchema = $flow->getSchema();
 
         $this->storage?->registerFlowSchema($flowSchema);
-        $this->storage?->registerFlowInstance($this->flow);
-        $this->storage?->appendFlowRun($this->flow, $queueId); #start to run the flow
-        $this->storage?->saveFlow($this->flow);
+        $this->storage?->registerFlowInstance($flow);
+        $this->storage?->appendFlowRun($flow, $queueId); #start to run the flow
         $this->executedStubKey = [];
         $this->includeStubs = $includeStubs;
         $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
 
-        $this->executeStubsRecursive($this->flow, $message);
+        $this->executeStubsRecursive($flow, $message);
 
-        $this->storage?->saveFlow($this->flow);
+        /** @phpstan-ignore-next-line */
+        $this->storage?->saveFlow($flow);
 
         return $this->messageReturn ?: false;
     }
@@ -233,7 +245,9 @@ class FlowRunner
 
                 $flow->addException($flowException);
                 $this->storage?->appendFlowException($flowException);
+                /** @phpstan-ignore-next-line */
                 $this->storage?->saveFlow($flow);
+
                 throw $exception;
             }
 

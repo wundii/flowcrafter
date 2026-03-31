@@ -12,7 +12,6 @@ use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
-use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 interface StorageInterface
@@ -48,6 +47,15 @@ interface StorageInterface
      */
     public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable;
 
+    public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
+
+    public function countExceptionsByFlowHash(string $flowHash): int;
+
+    /**
+     * @return iterable<string>
+     */
+    public function findAllFlowHashes(): iterable;
+
     /**
      * @return iterable<array<mixed>>
      */
@@ -57,10 +65,6 @@ interface StorageInterface
      * @return iterable<ObserveItem>
      */
     public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable;
-
-    public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
-
-    public function countExceptionsByFlowHash(string $flowHash = ''): int;
 
     /**
      * @return FlowException[]
@@ -76,11 +80,6 @@ interface StorageInterface
 
     public function findFlowByRuntimeHash(string $flowRuntimeHash): ?Flow;
 
-    /**
-     * @return FlowStatsEntity[]
-     */
-    public function findFlowStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable;
-
     public function findStubSourceByHash(string $stubHash): ?StubSourceEntity;
 
     /**
@@ -88,13 +87,4 @@ interface StorageInterface
      * @return iterable<StubSourceEntity>
      */
     public function findStubSourcesByStubSource(string $stubSource): iterable;
-
-    public function saveFlow(Flow $flow): void;
-
-    /**
-     * @return iterable<string>
-     */
-    public function findAllFlowHashes(): iterable;
-
-    public function truncateFlowList(): void;
 }

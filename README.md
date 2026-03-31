@@ -16,14 +16,16 @@ PHP-Bibliothek zur Definition, Ausführung und Überwachung nachrichtengetrieben
 
 - Typsichere Workflow-Definitionen via PHP-Interfaces
 - Drei Storage-Backends: **MySQL**, **Redis**, **EventSourcingDB**
+- **SQLite Service-Layer**: Alle drei Backends führen eine SQLite-Zusammenfassung (`flow_list`, `flow_run_list`) als schnellen Query-Cache für die API — kein Read-Zugriff auf das primäre Backend nötig
 - Synchrone Ausführung (`FlowRunner`) und asynchrone Queue-Verarbeitung (`FlowObserver`)
 - Vollständiges Message- und Exception-Logging pro Flow-Instanz
+- **Flow-Status**: Jeder Flow trägt einen berechneten Status (`IN_PROGRESS`, `IN_PROGRESS_EXCEEDED`, `OK`, `WARNING`, `FAILED`) basierend auf Leaf-Stubs, FlowResults und Exceptions
 - Stub-Source-Snapshotting: Quellcode der Stubs wird bei Ausführung gespeichert und kann mit dem aktuellen Stand verglichen werden
 - Schema-Versionierung: Flow-Schema wird per MD5 gehasht, nicht ausführbare Flows werden erkannt
 - REST-API über den integrierten Flower-Micro-Router (synchrone Ausführung, Queue-Management, Schema-Inspektion)
 - Prometheus / OpenMetrics Monitoring (`/metrics`)
 - Dependency Injection: Service-Instanzen in Stub-Konstruktoren via Symfony DI Container
-- Symfony Console Commands für Init, Observer, Serve und Mermaid-Diagramme
+- Symfony Console Commands für Init, Observer, Serve, Rebuild und Mermaid-Diagramme
 - PHPStan Level 10, ECS Code Style, vollständige Integration-Tests mit Testcontainers
 
 ---
@@ -70,6 +72,10 @@ Das Storage-Backend wird über typisierte Config-Objekte konfiguriert:
 | Redis           | `Storage\Config\RedisConfig`   | `host`, `port`                               | In-Memory, RediSearch-Indizes             |
 | EventSourcingDB | `Storage\Config\EsdbConfig`    | `url`, `apiToken`                            | Event Sourcing, Append-Only               |
 
+Alle drei Backends erben von `Storage\Service` und führen neben dem primären Backend automatisch eine SQLite-Datenbank (`flow_list`, `flow_run_list`) als schnellen Lese-Cache für API-Anfragen. Die SQLite-Datei liegt standardmäßig unter `data/database.sqlite` im Projektverzeichnis und kann über einen optionalen `sqliteFile`-Parameter in der Config überschrieben werden.
+
+> **Docker:** Im mitgelieferten `docker-compose.yml` teilen sich `service` und `observer` denselben SQLite-Pfad über ein gemeinsames Volume (`service-data:/app/data`). SQLite nutzt WAL-Mode für gleichzeitige Schreib- und Lesezugriffe beider Container.
+
 **Beispiel MySQL:**
 ```php
 use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
@@ -110,7 +116,9 @@ vendor/bin/flowcrafter create
 vendor/bin/flowcrafter init
 ```
 
-Legt alle Tabellen / Indizes im konfigurierten Backend an.
+Legt alle Tabellen / Indizes im konfigurierten Backend sowie die SQLite-Tabellen (`flow_list`, `flow_run_list`) an.
+
+> **Hinweis:** `frankenphp:service` und `observer` rufen `initializeDatabase()` beim Start automatisch auf — ein manuelles `init` ist nur beim ersten Setup oder nach manuellen Schema-Änderungen nötig.
 
 ### 3. Entwicklung: API-Server + Observer starten
 
@@ -174,7 +182,8 @@ flowcrafter/
 │   │   │   ├── FlowFrankenPhpServiceCommand.php # API-Server (FrankenPHP, Produktion)
 │   │   │   ├── FlowInitCommand.php             # Storage initialisieren
 │   │   │   ├── FlowMermaidCommand.php          # Mermaid-Diagramm erzeugen
-│   │   │   └── FlowObserverCommand.php         # Observer-Worker starten
+│   │   │   ├── FlowObserverCommand.php         # Observer-Worker starten
+│   │   │   └── FlowServiceRebuildCommand.php   # SQLite-Cache aus primärem Backend neu aufbauen
 │   │   └── Output/                             # Console-Output-Helfer
 │   ├── Enum/                          # Message-, MessageType- und Sort-Enums
 │   ├── Interface/
@@ -191,13 +200,13 @@ flowcrafter/
 │   │   │   ├── EsdbConfig.php         # EventSourcingDB-Konfiguration
 │   │   │   ├── MySqlConfig.php        # MySQL-Konfiguration
 │   │   │   └── RedisConfig.php        # Redis-Konfiguration
+│   │   ├── Service.php                # SQLite-Cache-Layer (Basisklasse aller Backends)
 │   │   ├── MySql.php                  # MySQL-Implementierung
 │   │   ├── Redis.php                  # Redis-Implementierung
 │   │   ├── Esdb.php                   # EventSourcingDB-Implementierung
 │   │   └── Entity/
-│   │       ├── FlowEntity.php         # DTO für Flow-Listeneinträge
-│   │       ├── FlowStatsEntity.php    # DTO für Flow-Statistiken
-│   │       ├── RunStatsEntity.php     # DTO für Run-Statistiken
+│   │       ├── FlowListEntity.php     # DTO für Flow-Listeneinträge (SQLite-Cache)
+│   │       ├── FlowStatsEntity.php    # DTO für tägliche Flow-Statistiken
 │   │       └── StubSourceEntity.php   # DTO für Stub-Source-Snapshots
 │   ├── Assert.php                     # Validierungs-Helfer
 │   ├── Converter.php                  # JSON ↔ Flow ↔ Mermaid-Konvertierung
@@ -237,7 +246,23 @@ flowcrafter/
 
 ### Flow
 
-Ein Flow ist eine Workflow-Instanz, identifiziert durch einen `flowHash` (MD5 des Schemas) und einen `flowRuntimeHash` (UUIDv7 je Ausführung). Pro Flow werden alle Messages, Exceptions, Runs und Results persistiert. Ein optionales `flowSubject` erlaubt die Beschriftung von Flow-Instanzen. Jeder Flow besitzt einen `flowType` (Schema-Klassenname) und einen `timeLastRun`-Zeitstempel.
+Ein Flow ist eine Workflow-Instanz, identifiziert durch einen `flowHash` (UUIDv7) und einen `flowRuntimeHash` (UUIDv7 je Ausführung). Pro Flow werden alle Messages, Exceptions, Runs und Results persistiert. Ein optionales `flowSubject` erlaubt die Beschriftung von Flow-Instanzen. Jeder Flow besitzt einen `flowType` (z. B. `flow.example.v1`) und einen `lastTerm`-Zeitstempel des letzten Runs.
+
+### Flow-Status
+
+Jeder Flow trägt einen berechneten Status, der beim Lesen aus der SQLite (`flow_list`) gespeichert und bei jedem `saveFlow()` aktualisiert wird:
+
+| Status                  | Wert | Bedingung                                                                      |
+| ----------------------- | ---- | ------------------------------------------------------------------------------ |
+| `IN_PROGRESS`           | 0    | Runs vorhanden, aber noch nicht alle Leaf-Stubs im letzten Run erreicht        |
+| `IN_PROGRESS_EXCEEDED`  | 1    | `IN_PROGRESS` + letzter Run liegt > 1 Stunde zurück                           |
+| `OK`                    | 2    | Alle relevanten Leaf-Stubs erreicht, keine Exceptions, keine `false`-Results   |
+| `WARNING`               | 3    | Alle Leaf-Stubs erreicht, aber mindestens ein `FlowResult` mit `result = false` |
+| `FAILED`                | 4    | Mindestens eine `FlowException` im letzten Run                                 |
+
+**Leaf-Stubs** sind Stubs, deren Rückgabetypen von keinem weiteren Stub konsumiert werden (Endknoten des Workflow-Graphen). Erst wenn alle relevanten Leaf-Stubs im letzten Run Messages erhalten haben, gilt der Flow als abgeschlossen.
+
+Bei partiellen Re-Runs mit `includeStubs` werden nur diejenigen Leaf-Stubs geprüft, die im letzten Run tatsächlich Messages empfangen haben — Leaf-Stubs aus anderen Zweigen (z. B. bei AND-Joins, deren zweite Eingabe fehlt) werden ignoriert.
 
 ### FlowSchema
 
@@ -260,8 +285,8 @@ Ein Stub kann zurückgeben:
 
 Wenn eine Message-Klasse von mehreren Stubs konsumiert wird, können beim Auslösen eines Runs gezielt einzelne Stubs ausgewählt werden. Der optionale Parameter `includeStubs` (Array von Stub-Klassennamen) steuert, welche Stubs ausgeführt werden:
 
-- **Leeres Array** (Default): Alle Stubs werden wie gewohnt ausgeführt
-- **Nicht-leeres Array**: Nur die aufgeführten Stubs werden ausgeführt, alle anderen werden übersprungen
+- **Leeres Array** (Default): Alle Stubs werden wie gewohnt ausgeführt, alle Leaf-Stubs müssen erreicht werden
+- **Nicht-leeres Array**: Nur die aufgeführten Stubs werden ausgeführt. Die Status-Berechnung berücksichtigt nur Leaf-Stubs, die im letzten Run tatsächlich Messages empfangen haben — alle anderen werden ignoriert
 
 Dies gilt sowohl für synchrone Ausführung (`/api/flows/run`) als auch für die Queue (`/api/queue`).
 
@@ -407,7 +432,12 @@ vendor/bin/flowcrafter docker:init
 
 # Mermaid-Diagramm für einen Flow generieren
 vendor/bin/flowcrafter mermaid App\\MyFlow [--output=./]
+
+# SQLite-Cache aus dem primären Backend neu aufbauen (z. B. nach Deployment)
+vendor/bin/flowcrafter service:rebuild [--clear]
 ```
+
+> `service:rebuild` iteriert alle Flow-Hashes aus dem primären Backend und schreibt die Flow-Daten in die SQLite neu. Mit `--clear` wird die SQLite vor dem Rebuild geleert.
 
 ---
 

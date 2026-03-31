@@ -6,16 +6,12 @@ namespace Wundii\Flowcrafter\Interface;
 
 use DateTimeInterface;
 use Wundii\Flowcrafter\Enum\SortEnum;
+use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 
 interface ServiceInterface
 {
-    /**
-     * @return iterable<FlowStatsEntity>
-     */
-    public function findFlowStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable;
-
     public function countFlows(): int;
 
     public function countFlowsBySource(string $flowSource): int;
@@ -43,4 +39,13 @@ interface ServiceInterface
      * @return FlowListEntity[]
      */
     public function findFlowsBySubject(string $flowSubject, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
+
+    /**
+     * @return FlowStatsEntity[]
+     */
+    public function findFlowStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable;
+
+    public function saveFlow(Flow $flow): void;
+
+    public function truncateFlowList(): void;
 }

@@ -421,11 +421,6 @@ class Esdb extends Service implements StorageInterface
         }
     }
 
-    public function saveFlow(Flow $flow): void
-    {
-        parent::saveFlow($flow);
-    }
-
     public function registerFlowSchema(FlowSchema $flowSchema): void
     {
         $subject = '/flow/schema/' . $flowSchema->getHash();
@@ -814,7 +809,7 @@ class Esdb extends Service implements StorageInterface
         return $flowEvents[0] ?? 0;
     }
 
-    public function countExceptionsByFlowHash(string $flowHash = ''): int
+    public function countExceptionsByFlowHash(string $flowHash): int
     {
         $flowEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .

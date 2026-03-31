@@ -27,9 +27,9 @@ use Wundii\Flower\Flower;
 use Wundii\Flower\MethodEnum;
 
 $autoloadCandidates = [
-    dirname(__DIR__) . '/vendor/autoload.php',    // flowcrafter repo / FrankenPHP root
+    dirname(__DIR__) . '/vendor/autoload.php', // flowcrafter repo / FrankenPHP root
     dirname(__DIR__, 4) . '/vendor/autoload.php', // installed as composer package
-    getcwd() . '/vendor/autoload.php',             // PHP built-in server (dev)
+    getcwd() . '/vendor/autoload.php', // PHP built-in server (dev)
 ];
 $autoloadFile = null;
 foreach ($autoloadCandidates as $autoloadCandidate) {
@@ -52,7 +52,7 @@ $flowcrafterConfig = $bootstrapConfigRequirer->loadConfigFile(new FlowcrafterCon
 
 $storage = $flowcrafterConfig->getStorage();
 if (!$storage instanceof ServiceInterface) {
-    throw new RuntimeException('Flowcrafter config file is not valid');
+    throw new RuntimeException('Storage not instance of ServiceInterface: ' . get_class($storage));
 }
 
 $serializeEntity = static fn (FlowListEntity $flowListEntity): array => [

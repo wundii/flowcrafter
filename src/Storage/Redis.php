@@ -406,11 +406,6 @@ class Redis extends Service implements StorageInterface
         );
     }
 
-    public function saveFlow(Flow $flow): void
-    {
-        parent::saveFlow($flow);
-    }
-
     public function registerFlowSchema(FlowSchema $flowSchema): void
     {
         $key = self::PREFIX_TYPE_SCHEMA . $flowSchema->getHash();
@@ -651,10 +646,10 @@ class Redis extends Service implements StorageInterface
 
     public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
     {
-        return $this->countExceptionsByFlowHash('*', $from, $to);
+        return $this->countExceptionsByFlowHash('*');
     }
 
-    public function countExceptionsByFlowHash(string $flowHash = '', ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
+    public function countExceptionsByFlowHash(string $flowHash): int
     {
         $flowHash = self::escapeValue($flowHash);
         $value = match ($flowHash) {
@@ -663,13 +658,6 @@ class Redis extends Service implements StorageInterface
         };
 
         $args = ['FT.SEARCH', self::INDEX_EXCEPTION, $value, 'LIMIT', '0', '0'];
-        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
-            $args[] = 'FILTER';
-            $args[] = 'time';
-            $args[] = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
-            $args[] = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
-        }
-
         $result = $this->client->rawCommand(...$args);
 
         return is_array($result) && is_int($result[0] ?? null) ? $result[0] : 0;

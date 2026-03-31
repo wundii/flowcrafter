@@ -71,42 +71,45 @@ class Service implements ServiceInterface
         );
     }
 
-    public function saveFlow(Flow $flow): void
+    public function countFlows(): int
     {
-        $stmt = $this->client->prepare(
-            'INSERT INTO flow_list (flow_hash, flow_type, flow_source, flow_subject, flow_time, last_term, status) ' .
-            'VALUES (:flow_hash, :flow_type, :flow_source, :flow_subject, :flow_time, :last_term, :status) ' .
-            'ON CONFLICT(flow_hash) DO UPDATE SET ' .
-            'last_term = excluded.last_term, ' .
-            'status = excluded.status'
-        );
+        $stmt = $this->client->query('SELECT COUNT(*) FROM flow_list');
+        if ($stmt === false) {
+            return 0;
+        }
 
-        $runs = $flow->runs();
-        $lastRun = end($runs);
+        return (int) $stmt->fetchColumn();
+    }
 
+    public function countFlowsBySource(string $flowSource): int
+    {
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list WHERE flow_source = :flow_source');
         $stmt->execute([
-            ':flow_hash' => $flow->getHash(),
-            ':flow_type' => $flow->getType(),
-            ':flow_source' => $flow->getSource(),
-            ':flow_subject' => $flow->getSubject(),
-            ':flow_time' => $flow->getTime()->format('Y-m-d H:i:s.u'),
-            ':last_term' => $lastRun !== false ? $lastRun->getTime()->format('Y-m-d H:i:s.u') : $flow->getTime()->format('Y-m-d H:i:s.u'),
-            ':status' => $flow->status()->name,
+            ':flow_source' => $flowSource,
         ]);
 
-        $stmt = $this->client->prepare(
-            'INSERT OR IGNORE INTO flow_run_list (flow_runtime_hash, flow_hash, flow_type, flow_time) ' .
-            'VALUES (:flow_runtime_hash, :flow_hash, :flow_type, :flow_time)'
-        );
+        return (int) $stmt->fetchColumn();
+    }
 
-        foreach ($flow->runs() as $flowRun) {
-            $stmt->execute([
-                ':flow_runtime_hash' => $flowRun->getFlowRuntimeHash(),
-                ':flow_hash' => $flowRun->getFlowHash(),
-                ':flow_type' => $flowRun->getFlowType(),
-                ':flow_time' => $flowRun->getTime()->format('Y-m-d H:i:s.u'),
-            ]);
-        }
+    public function countFlowsByType(string $flowType): int
+    {
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list WHERE flow_type LIKE :flow_type');
+        $stmt->execute([
+            ':flow_type' => $flowType . '.v%',
+        ]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countFlowsBySubject(string $flowSubject): int
+    {
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list WHERE flow_subject LIKE :flow_subject');
+
+        $stmt->execute([
+            ':flow_subject' => '%' . $flowSubject . '%',
+        ]);
+
+        return (int) $stmt->fetchColumn();
     }
 
     /**
@@ -164,53 +167,6 @@ class Service implements ServiceInterface
                 runs: $runs[$date] ?? 0,
             );
         }
-    }
-
-    public function truncateFlowList(): void
-    {
-        $this->client->exec('DELETE FROM flow_list');
-        $this->client->exec('DELETE FROM flow_run_list');
-    }
-
-    public function countFlows(): int
-    {
-        $stmt = $this->client->query('SELECT COUNT(*) FROM flow_list');
-        if ($stmt === false) {
-            return 0;
-        }
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    public function countFlowsBySource(string $flowSource): int
-    {
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list WHERE flow_source = :flow_source');
-        $stmt->execute([
-            ':flow_source' => $flowSource,
-        ]);
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    public function countFlowsByType(string $flowType): int
-    {
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list WHERE flow_type LIKE :flow_type');
-        $stmt->execute([
-            ':flow_type' => $flowType . '.v%',
-        ]);
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    public function countFlowsBySubject(string $flowSubject): int
-    {
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list WHERE flow_subject LIKE :flow_subject');
-
-        $stmt->execute([
-            ':flow_subject' => '%' . $flowSubject . '%',
-        ]);
-
-        return (int) $stmt->fetchColumn();
     }
 
     /**
@@ -300,6 +256,50 @@ class Service implements ServiceInterface
         $stmt->execute($params);
 
         return array_map($this->mapRow(...), $stmt->fetchAll(Client::FETCH_ASSOC));
+    }
+
+    public function saveFlow(Flow $flow): void
+    {
+        $stmt = $this->client->prepare(
+            'INSERT INTO flow_list (flow_hash, flow_type, flow_source, flow_subject, flow_time, last_term, status) ' .
+            'VALUES (:flow_hash, :flow_type, :flow_source, :flow_subject, :flow_time, :last_term, :status) ' .
+            'ON CONFLICT(flow_hash) DO UPDATE SET ' .
+            'last_term = excluded.last_term, ' .
+            'status = excluded.status'
+        );
+
+        $runs = $flow->runs();
+        $lastRun = end($runs);
+
+        $stmt->execute([
+            ':flow_hash' => $flow->getHash(),
+            ':flow_type' => $flow->getType(),
+            ':flow_source' => $flow->getSource(),
+            ':flow_subject' => $flow->getSubject(),
+            ':flow_time' => $flow->getTime()->format('Y-m-d H:i:s.u'),
+            ':last_term' => $lastRun !== false ? $lastRun->getTime()->format('Y-m-d H:i:s.u') : $flow->getTime()->format('Y-m-d H:i:s.u'),
+            ':status' => $flow->status()->name,
+        ]);
+
+        $stmt = $this->client->prepare(
+            'INSERT OR IGNORE INTO flow_run_list (flow_runtime_hash, flow_hash, flow_type, flow_time) ' .
+            'VALUES (:flow_runtime_hash, :flow_hash, :flow_type, :flow_time)'
+        );
+
+        foreach ($flow->runs() as $flowRun) {
+            $stmt->execute([
+                ':flow_runtime_hash' => $flowRun->getFlowRuntimeHash(),
+                ':flow_hash' => $flowRun->getFlowHash(),
+                ':flow_type' => $flowRun->getFlowType(),
+                ':flow_time' => $flowRun->getTime()->format('Y-m-d H:i:s.u'),
+            ]);
+        }
+    }
+
+    public function truncateFlowList(): void
+    {
+        $this->client->exec('DELETE FROM flow_list');
+        $this->client->exec('DELETE FROM flow_run_list');
     }
 
     /**

@@ -216,11 +216,6 @@ class MySql extends Service implements StorageInterface
         );
     }
 
-    public function saveFlow(Flow $flow): void
-    {
-        parent::saveFlow($flow);
-    }
-
     public function registerFlowSchema(FlowSchema $flowSchema): void
     {
         $flowSchemaJson = json_encode($flowSchema);
@@ -541,7 +536,7 @@ class MySql extends Service implements StorageInterface
         return (int) $stmt->fetchColumn();
     }
 
-    public function countExceptionsByFlowHash(string $flowHash = ''): int
+    public function countExceptionsByFlowHash(string $flowHash): int
     {
         $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_exception WHERE flow_hash = :flow_hash');
         $stmt->bindValue(':flow_hash', $flowHash);
