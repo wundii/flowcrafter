@@ -8,9 +8,12 @@ use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageDataSecondMock;
+use Tests\MockClass\MessageInitMock;
+use Tests\MockClass\MessageReturnMock;
 use Tests\MockClass\NextStubMock;
 use Tests\MockClass\OtherStubMock;
 use Tests\MockClass\PostStubMock;
+use Tests\MockClass\StubMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
@@ -280,295 +283,280 @@ final class FlowStatusTest extends TestCase
         $this->assertSame(StatusEnum::IN_PROGRESS, $flow->status());
     }
 
-    public function testAndi(): void
+    public function testOkWhenMissingLeafsWereReachedInPreviousRuns(): void
     {
-        $json = <<<JSON
-{
-  "flowSource": "Tests\\\\MockClass\\\\WorkflowMock",
-  "flowSubject": "order-1250",
-  "flowType": "flow.workflow.v1",
-  "flowSchema": {
-    "type": "flow.workflow.v1",
-    "stubs": [
-      {
-        "source": "Tests\\\\MockClass\\\\StubMock",
-        "messageEnum": "init",
-        "messages": [
-          "Tests\\\\MockClass\\\\MessageInitMock"
-        ],
-        "returnTypes": [
-          "Tests\\\\MockClass\\\\MessageDataMock"
-        ]
-      },
-      {
-        "source": "Tests\\\\MockClass\\\\NextStubMock",
-        "messageEnum": "stub",
-        "messages": [
-          "Tests\\\\MockClass\\\\MessageDataMock"
-        ],
-        "returnTypes": []
-      },
-      {
-        "source": "Tests\\\\MockClass\\\\OtherStubMock",
-        "messageEnum": "stub",
-        "messages": [
-          "Tests\\\\MockClass\\\\MessageDataMock"
-        ],
-        "returnTypes": [
-          "Tests\\\\MockClass\\\\MessageDataSecondMock"
-        ]
-      },
-      {
-        "source": "Tests\\\\MockClass\\\\PostStubMock",
-        "messageEnum": "stub",
-        "messages": [
-          "Tests\\\\MockClass\\\\MessageDataMock",
-          "Tests\\\\MockClass\\\\MessageDataSecondMock"
-        ],
-        "returnTypes": [
-          "Tests\\\\MockClass\\\\MessageReturnMock"
-        ]
-      }
-    ]
-  },
-  "flowSchemaHash": "03ff7ff98280189b9a356e81cb9b362c",
-  "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-  "time": "2026-03-31T06:39:57.000+00:00",
-  "flowMessages": [
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d42c7-ed20-71bb-9374-17636a3f37a6",
-      "stubSource": "Tests\\\\MockClass\\\\NextStubMock",
-      "stubHash": "4b8cb9b50c0221f29b01127972094971",
-      "messageType": "finish",
-      "messageSource": "Tests\\\\MockClass\\\\MessageDataMock",
-      "message": {
-        "data": "Tiger mit Zwiebeln"
-      },
-      "time": "2026-03-31T07:24:51.882+00:00",
-      "hash": "019d42c7-ed2a-70ec-b43a-9a28a40e22e1",
-      "predecessorHash": null
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d429e-d1d1-7029-b178-4372d35ed9cc",
-      "stubSource": "Tests\\\\MockClass\\\\PostStubMock",
-      "stubHash": "ff59175d198b078258ce53be2142d063",
-      "messageType": "finish",
-      "messageSource": "Tests\\\\MockClass\\\\MessageDataSecondMock",
-      "message": {
-        "data": "Tiger mit Zwiebeln, gebraten mit einer Prise Liebe"
-      },
-      "time": "2026-03-31T06:39:57.913+00:00",
-      "hash": "019d429e-d1d9-7158-80a8-420ebb22cf4a",
-      "predecessorHash": "019d429e-d1d8-7284-9b0e-91250fc566c9"
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d429e-d1d1-7029-b178-4372d35ed9cc",
-      "stubSource": "Tests\\\\MockClass\\\\NextStubMock",
-      "stubHash": "4b8cb9b50c0221f29b01127972094971",
-      "messageType": "finish",
-      "messageSource": "Tests\\\\MockClass\\\\MessageDataMock",
-      "message": {
-        "data": "Tiger mit Zwiebeln"
-      },
-      "time": "2026-03-31T06:39:57.910+00:00",
-      "hash": "019d429e-d1d6-73ad-a64b-621836e15f17",
-      "predecessorHash": "019d429e-d1d5-7215-a59c-281b39405b2b"
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d429e-d1d1-7029-b178-4372d35ed9cc",
-      "stubSource": "Tests\\\\MockClass\\\\PostStubMock",
-      "stubHash": "ff59175d198b078258ce53be2142d063",
-      "messageType": "finish",
-      "messageSource": "Tests\\\\MockClass\\\\MessageDataMock",
-      "message": {
-        "data": "Tiger mit Zwiebeln"
-      },
-      "time": "2026-03-31T06:39:57.913+00:00",
-      "hash": "019d429e-d1d9-7158-80a8-420ebc219b96",
-      "predecessorHash": "019d429e-d1d5-7215-a59c-281b39405b2b"
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d429e-d1d1-7029-b178-4372d35ed9cc",
-      "stubSource": "Tests\\\\MockClass\\\\OtherStubMock",
-      "stubHash": "0c424a4b88caeb050472b7dc8d4cc522",
-      "messageType": "finish",
-      "messageSource": "Tests\\\\MockClass\\\\MessageDataMock",
-      "message": {
-        "data": "Tiger mit Zwiebeln"
-      },
-      "time": "2026-03-31T06:39:57.912+00:00",
-      "hash": "019d429e-d1d8-7284-9b0e-91250fc566c9",
-      "predecessorHash": "019d429e-d1d5-7215-a59c-281b39405b2b"
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d42a9-75ff-7261-8ba6-4e74bd8b5dd7",
-      "stubSource": "Tests\\\\MockClass\\\\NextStubMock",
-      "stubHash": "4b8cb9b50c0221f29b01127972094971",
-      "messageType": "finish",
-      "messageSource": "Tests\\\\MockClass\\\\MessageDataMock",
-      "message": {
-        "data": "Tiger mit Zwiebeln"
-      },
-      "time": "2026-03-31T06:51:35.305+00:00",
-      "hash": "019d42a9-7609-7154-9254-19ee50f7b0d6",
-      "predecessorHash": null
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d429e-d1d1-7029-b178-4372d35ed9cc",
-      "stubSource": "Tests\\\\MockClass\\\\PostStubMock",
-      "stubHash": "ff59175d198b078258ce53be2142d063",
-      "messageType": "finish",
-      "messageSource": "Tests\\\\MockClass\\\\MessageReturnMock",
-      "message": {
-        "data": "[Chef-Kuss] Tiger mit Zwiebeln | Tiger mit Zwiebeln, gebraten mit einer Prise Liebe",
-        "test": "Zubereitet in 42 Minuten"
-      },
-      "time": "2026-03-31T06:39:57.914+00:00",
-      "hash": "019d429e-d1da-7129-8da1-4d39ffa62a7c",
-      "predecessorHash": "019d429e-d1d9-7158-80a8-420ebc219b96"
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d42ac-5077-71b6-ae20-f80eb9d10522",
-      "stubSource": "Tests\\\\MockClass\\\\NextStubMock",
-      "stubHash": "4b8cb9b50c0221f29b01127972094971",
-      "messageType": "finish",
-      "messageSource": "Tests\\\\MockClass\\\\MessageDataMock",
-      "message": {
-        "data": "Tiger mit Zwiebeln"
-      },
-      "time": "2026-03-31T06:54:42.304+00:00",
-      "hash": "019d42ac-5080-7074-8d79-e0b19dccb7bc",
-      "predecessorHash": null
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d429e-d1d1-7029-b178-4372d35ed9cc",
-      "stubSource": "Tests\\\\MockClass\\\\StubMock",
-      "stubHash": "b8ac5971875756a83b4ce0552d3de0a3",
-      "messageType": "finish",
-      "messageSource": "Tests\\\\MockClass\\\\MessageInitMock",
-      "message": {
-        "data": "Tiger"
-      },
-      "time": "2026-03-31T06:39:57.909+00:00",
-      "hash": "019d429e-d1d5-7215-a59c-281b39405b2b",
-      "predecessorHash": null
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d431d-98fb-71aa-8b04-47c19cafa1d9",
-      "stubSource": "Tests\\\\MockClass\\\\NextStubMock",
-      "stubHash": "4b8cb9b50c0221f29b01127972094971",
-      "messageType": "finish",
-      "messageSource": "Tests\\\\MockClass\\\\MessageDataMock",
-      "message": {
-        "data": "Tiger mit Zwiebeln"
-      },
-      "time": "2026-03-31T08:58:26.435+00:00",
-      "hash": "019d431d-9903-70a6-b1ec-b41ffd26cc68",
-      "predecessorHash": null
-    }
-  ],
-  "flowExceptions": [],
-  "flowResults": [
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d429e-d1d1-7029-b178-4372d35ed9cc",
-      "stubSource": "Tests\\\\MockClass\\\\NextStubMock",
-      "stubHash": "4b8cb9b50c0221f29b01127972094971",
-      "result": false,
-      "time": "2026-03-31T06:39:57.000+00:00",
-      "hash": "019d429e-d1d7-7370-911b-f61113310c27"
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d42a9-75ff-7261-8ba6-4e74bd8b5dd7",
-      "stubSource": "Tests\\\\MockClass\\\\NextStubMock",
-      "stubHash": "4b8cb9b50c0221f29b01127972094971",
-      "result": true,
-      "time": "2026-03-31T06:51:35.000+00:00",
-      "hash": "019d42a9-7611-7260-9d2a-ee40d6138596"
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d42ac-5077-71b6-ae20-f80eb9d10522",
-      "stubSource": "Tests\\\\MockClass\\\\NextStubMock",
-      "stubHash": "4b8cb9b50c0221f29b01127972094971",
-      "result": true,
-      "time": "2026-03-31T06:54:42.000+00:00",
-      "hash": "019d42ac-508b-7209-bb05-0f551526ae65"
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d42c7-ed20-71bb-9374-17636a3f37a6",
-      "stubSource": "Tests\\\\MockClass\\\\NextStubMock",
-      "stubHash": "4b8cb9b50c0221f29b01127972094971",
-      "result": true,
-      "time": "2026-03-31T07:24:51.000+00:00",
-      "hash": "019d42c7-ed32-7161-ba2e-25573ce671d7"
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d431d-98fb-71aa-8b04-47c19cafa1d9",
-      "stubSource": "Tests\\\\MockClass\\\\NextStubMock",
-      "stubHash": "4b8cb9b50c0221f29b01127972094971",
-      "result": true,
-      "time": "2026-03-31T08:58:26.000+00:00",
-      "hash": "019d431d-990f-707f-9062-1ad83987bd4e"
-    }
-  ],
-  "flowRuns": [
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d429e-d1d1-7029-b178-4372d35ed9cc",
-      "flowType": "flow.workflow.v1",
-      "time": "2026-03-31T06:39:57.000+00:00",
-      "queueId": "019d429e-d1cc-725e-9bca-35df208ba4ba"
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d42a9-75ff-7261-8ba6-4e74bd8b5dd7",
-      "flowType": "flow.workflow.v1",
-      "time": "2026-03-31T06:51:35.000+00:00",
-      "queueId": null
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d42ac-5077-71b6-ae20-f80eb9d10522",
-      "flowType": "flow.workflow.v1",
-      "time": "2026-03-31T06:54:42.000+00:00",
-      "queueId": null
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d42c7-ed20-71bb-9374-17636a3f37a6",
-      "flowType": "flow.workflow.v1",
-      "time": "2026-03-31T07:24:51.000+00:00",
-      "queueId": null
-    },
-    {
-      "flowHash": "019d429e-d1d1-7029-b178-4372d2f8dedc",
-      "flowRuntimeHash": "019d431d-98fb-71aa-8b04-47c19cafa1d9",
-      "flowType": "flow.workflow.v1",
-      "time": "2026-03-31T08:58:26.000+00:00",
-      "queueId": null
-    }
-  ],
-  "flowStatus": "IN_PROGRESS_EXCEEDED",
-  "isExecutable": true,
-  "isReadOnly": false
-}
-JSON;
+        $flowHash = '019d429e-d1d1-7029-b178-4372d2f8dedc';
+        $run1Hash = '019d429e-d1d1-7029-b178-4372d35ed9cc';
+        $run2Hash = '019d42a9-75ff-7261-8ba6-4e74bd8b5dd7';
+        $run3Hash = '019d42ac-5077-71b6-ae20-f80eb9d10522';
+        $run4Hash = '019d42c7-ed20-71bb-9374-17636a3f37a6';
+        $run5Hash = '019d431d-98fb-71aa-8b04-47c19cafa1d9';
 
-        $flow = Converter::jsonToFlow($json);
+        $flow = Converter::arrayToFlow([
+            'flowSource' => WorkflowMock::class,
+            'flowSubject' => 'order-1250',
+            'flowType' => 'flow.workflow.v1',
+            'flowSchema' => [
+                'type' => 'flow.workflow.v1',
+                'stubs' => [
+                    [
+                        'source' => StubMock::class,
+                        'messageEnum' => 'init',
+                        'messages' => [MessageInitMock::class],
+                        'returnTypes' => [MessageDataMock::class],
+                    ],
+                    [
+                        'source' => NextStubMock::class,
+                        'messageEnum' => 'stub',
+                        'messages' => [MessageDataMock::class],
+                        'returnTypes' => [],
+                    ],
+                    [
+                        'source' => OtherStubMock::class,
+                        'messageEnum' => 'stub',
+                        'messages' => [MessageDataMock::class],
+                        'returnTypes' => [MessageDataSecondMock::class],
+                    ],
+                    [
+                        'source' => PostStubMock::class,
+                        'messageEnum' => 'stub',
+                        'messages' => [MessageDataMock::class, MessageDataSecondMock::class],
+                        'returnTypes' => [MessageReturnMock::class],
+                    ],
+                ],
+            ],
+            'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
+            'flowHash' => $flowHash,
+            'time' => '2026-03-31T06:39:57.000+00:00',
+            'flowMessages' => [
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run4Hash,
+                    'stubSource' => NextStubMock::class,
+                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'messageType' => 'finish',
+                    'messageSource' => MessageDataMock::class,
+                    'message' => [
+                        'data' => 'Tiger mit Zwiebeln',
+                    ],
+                    'time' => '2026-03-31T07:24:51.882+00:00',
+                    'hash' => '019d42c7-ed2a-70ec-b43a-9a28a40e22e1',
+                    'predecessorHash' => null,
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run1Hash,
+                    'stubSource' => PostStubMock::class,
+                    'stubHash' => 'ff59175d198b078258ce53be2142d063',
+                    'messageType' => 'finish',
+                    'messageSource' => MessageDataSecondMock::class,
+                    'message' => [
+                        'data' => 'Tiger mit Zwiebeln, gebraten mit einer Prise Liebe',
+                    ],
+                    'time' => '2026-03-31T06:39:57.913+00:00',
+                    'hash' => '019d429e-d1d9-7158-80a8-420ebb22cf4a',
+                    'predecessorHash' => '019d429e-d1d8-7284-9b0e-91250fc566c9',
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run1Hash,
+                    'stubSource' => NextStubMock::class,
+                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'messageType' => 'finish',
+                    'messageSource' => MessageDataMock::class,
+                    'message' => [
+                        'data' => 'Tiger mit Zwiebeln',
+                    ],
+                    'time' => '2026-03-31T06:39:57.910+00:00',
+                    'hash' => '019d429e-d1d6-73ad-a64b-621836e15f17',
+                    'predecessorHash' => '019d429e-d1d5-7215-a59c-281b39405b2b',
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run1Hash,
+                    'stubSource' => PostStubMock::class,
+                    'stubHash' => 'ff59175d198b078258ce53be2142d063',
+                    'messageType' => 'finish',
+                    'messageSource' => MessageDataMock::class,
+                    'message' => [
+                        'data' => 'Tiger mit Zwiebeln',
+                    ],
+                    'time' => '2026-03-31T06:39:57.913+00:00',
+                    'hash' => '019d429e-d1d9-7158-80a8-420ebc219b96',
+                    'predecessorHash' => '019d429e-d1d5-7215-a59c-281b39405b2b',
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run1Hash,
+                    'stubSource' => OtherStubMock::class,
+                    'stubHash' => '0c424a4b88caeb050472b7dc8d4cc522',
+                    'messageType' => 'finish',
+                    'messageSource' => MessageDataMock::class,
+                    'message' => [
+                        'data' => 'Tiger mit Zwiebeln',
+                    ],
+                    'time' => '2026-03-31T06:39:57.912+00:00',
+                    'hash' => '019d429e-d1d8-7284-9b0e-91250fc566c9',
+                    'predecessorHash' => '019d429e-d1d5-7215-a59c-281b39405b2b',
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run2Hash,
+                    'stubSource' => NextStubMock::class,
+                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'messageType' => 'finish',
+                    'messageSource' => MessageDataMock::class,
+                    'message' => [
+                        'data' => 'Tiger mit Zwiebeln',
+                    ],
+                    'time' => '2026-03-31T06:51:35.305+00:00',
+                    'hash' => '019d42a9-7609-7154-9254-19ee50f7b0d6',
+                    'predecessorHash' => null,
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run1Hash,
+                    'stubSource' => PostStubMock::class,
+                    'stubHash' => 'ff59175d198b078258ce53be2142d063',
+                    'messageType' => 'finish',
+                    'messageSource' => MessageReturnMock::class,
+                    'message' => [
+                        'data' => '[Chef-Kuss] Tiger mit Zwiebeln | Tiger mit Zwiebeln, gebraten mit einer Prise Liebe',
+                        'test' => 'Zubereitet in 42 Minuten',
+                    ],
+                    'time' => '2026-03-31T06:39:57.914+00:00',
+                    'hash' => '019d429e-d1da-7129-8da1-4d39ffa62a7c',
+                    'predecessorHash' => '019d429e-d1d9-7158-80a8-420ebc219b96',
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run3Hash,
+                    'stubSource' => NextStubMock::class,
+                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'messageType' => 'finish',
+                    'messageSource' => MessageDataMock::class,
+                    'message' => [
+                        'data' => 'Tiger mit Zwiebeln',
+                    ],
+                    'time' => '2026-03-31T06:54:42.304+00:00',
+                    'hash' => '019d42ac-5080-7074-8d79-e0b19dccb7bc',
+                    'predecessorHash' => null,
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run1Hash,
+                    'stubSource' => StubMock::class,
+                    'stubHash' => 'b8ac5971875756a83b4ce0552d3de0a3',
+                    'messageType' => 'finish',
+                    'messageSource' => MessageInitMock::class,
+                    'message' => [
+                        'data' => 'Tiger',
+                    ],
+                    'time' => '2026-03-31T06:39:57.909+00:00',
+                    'hash' => '019d429e-d1d5-7215-a59c-281b39405b2b',
+                    'predecessorHash' => null,
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run5Hash,
+                    'stubSource' => NextStubMock::class,
+                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'messageType' => 'finish',
+                    'messageSource' => MessageDataMock::class,
+                    'message' => [
+                        'data' => 'Tiger mit Zwiebeln',
+                    ],
+                    'time' => '2026-03-31T08:58:26.435+00:00',
+                    'hash' => '019d431d-9903-70a6-b1ec-b41ffd26cc68',
+                    'predecessorHash' => null,
+                ],
+            ],
+            'flowExceptions' => [],
+            'flowResults' => [
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run1Hash,
+                    'stubSource' => NextStubMock::class,
+                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'result' => false,
+                    'time' => '2026-03-31T06:39:57.000+00:00',
+                    'hash' => '019d429e-d1d7-7370-911b-f61113310c27',
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run2Hash,
+                    'stubSource' => NextStubMock::class,
+                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'result' => true,
+                    'time' => '2026-03-31T06:51:35.000+00:00',
+                    'hash' => '019d42a9-7611-7260-9d2a-ee40d6138596',
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run3Hash,
+                    'stubSource' => NextStubMock::class,
+                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'result' => true,
+                    'time' => '2026-03-31T06:54:42.000+00:00',
+                    'hash' => '019d42ac-508b-7209-bb05-0f551526ae65',
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run4Hash,
+                    'stubSource' => NextStubMock::class,
+                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'result' => true,
+                    'time' => '2026-03-31T07:24:51.000+00:00',
+                    'hash' => '019d42c7-ed32-7161-ba2e-25573ce671d7',
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run5Hash,
+                    'stubSource' => NextStubMock::class,
+                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'result' => true,
+                    'time' => '2026-03-31T08:58:26.000+00:00',
+                    'hash' => '019d431d-990f-707f-9062-1ad83987bd4e',
+                ],
+            ],
+            'flowRuns' => [
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run1Hash,
+                    'flowType' => 'flow.workflow.v1',
+                    'time' => '2026-03-31T06:39:57.000+00:00',
+                    'queueId' => '019d429e-d1cc-725e-9bca-35df208ba4ba',
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run2Hash,
+                    'flowType' => 'flow.workflow.v1',
+                    'time' => '2026-03-31T06:51:35.000+00:00',
+                    'queueId' => null,
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run3Hash,
+                    'flowType' => 'flow.workflow.v1',
+                    'time' => '2026-03-31T06:54:42.000+00:00',
+                    'queueId' => null,
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run4Hash,
+                    'flowType' => 'flow.workflow.v1',
+                    'time' => '2026-03-31T07:24:51.000+00:00',
+                    'queueId' => null,
+                ],
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $run5Hash,
+                    'flowType' => 'flow.workflow.v1',
+                    'time' => '2026-03-31T08:58:26.000+00:00',
+                    'queueId' => null,
+                ],
+            ],
+        ]);
 
         $this->assertSame(StatusEnum::OK, $flow->status());
     }

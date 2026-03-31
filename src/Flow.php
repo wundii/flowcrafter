@@ -287,93 +287,27 @@ class Flow implements JsonSerializable
 
         $flowRun = end($this->flowRuns);
         $lastRuntimeHash = $flowRun->getFlowRuntimeHash();
-        $lastRunTime = $flowRun->getTime();
-        $leafStubs = $this->flowSchema->getLeafStubs();
-        $leafStubsClassStrings = array_map(
-            static fn (Stub $stub): string => $stub->getSource(),
-            $leafStubs,
-        );
+        $pendingLeafs = $this->resolvePendingLeafs($lastRuntimeHash);
 
-        if ($this->includeStubs !== []) {
-            $lastRunStubs = array_unique(array_map(
-                static fn (FlowMessage $flowMessage): string => $flowMessage->getStubSource(),
-                array_filter(
-                    $this->flowMessages,
-                    fn (FlowMessage $flowMessage): bool => $flowMessage->getFlowRuntimeHash() === $lastRuntimeHash,
-                ),
-            ));
-            $leafStubsClassStrings = array_values(array_intersect($leafStubsClassStrings, $lastRunStubs));
-        }
-
-        $status = StatusEnum::IN_PROGRESS;
-
-        foreach ($this->flowMessages as $flowMessage) {
-            if ($flowMessage->getFlowRuntimeHash() !== $lastRuntimeHash) {
-                continue;
-            }
-
-            $arrayKey = array_search($flowMessage->getStubSource(), $leafStubsClassStrings, true);
-            if ($arrayKey === false) {
-                continue;
-            }
-
-            unset($leafStubsClassStrings[$arrayKey]);
-        }
-
-        if ($leafStubsClassStrings === []) {
-            $status = StatusEnum::OK;
-        } elseif (count($this->flowRuns) > 1) {
-            $previousRuntimeHashes = array_map(
-                static fn (FlowRun $flowRun): string => $flowRun->getFlowRuntimeHash(),
-                array_slice(array_values($this->flowRuns), 0, -1),
-            );
-
-            foreach ($this->flowMessages as $flowMessage) {
-                if (!in_array($flowMessage->getFlowRuntimeHash(), $previousRuntimeHashes, true)) {
-                    continue;
-                }
-
-                $arrayKey = array_search($flowMessage->getStubSource(), $leafStubsClassStrings, true);
-                if ($arrayKey === false) {
-                    continue;
-                }
-
-                unset($leafStubsClassStrings[$arrayKey]);
-            }
-
-            if ($leafStubsClassStrings === []) {
-                $status = StatusEnum::OK;
+        foreach ($this->flowExceptions as $flowException) {
+            if ($flowException->getFlowRuntimeHash() === $lastRuntimeHash) {
+                return StatusEnum::FAILED;
             }
         }
 
-        $datetime = new DateTimeImmutable('now', $lastRunTime->getTimezone());
-        if ($status === StatusEnum::IN_PROGRESS && DateTimeImmutable::createFromInterface($lastRunTime)->modify('+1 hour') < $datetime) {
-            $status = StatusEnum::IN_PROGRESS_EXCEEDED;
+        if ($pendingLeafs !== []) {
+            $now = new DateTimeImmutable('now', $flowRun->getTime()->getTimezone());
+            $exceeded = DateTimeImmutable::createFromInterface($flowRun->getTime())->modify('+1 hour') < $now;
+            return $exceeded ? StatusEnum::IN_PROGRESS_EXCEEDED : StatusEnum::IN_PROGRESS;
         }
 
         foreach ($this->flowResults as $flowResult) {
-            if ($leafStubsClassStrings !== []) {
-                continue;
+            if ($flowResult->getFlowRuntimeHash() === $lastRuntimeHash && !$flowResult->getResult()) {
+                return StatusEnum::WARNING;
             }
-
-            if ($flowResult->getFlowRuntimeHash() !== $lastRuntimeHash) {
-                continue;
-            }
-
-            $status = $flowResult->getResult() && $status->value < StatusEnum::WARNING->value
-                ? $status
-                : StatusEnum::WARNING;
         }
 
-        foreach ($this->flowExceptions as $flowException) {
-            if ($flowException->getFlowRuntimeHash() !== $lastRuntimeHash) {
-                continue;
-            }
-
-            $status = StatusEnum::FAILED;
-        }
-
-        return $status;
+        return StatusEnum::OK;
     }
 
     /**
@@ -397,5 +331,53 @@ class Flow implements JsonSerializable
             'isExecutable' => $this->isExecutable(),
             'isReadOnly' => $this->flowReadOnly,
         ];
+    }
+
+    /**
+     * Returns the leaf stub class strings that have not yet been reached.
+     * First checks the last run, then falls back to previous registered runs
+     * to support targeted partial re-runs where some leafs were handled earlier.
+     *
+     * @return string[]
+     */
+    private function resolvePendingLeafs(string $lastRuntimeHash): array
+    {
+        $leafSources = array_map(
+            static fn (Stub $stub): string => $stub->getSource(),
+            $this->flowSchema->getLeafStubs(),
+        );
+
+        if ($this->includeStubs !== []) {
+            $lastRunSources = array_unique(array_map(
+                static fn (FlowMessage $flowMessage): string => $flowMessage->getStubSource(),
+                array_filter(
+                    $this->flowMessages,
+                    fn (FlowMessage $flowMessage): bool => $flowMessage->getFlowRuntimeHash() === $lastRuntimeHash,
+                ),
+            ));
+            $leafSources = array_values(array_intersect($leafSources, $lastRunSources));
+        }
+
+        $relevantHashes = [$lastRuntimeHash];
+        if (count($this->flowRuns) > 1) {
+            $previousHashes = array_map(
+                static fn (FlowRun $flowRun): string => $flowRun->getFlowRuntimeHash(),
+                array_slice(array_values($this->flowRuns), 0, -1),
+            );
+            $relevantHashes = array_merge($relevantHashes, $previousHashes);
+        }
+
+        foreach ($this->flowMessages as $flowMessage) {
+            if (!in_array($flowMessage->getFlowRuntimeHash(), $relevantHashes, true)) {
+                continue;
+            }
+
+            $key = array_search($flowMessage->getStubSource(), $leafSources, true);
+            if ($key !== false) {
+                unset($leafSources[$key]);
+            }
+        }
+
+        return array_values($leafSources);
     }
 }
