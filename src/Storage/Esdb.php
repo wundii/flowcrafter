@@ -610,33 +610,6 @@ class Esdb extends Service
         );
     }
 
-    public function openQueues(): int
-    {
-        $lastFlowRunWithQueueId = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
-            'AND e.data.queueId != null ' .
-            'ORDER BY e.id DESC ' .
-            'TOP 1 ' .
-            'PROJECT INTO e.data.queueId'
-        );
-        $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
-        $lastQueueId = $lastFlowRunEvent[0] ?? null;
-
-        $lowerBound = $lastQueueId !== null
-            ? new Bound(id: $lastQueueId, type: BoundType::EXCLUSIVE)
-            : null;
-
-        $events = $this->client->readEvents(
-            self::QUEUE_SUBJECT,
-            new ReadEventsOptions(
-                lowerBound: $lowerBound,
-            ),
-        );
-
-        return count(iterator_to_array($events));
-    }
-
     /**
      * @param class-string $flowSource
      * @param class-string $messageSource
@@ -677,6 +650,7 @@ class Esdb extends Service
             'WHERE e.type == "' . self::TYPE_RUN . '" ' .
             'AND e.data.queueId != null ' .
             'ORDER BY e.id DESC ' .
+            'TOP 1 ' .
             'PROJECT INTO e.data.queueId'
         );
         $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
@@ -705,17 +679,44 @@ class Esdb extends Service
         }
     }
 
+    public function openQueues(): int
+    {
+        $lastFlowRunWithQueueId = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
+            'AND e.data.queueId != null ' .
+            'ORDER BY e.id DESC ' .
+            'TOP 1 ' .
+            'PROJECT INTO e.data.queueId'
+        );
+        $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
+        $lastQueueId = $lastFlowRunEvent[0] ?? null;
+
+        $lowerBound = $lastQueueId !== null
+            ? new Bound(id: $lastQueueId, type: BoundType::EXCLUSIVE)
+            : null;
+
+        $events = $this->client->readEvents(
+            self::QUEUE_SUBJECT,
+            new ReadEventsOptions(
+                lowerBound: $lowerBound,
+            ),
+        );
+
+        return count(iterator_to_array($events));
+    }
+
     /**
      * @return iterable<string>
      */
     public function findAllFlowHashes(): iterable
     {
-        $query = 'FROM e IN events WHERE e.type == "' . self::TYPE_INSTANCE . '" PROJECT INTO {flowHash: e.data.flowHash}';
+        $query = 'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
+            'PROJECT INTO e.data.flowHash';
 
-        foreach ($this->client->runEventQlQuery($query) as $event) {
-            if (is_string($event['flowHash'] ?? null)) {
-                yield $event['flowHash'];
-            }
+        foreach ($this->client->runEventQlQuery($query) as $flowHash) {
+            yield $flowHash;
         }
     }
 
@@ -838,6 +839,7 @@ class Esdb extends Service
             'FROM e IN events ' .
             'WHERE e.type == "' . self::TYPE_RUN . '" ' .
             'AND e.data.flowRuntimeHash == "' . $flowRuntimeHash . '" ' .
+            'TOP 1 ' .
             'PROJECT INTO e.data.flowHash'
         );
 

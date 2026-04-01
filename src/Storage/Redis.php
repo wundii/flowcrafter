@@ -511,12 +511,6 @@ class Redis extends Service implements StorageInterface
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
 
-    public function openQueues(): int
-    {
-        $len = $this->client->lLen('flow:queue');
-        return $len === false ? 0 : (int) $len;
-    }
-
     /**
      * @param class-string $flowSource
      * @param class-string $messageSource
@@ -578,6 +572,12 @@ class Redis extends Service implements StorageInterface
                 includeStubs: $payload['includeStubs'] ?? [],
             );
         }
+    }
+
+    public function openQueues(): int
+    {
+        $len = $this->client->lLen('flow:queue');
+        return $len === false ? 0 : (int) $len;
     }
 
     /**
