@@ -6,8 +6,6 @@ namespace Wundii\Flowcrafter\Storage;
 
 use DateTimeImmutable;
 use DateTimeInterface;
-use Exception;
-use RuntimeException;
 use Thenativeweb\Eventsourcingdb\Bound;
 use Thenativeweb\Eventsourcingdb\BoundType;
 use Thenativeweb\Eventsourcingdb\Client;
@@ -28,13 +26,12 @@ use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
-use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
-class Esdb extends Service implements StorageInterface
+class Esdb extends Service
 {
     public const SOURCE = 'https://flowcrafter';
 
@@ -624,15 +621,16 @@ class Esdb extends Service implements StorageInterface
             'PROJECT INTO e.data.queueId'
         );
         $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
-        $lastQueueId = $lastFlowRunEvent[0] ?? '0';
+        $lastQueueId = $lastFlowRunEvent[0] ?? null;
+
+        $lowerBound = $lastQueueId !== null
+            ? new Bound(id: $lastQueueId, type: BoundType::EXCLUSIVE)
+            : null;
 
         $events = $this->client->readEvents(
             self::QUEUE_SUBJECT,
             new ReadEventsOptions(
-                lowerBound: new Bound(
-                    id: $lastQueueId,
-                    type: $lastQueueId === '0' ? BoundType::INCLUSIVE : BoundType::EXCLUSIVE,
-                ),
+                lowerBound: $lowerBound,
             ),
         );
 
@@ -682,18 +680,15 @@ class Esdb extends Service implements StorageInterface
             'PROJECT INTO e.data.queueId'
         );
         $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
-        $lastQueueId = $lastFlowRunEvent[0] ?? '0';
+        $lastQueueId = $lastFlowRunEvent[0] ?? null;
 
-        if (!is_string($lastQueueId)) {
-            throw new RuntimeException('Expected last queueId to be a string, got ' . gettype($lastQueueId));
-        }
+        $lowerBound = $lastQueueId !== null
+            ? new Bound(id: $lastQueueId, type: BoundType::EXCLUSIVE)
+            : null;
 
         $observeEventsOptions = new ObserveEventsOptions(
             recursive: true,
-            lowerBound: new Bound(
-                id: $lastQueueId,
-                type: $lastQueueId === '0' ? BoundType::INCLUSIVE : BoundType::EXCLUSIVE,
-            ),
+            lowerBound: $lowerBound,
         );
 
         foreach ($this->client->observeEvents('/flow/queue', $observeEventsOptions) as $event) {
@@ -753,19 +748,16 @@ class Esdb extends Service implements StorageInterface
             'PROJECT INTO e.data.queueId'
         );
         $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
-        $lastQueueId = $lastFlowRunEvent[0] ?? '0';
+        $lastQueueId = $lastFlowRunEvent[0] ?? null;
 
-        if (!is_string($lastQueueId)) {
-            return;
-        }
+        $lowerBound = $lastQueueId !== null
+            ? new Bound(id: $lastQueueId, type: BoundType::EXCLUSIVE)
+            : null;
 
         $events = $this->client->readEvents(
             self::QUEUE_SUBJECT,
             new ReadEventsOptions(
-                lowerBound: new Bound(
-                    id: $lastQueueId,
-                    type: $lastQueueId === '0' ? BoundType::INCLUSIVE : BoundType::EXCLUSIVE,
-                ),
+                lowerBound: $lowerBound,
             ),
         );
 
@@ -784,134 +776,6 @@ class Esdb extends Service implements StorageInterface
                 messageSource: $allEvent->data['messageSource'] ?? '',
                 message: $allEvent->data['message'] ?? [],
                 includeStubs: $allEvent->data['includeStubs'] ?? [],
-            );
-        }
-    }
-
-    public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
-    {
-        $timeFilter = '';
-        if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
-            $timeFilter .
-            'PROJECT INTO COUNT()'
-        );
-        $flowEvents = iterator_to_array($flowEvents);
-        return $flowEvents[0] ?? 0;
-    }
-
-    public function countExceptionsByFlowHash(string $flowHash): int
-    {
-        $flowEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
-            'AND e.data.flowHash == "' . $flowHash . '" ' .
-            'PROJECT INTO COUNT()'
-        );
-        $flowEvents = iterator_to_array($flowEvents);
-        return $flowEvents[0] ?? 0;
-    }
-
-    /**
-     * @return FlowException[]
-     * @throws Exception
-     */
-    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        $skip = max(0, $skip);
-        $top = max(1, $top);
-
-        $timeFilter = '';
-        if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        $exceptionEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
-            $timeFilter .
-            'ORDER BY e.id ' . $sortEnum->name . ' ' .
-            'SKIP ' . $skip . ' ' .
-            'TOP ' . $top . ' ' .
-            'PROJECT INTO e.data'
-        );
-
-        foreach ($exceptionEvents as $exceptionEvent) {
-            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
-            yield new FlowException(
-                flowHash: $exceptionEvent['flowHash'],
-                flowRuntimeHash: $exceptionEvent['flowRuntimeHash'],
-                flowType: $exceptionEvent['flowType'],
-                stubSource: $exceptionEvent['stubSource'],
-                stubHash: $exceptionEvent['stubHash'],
-                code: $exceptionEvent['code'],
-                message: $exceptionEvent['message'],
-                file: $exceptionEvent['file'],
-                line: $exceptionEvent['line'],
-                traceString: $exceptionEvent['traceString'],
-                time: new DateTimeImmutable($exceptionEvent['time']),
-                hash: $exceptionEvent['hash'],
-            );
-        }
-    }
-
-    /**
-     * @return FlowException[]
-     * @throws Exception
-     */
-    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        $skip = max(0, $skip);
-        $top = max(1, $top);
-
-        $timeFilter = '';
-        if ($from instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME >= "' . $from->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        if ($to instanceof DateTimeInterface) {
-            $timeFilter .= 'AND e.data.time AS DATETIME <= "' . $to->format(DateTimeInterface::RFC3339_EXTENDED) . '" AS DATETIME ';
-        }
-
-        $exceptionEvents = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_EXCEPTION . '" ' .
-            'AND e.data.flowHash == "' . $flowHash . '" ' .
-            $timeFilter .
-            'ORDER BY e.id ' . $sortEnum->name . ' ' .
-            'SKIP ' . $skip . ' ' .
-            'TOP ' . $top . ' ' .
-            'PROJECT INTO e.data'
-        );
-
-        foreach ($exceptionEvents as $exceptionEvent) {
-            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: string, code: int, message: string, file: string, line: int, traceString: string, time: string, hash: string} $exceptionEvent */
-            yield new FlowException(
-                flowHash: $exceptionEvent['flowHash'],
-                flowRuntimeHash: $exceptionEvent['flowRuntimeHash'],
-                flowType: $exceptionEvent['flowType'],
-                stubSource: $exceptionEvent['stubSource'],
-                stubHash: $exceptionEvent['stubHash'],
-                code: $exceptionEvent['code'],
-                message: $exceptionEvent['message'],
-                file: $exceptionEvent['file'],
-                line: $exceptionEvent['line'],
-                traceString: $exceptionEvent['traceString'],
-                time: new DateTimeImmutable($exceptionEvent['time']),
-                hash: $exceptionEvent['hash'],
             );
         }
     }

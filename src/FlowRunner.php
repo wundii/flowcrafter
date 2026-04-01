@@ -13,7 +13,6 @@ use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
-use Wundii\Flowcrafter\Interface\ServiceInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 
@@ -54,14 +53,6 @@ class FlowRunner
             FlowInterface::class,
             'The flow must be a class implementing FlowInterface'
         );
-
-        if ($storage instanceof StorageInterface) {
-            Assert::object(
-                $storage,
-                ServiceInterface::class,
-                'Storage not instance of ServiceInterface: ' . get_class($storage),
-            );
-        }
     }
 
     public function getFlow(): ?Flow
@@ -111,7 +102,6 @@ class FlowRunner
 
         $this->executeStubsRecursive($flow, $message);
 
-        /** @phpstan-ignore-next-line */
         $this->storage?->saveFlow($flow);
 
         return $this->messageReturn ?: false;
@@ -245,7 +235,6 @@ class FlowRunner
 
                 $flow->addException($flowException);
                 $this->storage?->appendFlowException($flowException);
-                /** @phpstan-ignore-next-line */
                 $this->storage?->saveFlow($flow);
 
                 throw $exception;

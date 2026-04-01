@@ -6,7 +6,6 @@ namespace Wundii\Flowcrafter\Storage;
 
 use DateTimeImmutable;
 use DateTimeInterface;
-use Exception;
 use InvalidArgumentException;
 use Redis as Client;
 use RuntimeException;
@@ -640,82 +639,6 @@ class Redis extends Service implements StorageInterface
                 messageSource: $payload['messageSource'],
                 message: $payload['message'],
                 includeStubs: $payload['includeStubs'] ?? [],
-            );
-        }
-    }
-
-    public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
-    {
-        return $this->countExceptionsByFlowHash('*');
-    }
-
-    public function countExceptionsByFlowHash(string $flowHash): int
-    {
-        $flowHash = self::escapeValue($flowHash);
-        $value = match ($flowHash) {
-            '*', '' => '*',
-            default => '@flowHash:{' . $flowHash . '}',
-        };
-
-        $args = ['FT.SEARCH', self::INDEX_EXCEPTION, $value, 'LIMIT', '0', '0'];
-        $result = $this->client->rawCommand(...$args);
-
-        return is_array($result) && is_int($result[0] ?? null) ? $result[0] : 0;
-    }
-
-    /**
-     * @return FlowException[]
-     * @throws Exception
-     */
-    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        return $this->findExceptionsByFlowHash('*', $sortEnum, $top, $skip, $from, $to);
-    }
-
-    /**
-     * @return FlowException[]
-     * @throws Exception
-     */
-    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        $flowHash = self::escapeValue($flowHash);
-        $skip = max(0, $skip);
-        $top = max(1, $top);
-
-        $value = match ($flowHash) {
-            '*', '' => '*',
-            default => '@flowHash:{' . $flowHash . '}',
-        };
-
-        $args = ['FT.SEARCH', self::INDEX_EXCEPTION, $value, 'SORTBY', 'hash', $sortEnum->name, 'LIMIT', $skip, $top];
-        if ($from instanceof DateTimeInterface || $to instanceof DateTimeInterface) {
-            $args[] = 'FILTER';
-            $args[] = 'time';
-            $args[] = $from instanceof DateTimeInterface ? (string) $from->getTimestamp() : '-inf';
-            $args[] = $to instanceof DateTimeInterface ? (string) $to->getTimestamp() : '+inf';
-        }
-
-        $args[] = 'RETURN';
-        $args[] = '1';
-        $args[] = '$';
-
-        $result = $this->client->rawcommand(...$args);
-
-        foreach (self::fetchData($result) as $event) {
-            /** @var array{flowHash: string, flowRuntimeHash: string, flowType: string, stubSource: class-string<StubInterface>, stubHash: string, code: int, message: string, file: string, line: int, traceString: string, time: int, hash: string} $event */
-            yield new FlowException(
-                flowHash: $event['flowHash'],
-                flowRuntimeHash: $event['flowRuntimeHash'],
-                flowType: $event['flowType'],
-                stubSource: $event['stubSource'],
-                stubHash: $event['stubHash'],
-                code: $event['code'],
-                message: $event['message'],
-                file: $event['file'],
-                line: $event['line'],
-                traceString: $event['traceString'],
-                time: (new DateTimeImmutable())->setTimestamp($event['time']),
-                hash: $event['hash'],
             );
         }
     }

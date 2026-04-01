@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Console\Commands;
 
 use Exception;
-use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -16,7 +15,6 @@ use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\Flow;
-use Wundii\Flowcrafter\Interface\ServiceInterface;
 
 final class FlowServiceRebuildCommand extends Command
 {
@@ -41,9 +39,6 @@ final class FlowServiceRebuildCommand extends Command
         $output->startApplication(FlowConsole::vendorVersion());
 
         $storage = $this->flowcrafterConfig->getStorage();
-        if (!$storage instanceof ServiceInterface) {
-            throw new RuntimeException('Storage not instance of ServiceInterface: ' . get_class($storage));
-        }
 
         $clear = (bool) $input->getOption('clear');
 

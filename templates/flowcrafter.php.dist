@@ -13,5 +13,6 @@ return static function (FlowcrafterConfig $flowcrafterConfig): void {
     $flowcrafterConfig->setServerHttps(false);
     $flowcrafterConfig->setServerSecret();
     $flowcrafterConfig->setServerDescription();
+    $flowcrafterConfig->setServerStorage(__DIR__ . '/data/flowcrafter.sqlite');
     $flowcrafterConfig->setDependenciesInjection();
 };

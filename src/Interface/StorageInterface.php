@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Interface;
 
-use DateTimeInterface;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
@@ -14,7 +13,7 @@ use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
-interface StorageInterface
+interface StorageInterface extends ServiceInterface
 {
     public function initializeDatabase(): void;
 
@@ -47,19 +46,10 @@ interface StorageInterface
      */
     public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable;
 
-    public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
-
-    public function countExceptionsByFlowHash(string $flowHash): int;
-
     /**
      * @return iterable<string>
      */
     public function findAllFlowHashes(): iterable;
-
-    /**
-     * @return iterable<array<mixed>>
-     */
-    public function findAllSchemas(): iterable;
 
     /**
      * @return iterable<ObserveItem>
@@ -67,14 +57,9 @@ interface StorageInterface
     public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable;
 
     /**
-     * @return FlowException[]
+     * @return iterable<array<mixed>>
      */
-    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
-
-    /**
-     * @return FlowException[]
-     */
-    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
+    public function findAllSchemas(): iterable;
 
     public function findFlowByHash(string $flowHash): ?Flow;
 

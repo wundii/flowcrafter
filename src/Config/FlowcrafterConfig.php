@@ -19,7 +19,7 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::SERVER_HTTPS, false);
         $this->setParameter(OptionEnum::SERVER_SECRET, null);
         $this->setParameter(OptionEnum::SERVER_DESCRIPTION, null);
-        $this->setParameter(OptionEnum::SERVER_STORAGE, getcwd() . '/data/database.sqlite');
+        $this->setParameter(OptionEnum::SERVER_STORAGE, getcwd() . '/data/flowcrafter.sqlite');
         $this->setParameter(OptionEnum::DEPENDENCIES_INJECTION, []);
     }
 

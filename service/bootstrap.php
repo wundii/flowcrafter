@@ -18,7 +18,6 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
-use Wundii\Flowcrafter\Interface\ServiceInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
@@ -51,9 +50,6 @@ $bootstrapConfigRequirer = new BootstrapConfigRequirer($bootstrapConfig);
 $flowcrafterConfig = $bootstrapConfigRequirer->loadConfigFile(new FlowcrafterConfig());
 
 $storage = $flowcrafterConfig->getStorage();
-if (!$storage instanceof ServiceInterface) {
-    throw new RuntimeException('Storage not instance of ServiceInterface: ' . get_class($storage));
-}
 
 $serializeEntity = static fn (FlowListEntity $flowListEntity): array => [
     'flowHash' => $flowListEntity->flowHash,
