@@ -88,14 +88,14 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         return $this->getNullOrString(OptionEnum::SERVER_DESCRIPTION);
     }
 
-    public function setServerStorage(string $file): void
+    public function setServerStorage(?string $file): void
     {
         $this->setParameter(OptionEnum::SERVER_STORAGE, $file);
     }
 
-    public function getServerStorage(): string
+    public function getServerStorage(): ?string
     {
-        return $this->getString(OptionEnum::SERVER_STORAGE);
+        return $this->getNullOrString(OptionEnum::SERVER_STORAGE);
     }
 
     /**

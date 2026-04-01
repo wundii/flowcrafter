@@ -55,7 +55,7 @@ class Esdb extends Service
 
     protected Client $client;
 
-    public function __construct(EsdbConfig $esdbConfig, string $sqliteFile)
+    public function __construct(EsdbConfig $esdbConfig, ?string $sqliteFile = null)
     {
         parent::__construct($sqliteFile);
 

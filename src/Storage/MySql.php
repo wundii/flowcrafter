@@ -46,7 +46,7 @@ class MySql extends Service implements StorageInterface
 
     protected Client $client;
 
-    public function __construct(MySqlConfig $mySqlConfig, string $sqliteFile)
+    public function __construct(MySqlConfig $mySqlConfig, ?string $sqliteFile = null)
     {
         parent::__construct($sqliteFile);
 

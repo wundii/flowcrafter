@@ -12,8 +12,6 @@ use Wundii\Flowcrafter\Storage\Esdb;
 
 trait EsdbClientTestTrait
 {
-    private const SQLiteFile = '/tmp/flowcrafter.sqlite';
-
     private Container $container;
 
     private Client $client;
@@ -28,7 +26,6 @@ trait EsdbClientTestTrait
 
     protected function tearDown(): void
     {
-        @unlink(self::SQLiteFile);
         $this->container->stop();
         parent::tearDown();
     }
@@ -48,7 +45,6 @@ trait EsdbClientTestTrait
                 $this->container->getBaseUrl(),
                 $this->container->getApiToken(),
             ),
-            self::SQLiteFile,
         );
         $esdb->initializeDatabase();
 

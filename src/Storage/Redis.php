@@ -58,7 +58,7 @@ class Redis extends Service implements StorageInterface
 
     protected Client $client;
 
-    public function __construct(RedisConfig $redisConfig, string $sqliteFile)
+    public function __construct(RedisConfig $redisConfig, ?string $sqliteFile = null)
     {
         parent::__construct($sqliteFile);
 

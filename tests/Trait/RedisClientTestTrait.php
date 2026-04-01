@@ -15,8 +15,6 @@ trait RedisClientTestTrait
 {
     private const PORT = 6379;
 
-    private const SQLiteFile = '/tmp/flowcrafter.sqlite';
-
     private StartedGenericContainer $container;
 
     private Redis $client;
@@ -37,7 +35,6 @@ trait RedisClientTestTrait
 
     protected function tearDown(): void
     {
-        @unlink(self::SQLiteFile);
         $this->container->stop();
         parent::tearDown();
     }
@@ -49,7 +46,6 @@ trait RedisClientTestTrait
                 $this->container->getHost(),
                 $this->container->getMappedPort(6379),
             ),
-            self::SQLiteFile,
         );
         $redis->initializeDatabase();
 

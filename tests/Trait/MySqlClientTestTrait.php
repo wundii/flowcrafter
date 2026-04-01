@@ -21,8 +21,6 @@ trait MySqlClientTestTrait
 
     private const PASSWORD = 'yutani';
 
-    private const SQLiteFile = '/tmp/flowcrafter.sqlite';
-
     private StartedGenericContainer $container;
 
     private Client $client;
@@ -49,7 +47,6 @@ trait MySqlClientTestTrait
 
     protected function tearDown(): void
     {
-        @unlink(self::SQLiteFile);
         $this->container->stop();
         parent::tearDown();
     }
@@ -64,7 +61,6 @@ trait MySqlClientTestTrait
                 self::USERNAME,
                 self::PASSWORD,
             ),
-            self::SQLiteFile,
         );
         $mySql->initializeDatabase();
 

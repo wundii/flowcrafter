@@ -21,16 +21,22 @@ abstract class Service implements StorageInterface
 {
     private Client $client;
 
-    public function __construct(string $file)
+    public function __construct(?string $file = null)
     {
-        $directory = dirname($file);
-        if (!is_dir($directory)) {
-            $fileSystem = new Filesystem();
-            $fileSystem->mkdir($directory);
+        $dns = 'sqlite::memory:';
+
+        if ($file !== null) {
+            $directory = dirname($file);
+            if (!is_dir($directory)) {
+                $fileSystem = new Filesystem();
+                $fileSystem->mkdir($directory);
+            }
+
+            $dns = 'sqlite:' . $file;
         }
 
         $this->client = new Client(
-            dsn: 'sqlite:' . $file,
+            dsn: $dns,
             options: [
                 Client::ATTR_ERRMODE => Client::ERRMODE_EXCEPTION,
             ],
