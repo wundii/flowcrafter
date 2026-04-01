@@ -25,6 +25,7 @@ class FlowMessage implements JsonSerializable
         private readonly string $stubHash,
         private MessageTypeEnum $messageTypeEnum,
         private readonly string $messageSource,
+        private readonly string $messageHash,
         private readonly MessageInterface $message,
         private readonly DateTimeImmutable $time,
         private readonly string $hash,
@@ -54,8 +55,9 @@ class FlowMessage implements JsonSerializable
         string $stubSource,
         string $stubHash,
         MessageTypeEnum $messageTypeEnum,
-        ?string $predecessorHash,
+        string $messageHash,
         MessageInterface $message,
+        ?string $predecessorHash,
         ?DateTimeImmutable $time = null,
         ?string $hash = null,
     ): self {
@@ -66,6 +68,7 @@ class FlowMessage implements JsonSerializable
             stubHash: $stubHash,
             messageTypeEnum: $messageTypeEnum,
             messageSource: get_class($message),
+            messageHash: $messageHash,
             message: $message,
             time: $time ?? new DateTimeImmutable(),
             hash: $hash ?? Uuid::uuid7($time)->toString(),
@@ -121,6 +124,11 @@ class FlowMessage implements JsonSerializable
         return $this->messageSource;
     }
 
+    public function getMessageHash(): string
+    {
+        return $this->messageHash;
+    }
+
     public function getMessage(): MessageInterface
     {
         return $this->message;
@@ -153,6 +161,7 @@ class FlowMessage implements JsonSerializable
             'stubHash' => $this->stubHash,
             'messageType' => $this->messageTypeEnum->value,
             'messageSource' => $this->messageSource,
+            'messageHash' => $this->messageHash,
             'message' => $this->message,
             'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
             'hash' => $this->hash,

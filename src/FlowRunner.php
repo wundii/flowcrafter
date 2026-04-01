@@ -179,7 +179,7 @@ class FlowRunner
         }
 
         foreach ($this->messageToStubsMap[$messageClass] as $stub) {
-            $stubSource = Stub::source($stub->getSource());
+            $stubSource = Source::stub($stub->getSource());
 
             if ($this->includeStubs !== [] && !in_array($stubSource->stubSource, $this->includeStubs, true)) {
                 continue;
@@ -190,14 +190,18 @@ class FlowRunner
                 continue;
             }
 
+            $messageSource = Source::message($messageClass);
+            $this->storage?->registerMessageSource($messageSource);
+
             $flowMessageWait = FlowMessage::create(
                 flowHash: $flow->getHash(),
                 flowRuntimeHash: $flow->getRuntimeHash(),
                 stubSource: $stubSource->stubSource,
                 stubHash: $stubSource->stubHash,
                 messageTypeEnum: MessageTypeEnum::WAIT,
-                predecessorHash: $flowMessageHash,
+                messageHash: $messageSource->messageHash,
                 message: $message,
+                predecessorHash: $flowMessageHash,
             );
 
             $flow->addMessage($flowMessageWait);
@@ -269,14 +273,17 @@ class FlowRunner
             }
 
             if ($processResult instanceof MessageReturnInterface) {
+                $messageSource = Source::message(get_class($processResult));
+                $this->storage?->registerMessageSource($messageSource);
                 $returnFlowMessage = FlowMessage::create(
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
                     stubSource: $stubSource->stubSource,
                     stubHash: $stubSource->stubHash,
                     messageTypeEnum: MessageTypeEnum::FINISH,
-                    predecessorHash: $flowMessageWait->getHash(),
+                    messageHash: $messageSource->messageHash,
                     message: $processResult,
+                    predecessorHash: $flowMessageWait->getHash(),
                 );
                 $flow->addMessage($returnFlowMessage);
                 $this->storage?->appendFlowMessage($returnFlowMessage);

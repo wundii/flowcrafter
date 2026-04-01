@@ -23,6 +23,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
+use Wundii\Flowcrafter\Source;
 
 final class FlowStatusTest extends TestCase
 {
@@ -268,8 +269,9 @@ final class FlowStatusTest extends TestCase
             stubSource: PostStubMock::class,
             stubHash: 'stub-hash',
             messageTypeEnum: MessageTypeEnum::FINISH,
-            predecessorHash: null,
+            messageHash: Source::message(MessageDataSecondMock::class)->messageHash,
             message: new MessageDataSecondMock('test', new MessageSubDataMock('alien')),
+            predecessorHash: null,
         ));
 
         $this->assertSame(StatusEnum::OK, $flow->status());
@@ -582,8 +584,9 @@ final class FlowStatusTest extends TestCase
             stubSource: $stubSource,
             stubHash: 'stub-hash',
             messageTypeEnum: MessageTypeEnum::FINISH,
-            predecessorHash: null,
+            messageHash: Source::message(MessageDataSecondMock::class)->messageHash,
             message: new MessageDataMock('test'),
+            predecessorHash: null,
         );
     }
 }

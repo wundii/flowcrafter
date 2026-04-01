@@ -29,6 +29,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
+use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 class Esdb extends Service
@@ -50,6 +51,8 @@ class Esdb extends Service
     public const TYPE_RUN = 'flowcrafter.flow.run.v1';
 
     public const TYPE_SCHEMA = 'flowcrafter.flow.schema.v1';
+
+    public const TYPE_SOURCE_MESSAGE = 'flowcrafter.flow.source.message.v1';
 
     public const TYPE_SOURCE_STUB = 'flowcrafter.flow.source.stub.v1';
 
@@ -187,6 +190,36 @@ class Esdb extends Service
             $this->client->registerEventSchema($eventType, $registerEventSchema);
         }
 
+        if (!in_array(self::TYPE_SOURCE_MESSAGE, $eventTypes, true)) {
+            $eventType = self::TYPE_SOURCE_MESSAGE;
+            $registerEventSchema = [
+                'type' => 'object',
+                'properties' => [
+                    'messageHash' => [
+                        'type' => 'string',
+                    ],
+                    'messageSource' => [
+                        'type' => 'string',
+                    ],
+                    'propertyNames' => [
+                        'type' => 'object',
+                    ],
+                    'time' => [
+                        'type' => 'string',
+                    ],
+                ],
+                'required' => [
+                    'messageHash',
+                    'messageSource',
+                    'propertyNames',
+                    'time',
+                ],
+                'additionalProperties' => false,
+            ];
+
+            $this->client->registerEventSchema($eventType, $registerEventSchema);
+        }
+
         if (!in_array(self::TYPE_SOURCE_STUB, $eventTypes, true)) {
             $eventType = self::TYPE_SOURCE_STUB;
             $registerEventSchema = [
@@ -234,6 +267,9 @@ class Esdb extends Service
                     'stubHash' => [
                         'type' => 'string',
                     ],
+                    'messageHash' => [
+                        'type' => 'string',
+                    ],
                     'messageType' => [
                         'type' => 'string',
                     ],
@@ -258,6 +294,7 @@ class Esdb extends Service
                     'flowRuntimeHash',
                     'stubSource',
                     'stubHash',
+                    'messageHash',
                     'messageType',
                     'messageSource',
                     'message',
@@ -446,6 +483,32 @@ class Esdb extends Service
                     'AND e.type == "' . self::TYPE_SCHEMA . '" ' .
                     'PROJECT INTO COUNT() == 0'
                 ),
+            ]
+        );
+    }
+
+    public function registerMessageSource(MessageSourceEntity $messageSourceEntity): void
+    {
+        $subject = '/flow/source/message/' . $messageSourceEntity->messageHash;
+
+        $readEventsOptions = new ReadEventsOptions(false);
+        if (iterator_to_array($this->client->readEvents($subject, $readEventsOptions)) !== []) {
+            return;
+        }
+
+        $eventCandidate = new EventCandidate(
+            source: self::SOURCE,
+            subject: $subject,
+            type: self::TYPE_SOURCE_MESSAGE,
+            data: $messageSourceEntity->jsonSerialize(),
+        );
+
+        $this->client->writeEvents(
+            [
+                $eventCandidate,
+            ],
+            [
+                new IsSubjectPristine($subject),
             ]
         );
     }

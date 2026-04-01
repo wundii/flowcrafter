@@ -23,6 +23,7 @@ use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
+use Wundii\Flowcrafter\Source;
 use Wundii\Flowcrafter\Stub;
 use Wundii\Flowcrafter\Uuid;
 
@@ -95,6 +96,7 @@ final class ConverterTest extends TestCase
 
         $file = __FILE__;
         $line = __LINE__;
+        $messageSourceEntity = Source::message(MessageInitMock::class);
 
         $flow = Flow::create(
             flowType: 'flow.workflow.v1',
@@ -107,8 +109,9 @@ final class ConverterTest extends TestCase
                 stubSource: StubMock::class,
                 stubHash: '123',
                 messageTypeEnum: messageTypeEnum::FINISH,
-                predecessorHash: null,
+                messageHash: $messageSourceEntity->messageHash,
                 message: new MessageInitMock('test data'),
+                predecessorHash: null,
                 time: $flow->getTime(),
                 hash: Uuid::uuid7($flow->getTime())->toString(),
             ),
@@ -166,6 +169,7 @@ final class ConverterTest extends TestCase
                     'stubHash' => '123',
                     'messageType' => 'finish',
                     'messageSource' => MessageInitMock::class,
+                    'messageHash' => $messageSourceEntity->messageHash,
                     'message' => [
                         'data' => 'test data',
                     ],
@@ -323,6 +327,7 @@ final class ConverterTest extends TestCase
         ]);
 
         $datetime = new DateTimeImmutable();
+        $messageSourceEntity = Source::message(MessageInitMock::class);
         $hash = Uuid::uuid7($datetime)->toString();
         $json = json_encode([
             'flowSource' => WorkflowMock::class,
@@ -383,6 +388,7 @@ final class ConverterTest extends TestCase
                     'stubHash' => '123',
                     'messageType' => 'finish',
                     'messageSource' => MessageInitMock::class,
+                    'messageHash' => $messageSourceEntity->messageHash,
                     'message' => [
                         'data' => 'test data',
                     ],
@@ -410,8 +416,9 @@ final class ConverterTest extends TestCase
                     stubSource: StubMock::class,
                     stubHash: '123',
                     messageTypeEnum: messageTypeEnum::FINISH,
-                    predecessorHash: null,
+                    messageHash: $messageSourceEntity->messageHash,
                     message: new MessageInitMock('test data'),
+                    predecessorHash: null,
                     time: $flow->getTime(),
                     hash: Uuid::uuid7($datetime)->toString(),
                 ),

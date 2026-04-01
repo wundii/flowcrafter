@@ -11,6 +11,7 @@ use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 interface StorageInterface extends ServiceInterface
@@ -18,6 +19,8 @@ interface StorageInterface extends ServiceInterface
     public function initializeDatabase(): void;
 
     public function registerFlowSchema(FlowSchema $flowSchema): void;
+
+    public function registerMessageSource(MessageSourceEntity $messageSourceEntity): void;
 
     public function registerStubSource(StubSourceEntity $stubSourceEntity): void;
 

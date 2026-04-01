@@ -23,6 +23,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Config\RedisConfig;
+use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Uuid;
 
@@ -40,6 +41,8 @@ class Redis extends Service implements StorageInterface
 
     public const PREFIX_TYPE_SCHEMA = 'flow:schema:';
 
+    public const PREFIX_TYPE_SOURCE_MESSAGE = 'flow:source:message:';
+
     public const PREFIX_TYPE_SOURCE_STUB = 'flow:source:stub:';
 
     private const INDEX_INSTANCE = 'idx:flow';
@@ -53,6 +56,8 @@ class Redis extends Service implements StorageInterface
     private const INDEX_RUN = 'idx:flow:run';
 
     private const INDEX_SCHEMA = 'idx:flow:schema';
+
+    private const INDEX_SOURCE_MESSAGE = 'idx:flow:source:message';
 
     private const INDEX_SOURCE_STUB = 'idx:flow:source:stub';
 
@@ -138,6 +143,34 @@ class Redis extends Service implements StorageInterface
             'AS',
             'stubSource',
             'TAG',
+        );
+
+        if ($this->existIndex(self::INDEX_SOURCE_MESSAGE)) {
+            $this->client->rawCommand('FT.DROPINDEX', self::INDEX_SOURCE_MESSAGE);
+        }
+
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_SOURCE_MESSAGE,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_TYPE_SOURCE_MESSAGE,
+            'SCHEMA',
+            '$.messageHash',
+            'AS',
+            'messageHash',
+            'TAG',
+            '$.messageSource',
+            'AS',
+            'messageSource',
+            'TAG',
+            '$.time',
+            'AS',
+            'time',
+            'NUMERIC',
+            'SORTABLE',
         );
 
         if ($this->existIndex(self::INDEX_SOURCE_STUB)) {
@@ -276,6 +309,10 @@ class Redis extends Service implements StorageInterface
             '$.stubHash',
             'AS',
             'stubHash',
+            'TAG',
+            '$.messageHash',
+            'AS',
+            'messageHash',
             'TAG',
             '$.messageType',
             'AS',
@@ -424,6 +461,19 @@ class Redis extends Service implements StorageInterface
         }
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($flowSchema));
+    }
+
+    public function registerMessageSource(MessageSourceEntity $messageSourceEntity): void
+    {
+        $key = self::PREFIX_TYPE_SOURCE_MESSAGE . $messageSourceEntity->messageHash;
+        if ($this->client->exists($key)) {
+            return;
+        }
+
+        $data = $messageSourceEntity->jsonSerialize();
+        $data['time'] = $messageSourceEntity->time->getTimestamp();
+
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
 
     public function registerStubSource(StubSourceEntity $stubSourceEntity): void

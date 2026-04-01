@@ -65,5 +65,8 @@ final class FlowObserverMySqlTest extends TestCase
 
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_STUB);
         $this->assertCount(4, iterator_to_array($stmt->fetchAll()));
+
+        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_MESSAGE);
+        $this->assertCount(4, iterator_to_array($stmt->fetchAll()));
     }
 }

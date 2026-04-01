@@ -10,6 +10,7 @@ use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
 use Tests\MockClass\MessageSubDataMock;
+use Wundii\Flowcrafter\Source;
 
 final class AbstractMessageTest extends TestCase
 {
@@ -69,28 +70,28 @@ final class AbstractMessageTest extends TestCase
 
     public function testPropertyNamesFlatMessage(): void
     {
-        $messageInitMock = new MessageInitMock('hello');
+        $messageSourceEntity = Source::message(MessageInitMock::class);
 
         $this->assertSame([
             'MessageInitMock' => ['data'],
-        ], $messageInitMock->propertyNames());
+        ], $messageSourceEntity->propertyNames);
     }
 
     public function testPropertyNamesNestedMessage(): void
     {
-        $messageDataSecondMock = new MessageDataSecondMock('hello', new MessageSubDataMock('world'));
+        $messageSourceEntity = Source::message(MessageDataSecondMock::class);
 
         $this->assertSame([
             'MessageDataSecondMock' => ['data', 'messageSubDataMock'],
             'MessageSubDataMock' => ['value'],
-        ], $messageDataSecondMock->propertyNames());
+        ], $messageSourceEntity->propertyNames);
     }
 
     public function testPropertyNamesKeysAreSorted(): void
     {
-        $messageDataSecondMock = new MessageDataSecondMock('hello', new MessageSubDataMock('world'));
+        $messageSourceEntity = Source::message(MessageDataSecondMock::class);
 
-        $keys = array_keys($messageDataSecondMock->propertyNames());
+        $keys = array_keys($messageSourceEntity->propertyNames);
 
         $this->assertSame('MessageDataSecondMock', $keys[0]);
         $this->assertSame('MessageSubDataMock', $keys[1]);
@@ -98,17 +99,17 @@ final class AbstractMessageTest extends TestCase
 
     public function testPropertyNamesValuesAreSorted(): void
     {
-        $messageReturnMock = new MessageReturnMock('done', 'extra');
+        $messageSourceEntity = Source::message(MessageReturnMock::class);
 
         $this->assertSame([
             'MessageReturnMock' => ['data', 'test'],
-        ], $messageReturnMock->propertyNames());
+        ], $messageSourceEntity->propertyNames);
     }
 
     public function testPropertyNamesKeyIsShortClassName(): void
     {
-        $messageDataMock = new MessageDataMock('hello');
+        $messageSourceEntity = Source::message(MessageDataMock::class);
 
-        $this->assertArrayHasKey('MessageDataMock', $messageDataMock->propertyNames());
+        $this->assertArrayHasKey('MessageDataMock', $messageSourceEntity->propertyNames);
     }
 }

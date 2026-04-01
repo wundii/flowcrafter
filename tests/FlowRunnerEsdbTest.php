@@ -35,7 +35,7 @@ final class FlowRunnerEsdbTest extends TestCase
         $this->assertCount(6, $flowRunner->getFlow()->getFlowMessages());
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
-        $this->assertCount(14, iterator_to_array($events));
+        $this->assertCount(18, iterator_to_array($events));
 
         $flowSchemaEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.schema.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowSchemaEvents));
@@ -52,8 +52,11 @@ final class FlowRunnerEsdbTest extends TestCase
         $flowResultEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.result.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowResultEvents));
 
-        $flowMessageEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.stub.v1" PROJECT INTO e');
-        $this->assertCount(4, iterator_to_array($flowMessageEvents));
+        $flowStubSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.stub.v1" PROJECT INTO e');
+        $this->assertCount(4, iterator_to_array($flowStubSourceEvents));
+
+        $flowMessageSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.message.v1" PROJECT INTO e');
+        $this->assertCount(4, iterator_to_array($flowMessageSourceEvents));
     }
 
     // public function testRunTryRewriteSchema(): void
@@ -90,7 +93,7 @@ final class FlowRunnerEsdbTest extends TestCase
         $this->assertCount(6, $flow->getFlowMessages());
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
-        $this->assertCount(14, iterator_to_array($events));
+        $this->assertCount(18, iterator_to_array($events));
 
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
@@ -104,7 +107,7 @@ final class FlowRunnerEsdbTest extends TestCase
         $this->assertSame('1234', $flowRunner->getFlow()->getSubject());
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
-        $this->assertCount(21, iterator_to_array($events));
+        $this->assertCount(25, iterator_to_array($events));
 
         $flowSchemaEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.schema.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowSchemaEvents));
@@ -120,6 +123,9 @@ final class FlowRunnerEsdbTest extends TestCase
 
         $flowMessageEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.stub.v1" PROJECT INTO e');
         $this->assertCount(4, iterator_to_array($flowMessageEvents));
+
+        $flowMessageSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.message.v1" PROJECT INTO e');
+        $this->assertCount(4, iterator_to_array($flowMessageSourceEvents));
     }
 
     public function testRunFail(): void

@@ -109,7 +109,7 @@ final class Converter
                         ? Assert::string($message['messageSource'] ?? null, 'Each Message must have a string source.')
                         : Assert::classString($message['messageSource'] ?? null, MessageInterface::class, 'Each Message must have a string source.');
 
-                    $flowMessage = $readOnly && !class_exists($messageSource)
+                    $flowMessage = $readOnly
                         ? new FlowMessageReadOnly($messageSource, $messageData)
                         /** @phpstan-ignore argument.type */
                         : $dataMapper->array($messageData, $messageSource);
@@ -127,6 +127,7 @@ final class Converter
                         MessageTypeEnum::from(Assert::string($message['messageType'] ?? null, 'Each Message must have a string messageType.')),
                         /** @phpstan-ignore argument.type */
                         $messageSource,
+                        Assert::string($message['messageHash'] ?? '', 'Each messageHash must be a string.'),
                         Assert::object($flowMessage, MessageInterface::class, 'Each Message must have an MessageInterface message.'),
                         Assert::datetimeImmutable($message['time'] ?? null, 'Each Message must have a valid time date string.'),
                         Assert::string($message['hash'] ?? null, 'Each Message must have a string hash.'),
@@ -279,11 +280,18 @@ final class Converter
 
         foreach (Assert::array($flow['flowMessages'] ?? [], 'Messages must be an array.') as $msgData) {
             $message = Assert::array($msgData, 'Each Message must be an array.');
-            if (!Assert::isValidClassString($message['messageSource'] ?? null, MessageInterface::class)) {
+            $messageSource = $message['messageSource'] ?? null;
+            $messageHash = $message['messageHash'] ?? null;
+            if (!Assert::isValidClassString($messageSource, MessageInterface::class)) {
                 return true;
             }
 
             if (!Assert::isValidClassString($message['stubSource'] ?? null, StubInterface::class)) {
+                return true;
+            }
+
+            /** @phpstan-ignore-next-line */
+            if ($messageHash !== Source::message($messageSource)->messageHash) {
                 return true;
             }
         }

@@ -24,6 +24,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
+use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 class MySql extends Service implements StorageInterface
@@ -41,6 +42,8 @@ class MySql extends Service implements StorageInterface
     public const TYPE_RUN = 'flow_run';
 
     public const TYPE_SCHEMA = 'flow_schema';
+
+    public const TYPE_SOURCE_MESSAGE = 'flow_source_message';
 
     public const TYPE_SOURCE_STUB = 'flow_source_stub';
 
@@ -81,6 +84,18 @@ class MySql extends Service implements StorageInterface
                 created_at DATETIME NOT NULL,
                 UNIQUE INDEX flow_schema_type_unique (flow_schema_type),
                 INDEX flow_schema_hash (flow_schema_hash)
+            )
+            SQL
+        );
+
+        $this->client->exec(
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS flow_source_message (
+                message_hash VARCHAR(32) NOT NULL PRIMARY KEY,
+                message_source VARCHAR(255) NOT NULL,
+                property_names JSON NOT NULL,
+                time DATETIME NOT NULL,
+                INDEX flow_source_message_hash (message_hash)
             )
             SQL
         );
@@ -140,6 +155,7 @@ class MySql extends Service implements StorageInterface
                 stub_hash VARCHAR(191) NOT NULL,
                 message_type VARCHAR(64) NOT NULL,
                 message_source VARCHAR(255) NOT NULL,
+                message_hash VARCHAR(32) NOT NULL,
                 message JSON NOT NULL,
                 predecessor_hash VARCHAR(191) NULL,
                 `time` DATETIME NOT NULL,
@@ -252,6 +268,25 @@ class MySql extends Service implements StorageInterface
         ]);
     }
 
+    public function registerMessageSource(MessageSourceEntity $messageSourceEntity): void
+    {
+        $propertyNamesJson = json_encode($messageSourceEntity->propertyNames);
+        if (!is_string($propertyNamesJson)) {
+            throw new RuntimeException('Could not serialize message source property names.');
+        }
+
+        $stmt = $this->client->prepare(
+            'INSERT IGNORE INTO flow_source_message (message_hash, message_source, property_names, time) ' .
+            'VALUES (:message_hash, :message_source, :property_names, :time)'
+        );
+        $stmt->execute([
+            ':message_hash' => $messageSourceEntity->messageHash,
+            ':message_source' => $messageSourceEntity->messageSource,
+            ':property_names' => $propertyNamesJson,
+            ':time' => $messageSourceEntity->time->format('Y-m-d H:i:s.u'),
+        ]);
+    }
+
     public function registerStubSource(StubSourceEntity $stubSourceEntity): void
     {
         $stmt = $this->client->prepare(
@@ -307,8 +342,8 @@ class MySql extends Service implements StorageInterface
         }
 
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, stub_source, stub_hash, message_type, message_source, predecessor_hash, time, message) ' .
-            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :stub_hash, :message_type, :message_source, :predecessor_hash, :time, :message)'
+            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, stub_source, stub_hash, message_hash, message_type, message_source, predecessor_hash, time, message) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :stub_hash, :message_hash, :message_type, :message_source, :predecessor_hash, :time, :message)'
         );
 
         $stmt->execute([
@@ -319,6 +354,7 @@ class MySql extends Service implements StorageInterface
             ':stub_hash' => $flowMessage->getStubHash(),
             ':message_type' => $flowMessage->getMessageType()->value,
             ':message_source' => $flowMessage->getMessageSource(),
+            ':message_hash' => $flowMessage->getMessageHash(),
             ':predecessor_hash' => $flowMessage->getPredecessorHash(),
             ':time' => $flowMessage->getTime()->format('Y-m-d H:i:s.u'),
             ':message' => $messageJson,
@@ -576,6 +612,7 @@ class MySql extends Service implements StorageInterface
                 'stubHash' => $message['stub_hash'] ?? null,
                 'messageType' => $message['message_type'] ?? '',
                 'messageSource' => $message['message_source'] ?? '',
+                'messageHash' => $message['message_hash'] ?? '',
                 'message' => $messageArray,
                 'predecessorHash' => $message['predecessor_hash'] ?? '',
                 'time' => $message['time'] ?? 'now',

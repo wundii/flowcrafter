@@ -42,7 +42,7 @@ final class FlowObserverRedisTest extends TestCase
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->keys('flow:*');
-        $this->assertCount(14, $events);
+        $this->assertCount(18, $events);
 
         $flowSchemaEvents = $this->client->keys('flow:schema:*');
         $this->assertCount(1, $flowSchemaEvents);
@@ -64,5 +64,8 @@ final class FlowObserverRedisTest extends TestCase
 
         $flowStubSourceEvents = $this->client->keys('flow:source:stub:*');
         $this->assertCount(4, $flowStubSourceEvents);
+
+        $flowMessageSourceEvents = $this->client->keys('flow:source:message:*');
+        $this->assertCount(4, $flowMessageSourceEvents);
     }
 }
