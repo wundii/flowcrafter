@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\MockClass;
 
-use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\AbstractMessageReturn;
 
-readonly class MessageReturnMock implements MessageReturnInterface
+readonly class MessageReturnMock extends AbstractMessageReturn
 {
     public function __construct(
         private string $data,
@@ -22,16 +22,5 @@ readonly class MessageReturnMock implements MessageReturnInterface
     public function getTest(): ?string
     {
         return $this->test;
-    }
-
-    /**
-     * @return array<string, string|null>
-     */
-    public function jsonSerialize(): array
-    {
-        return [
-            'data' => $this->data,
-            'test' => $this->test,
-        ];
     }
 }

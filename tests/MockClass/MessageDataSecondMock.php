@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\MockClass;
 
-use Wundii\Flowcrafter\Interface\MessageDataInterface;
+use Wundii\Flowcrafter\AbstractMessageData;
 
-readonly class MessageDataSecondMock implements MessageDataInterface
+readonly class MessageDataSecondMock extends AbstractMessageData
 {
     public function __construct(
         private string $data,
+        private MessageSubDataMock $messageSubDataMock,
     ) {
     }
 
@@ -18,13 +19,8 @@ readonly class MessageDataSecondMock implements MessageDataInterface
         return $this->data;
     }
 
-    /**
-     * @return array<string, string>
-     */
-    public function jsonSerialize(): array
+    public function getMessageSubDataMock(): MessageSubDataMock
     {
-        return [
-            'data' => $this->data,
-        ];
+        return $this->messageSubDataMock;
     }
 }

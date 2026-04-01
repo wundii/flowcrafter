@@ -6,15 +6,15 @@ namespace Tests\MockClass;
 
 use Wundii\Flowcrafter\AbstractMessageData;
 
-readonly class MessageDataMock extends AbstractMessageData
+readonly class MessageSubDataMock extends AbstractMessageData
 {
     public function __construct(
-        private string $data,
+        private string $value,
     ) {
     }
 
-    public function getData(): string
+    public function getValue(): string
     {
-        return $this->data;
+        return $this->value;
     }
 }

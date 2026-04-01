@@ -10,6 +10,7 @@ use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
+use Tests\MockClass\MessageSubDataMock;
 use Tests\MockClass\NextStubMock;
 use Tests\MockClass\OtherStubMock;
 use Tests\MockClass\PostStubMock;
@@ -268,7 +269,7 @@ final class FlowStatusTest extends TestCase
             stubHash: 'stub-hash',
             messageTypeEnum: MessageTypeEnum::FINISH,
             predecessorHash: null,
-            message: new MessageDataSecondMock('test'),
+            message: new MessageDataSecondMock('test', new MessageSubDataMock('alien')),
         ));
 
         $this->assertSame(StatusEnum::OK, $flow->status());

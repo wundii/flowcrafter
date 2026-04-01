@@ -34,6 +34,6 @@ class OtherStubMock implements StubInterface
         $extras = ['einer Prise Liebe', 'einem Hauch Magie', 'extra Kaese', 'frischen Kraeutern', 'Geheimgewuerz'];
         $extra = $extras[array_rand($extras)];
 
-        return new MessageDataSecondMock(sprintf('%s, %s mit %s', $input, $method, $extra));
+        return new MessageDataSecondMock(sprintf('%s, %s mit %s', $input, $method, $extra), new MessageSubDataMock('alien'));
     }
 }
