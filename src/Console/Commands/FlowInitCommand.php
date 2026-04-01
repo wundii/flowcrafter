@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Console\Commands;
 
 use Exception;
+use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -36,18 +37,20 @@ final class FlowInitCommand extends Command
         $output->startApplication(FlowConsole::vendorVersion());
 
         $storage = $this->flowcrafterConfig->getStorage();
+        $storageClass = (new ReflectionClass($storage))->getShortName();
 
         try {
             $storage->initializeDatabase();
             $output->writeln(sprintf(
-                '<fg=%s>%s</>',
+                '<fg=%s>Successfully initialized %s database</>',
                 OutputColorEnum::DEFAULT->value,
-                'Successfully initialized database.',
+                $storageClass,
             ));
         } catch (Exception $exception) {
             $output->writeln(sprintf(
-                '<fg=%s>%s</>',
+                '<fg=%s>%s: %s</>',
                 OutputColorEnum::RED->value,
+                $storageClass,
                 $exception->getMessage(),
             ));
         }

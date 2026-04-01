@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Console\Commands;
 
 use Exception;
+use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -39,17 +40,28 @@ final class FlowServiceRebuildCommand extends Command
         $output->startApplication(FlowConsole::vendorVersion());
 
         $storage = $this->flowcrafterConfig->getStorage();
+        $storageClass = (new ReflectionClass($storage))->getShortName();
 
         $clear = (bool) $input->getOption('clear');
+
+        $output->writeln(sprintf(
+            '<fg=%s>%s database</>',
+            OutputColorEnum::DEFAULT->value,
+            $storageClass,
+        ));
 
         try {
             if ($clear) {
                 $storage->truncateFlowList();
-                $output->writeln(sprintf(
-                    '<fg=%s>%s</>',
-                    OutputColorEnum::DEFAULT->value,
-                    'flow_list truncated.',
-                ));
+                $lists = ['flow_list', 'flow_run_list', 'flow_exception_list'];
+
+                foreach ($lists as $list) {
+                    $output->writeln(sprintf(
+                        '<fg=%s>%s truncated.</>',
+                        OutputColorEnum::DEFAULT->value,
+                        $list,
+                    ));
+                }
             }
 
             $count = 0;
