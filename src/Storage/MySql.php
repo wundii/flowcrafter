@@ -528,14 +528,19 @@ class MySql extends Service implements StorageInterface
             /** @var class-string[] $includeStubsParsed */
             $includeStubsParsed = is_string($includeStubsRaw) ? (json_decode($includeStubsRaw, true) ?? []) : [];
 
+            $messageArray = json_decode($row['message'] ?? '[]', true);
+            if (!is_array($messageArray)) {
+                throw new RuntimeException('Could not validate message payload.');
+            }
+
             yield new ObserveItem(
-                queueId: $row['queue_id'] ?? '',
+                queueId: (string) ($row['queue_id'] ?? ''),
                 type: $row['type'] ?? '',
                 flowSubject: $row['flow_subject'] ?? null,
                 flowSource: $row['flow_source'] ?? '',
                 flowHash: $row['flow_hash'] ?? null,
                 messageSource: $row['message_source'] ?? '',
-                message: $row['message'] ?? [],
+                message: $messageArray,
                 includeStubs: $includeStubsParsed,
             );
         }
@@ -771,7 +776,8 @@ class MySql extends Service implements StorageInterface
 
             $stmt = $this->client->query(
                 'SELECT * FROM flow_queue ' .
-                'ORDER BY created_at ASC LIMIT 1'
+                'ORDER BY created_at ASC LIMIT 1 ' .
+                'FOR UPDATE SKIP LOCKED'
             );
 
             $row = $stmt === false ? false : $stmt->fetch();
@@ -785,9 +791,14 @@ class MySql extends Service implements StorageInterface
                 ':queue_id' => $row['queue_id'],
             ]);
 
+            if ($deleteStmt->rowCount() === 0) {
+                $this->client->commit();
+                return null;
+            }
+
             $this->client->commit();
 
-            $messageJson = $row['message'] ?? '';
+            $messageJson = $row['message'] ?? '[]';
             if (!is_string($messageJson)) {
                 throw new RuntimeException('Could not validate flow message payload.');
             }

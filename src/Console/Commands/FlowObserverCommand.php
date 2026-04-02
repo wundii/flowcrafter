@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Console\Commands;
 
+use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -47,10 +48,13 @@ final class FlowObserverCommand extends Command
         $workersOption = $input->getOption('workers');
         $workers = max(1, (int) $workersOption);
 
-        $this->flowcrafterConfig->getStorage()->initializeDatabase();
+        $storage = $this->flowcrafterConfig->getStorage();
+        $storageClass = (new ReflectionClass($storage))->getShortName();
+        $storage->initializeDatabase();
         $output->writeln(sprintf(
-            '<fg=%s>database initialized</>',
+            '<fg=%s>%s database initialized</>',
             OutputColorEnum::DEFAULT->value,
+            $storageClass,
         ));
 
         $output->writeln(sprintf(

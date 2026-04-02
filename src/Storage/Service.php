@@ -23,13 +23,13 @@ abstract class Service implements StorageInterface
 
     public function __construct(?string $file = null)
     {
-        $dns = 'sqlite::memory:';
+        $dns = 'sqlite::memory:?cache=shared';
 
         if ($file !== null) {
             $directory = dirname($file);
             if (!is_dir($directory)) {
                 $fileSystem = new Filesystem();
-                $fileSystem->mkdir($directory);
+                $fileSystem->mkdir($directory, 0775);
             }
 
             $dns = 'sqlite:' . $file;
@@ -48,6 +48,8 @@ abstract class Service implements StorageInterface
         $this->client->exec('PRAGMA journal_mode = WAL;');
         $this->client->exec('PRAGMA synchronous = NORMAL;');
         $this->client->exec('PRAGMA temp_store = MEMORY;');
+        $this->client->exec('PRAGMA busy_timeout = 5000;');
+        $this->client->exec('PRAGMA foreign_keys = ON;');
 
         $this->client->exec(
             <<<'SQL'

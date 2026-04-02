@@ -18,6 +18,8 @@ class Flow implements JsonSerializable
 {
     private string $flowRuntimeHash;
 
+    private bool $flowReadOnly;
+
     /**
      * @var class-string[]
      */
@@ -29,6 +31,7 @@ class Flow implements JsonSerializable
      * @param FlowException[] $flowExceptions
      * @param FlowRun[] $flowRuns
      * @param FlowResult[] $flowResults
+     * @param string[] $flowReadOnlyReasons
      */
     public function __construct(
         private readonly string $flowType,
@@ -42,9 +45,10 @@ class Flow implements JsonSerializable
         private array $flowExceptions = [],
         private array $flowRuns = [],
         private array $flowResults = [],
-        private bool $flowReadOnly = false,
+        private readonly array $flowReadOnlyReasons = [],
     ) {
-        if (!$flowReadOnly) {
+        $this->flowReadOnly = $flowReadOnlyReasons !== [];
+        if (!$this->flowReadOnly) {
             Assert::classString(
                 $flowSource,
                 FlowInterface::class,
@@ -272,6 +276,14 @@ class Flow implements JsonSerializable
     }
 
     /**
+     * @return string[]
+     */
+    public function getReadOnlyReasons(): array
+    {
+        return $this->flowReadOnlyReasons;
+    }
+
+    /**
      * @param class-string[] $includeStubs
      */
     public function setIncludeStubs(array $includeStubs): void
@@ -311,7 +323,7 @@ class Flow implements JsonSerializable
     }
 
     /**
-     * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowResult|FlowRun>|FlowSchema>
+     * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowResult|FlowRun|string>|FlowSchema>
      */
     public function jsonSerialize(): array
     {
@@ -330,6 +342,7 @@ class Flow implements JsonSerializable
             'flowStatus' => $this->status()->name,
             'isExecutable' => $this->isExecutable(),
             'isReadOnly' => $this->flowReadOnly,
+            'readOnlyReasons' => $this->flowReadOnlyReasons,
         ];
     }
 

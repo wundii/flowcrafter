@@ -68,9 +68,9 @@ Das Storage-Backend wird über typisierte Config-Objekte konfiguriert:
 
 | Backend         | Config-Klasse                  | Parameter                                    | Besonderheit                              |
 | --------------- | ------------------------------ | -------------------------------------------- | ----------------------------------------- |
-| MySQL           | `Storage\Config\MySqlConfig`   | `host`, `port`, `database`, `username`, `password` | Relationales Schema, Transaktionen, PDO   |
+| MySQL           | `Storage\Config\MySqlConfig`   | `host`, `port`, `database`, `username`, `password` | Relationales Schema, Transaktionen, PDO — atomarer Queue-Zugriff via `FOR UPDATE SKIP LOCKED` |
 | Redis           | `Storage\Config\RedisConfig`   | `host`, `port`                               | In-Memory, RediSearch-Indizes             |
-| EventSourcingDB | `Storage\Config\EsdbConfig`    | `url`, `apiToken`                            | Event Sourcing, Append-Only               |
+| EventSourcingDB | `Storage\Config\EsdbConfig`    | `url`, `apiToken`                            | Event Sourcing, Append-Only — atomarer Queue-Zugriff via Claim-Events (`IsSubjectPristine`) |
 
 Alle drei Backends erben von `Storage\Service` und führen neben dem primären Backend automatisch eine SQLite-Datenbank (`flow_list`, `flow_run_list`) als schnellen Lese-Cache für API-Anfragen. Die SQLite-Datei liegt standardmäßig unter `data/database.sqlite` im Projektverzeichnis und kann über einen optionalen `sqliteFile`-Parameter in der Config überschrieben werden.
 
@@ -160,85 +160,7 @@ vendor/bin/flowcrafter observer [--workers=1]
 | **service**  | `vendor/bin/flowcrafter frankenphp:service` | vertikal (FrankenPHP Worker)         |
 | **observer** | `vendor/bin/flowcrafter observer --workers N` | horizontal (mehrere Worker-Prozesse) |
 
-> **Hinweis:** Horizontale Skalierung des Observers erfordert, dass die `StorageInterface`-Implementierung atomaren Queue-Zugriff garantiert.
-
----
-
-## Projektstruktur
-
-```
-flowcrafter/
-├── bin/
-│   └── flowcrafter                    # CLI-Einstiegspunkt (Symfony Console)
-├── src/
-│   ├── Bootstrap/                     # Config-Auflösung & Initialisierung
-│   ├── Config/
-│   │   └── FlowcrafterConfig.php      # Konfigurationsklasse
-│   ├── Console/
-│   │   ├── Commands/
-│   │   │   ├── FlowCreateCommand.php           # Konfigurationsdatei erzeugen
-│   │   │   ├── FlowDevCommand.php              # API-Server + Observer (Entwicklung)
-│   │   │   ├── FlowDockerInitCommand.php       # Dockerfiles + docker-compose generieren
-│   │   │   ├── FlowFrankenPhpServiceCommand.php # API-Server (FrankenPHP, Produktion)
-│   │   │   ├── FlowInitCommand.php             # Storage initialisieren
-│   │   │   ├── FlowMermaidCommand.php          # Mermaid-Diagramm erzeugen
-│   │   │   ├── FlowObserverCommand.php         # Observer-Worker starten
-│   │   │   └── FlowServiceRebuildCommand.php   # SQLite-Cache aus primärem Backend neu aufbauen
-│   │   └── Output/                             # Console-Output-Helfer
-│   ├── Enum/                          # Message-, MessageType- und Sort-Enums
-│   ├── Interface/
-│   │   ├── StorageInterface.php       # Backend-Abstraktion
-│   │   ├── StorageConfigInterface.php # Config-Vertrag für Storage-Backends
-│   │   ├── FlowInterface.php          # Flow-Implementierungsvertrag
-│   │   ├── MessageInterface.php       # Basistyp für alle Messages
-│   │   ├── MessageInitInterface.php   # Marker: Startnachricht
-│   │   ├── MessageDataInterface.php   # Marker: Datennachricht
-│   │   ├── MessageReturnInterface.php # Marker: Rückgabewert (Flow-Ende)
-│   │   └── StubInterface.php          # Prozessoreinheit
-│   ├── Storage/
-│   │   ├── Config/
-│   │   │   ├── EsdbConfig.php         # EventSourcingDB-Konfiguration
-│   │   │   ├── MySqlConfig.php        # MySQL-Konfiguration
-│   │   │   └── RedisConfig.php        # Redis-Konfiguration
-│   │   ├── Service.php                # SQLite-Cache-Layer (Basisklasse aller Backends)
-│   │   ├── MySql.php                  # MySQL-Implementierung
-│   │   ├── Redis.php                  # Redis-Implementierung
-│   │   ├── Esdb.php                   # EventSourcingDB-Implementierung
-│   │   └── Entity/
-│   │       ├── FlowListEntity.php     # DTO für Flow-Listeneinträge (SQLite-Cache)
-│   │       ├── FlowStatsEntity.php    # DTO für tägliche Flow-Statistiken
-│   │       └── StubSourceEntity.php   # DTO für Stub-Source-Snapshots
-│   ├── Assert.php                     # Validierungs-Helfer
-│   ├── Converter.php                  # JSON ↔ Flow ↔ Mermaid-Konvertierung
-│   ├── Flow.php                       # Flow-Instanz (Domain Model)
-│   ├── FlowBuilder.php               # Builder für Flow-Konstruktion
-│   ├── FlowSchema.php                 # Workflow-Definition (Blueprint)
-│   ├── FlowRunner.php                 # Synchrone Ausführungs-Engine
-│   ├── FlowObserver.php               # Asynchroner Queue-Prozessor
-│   ├── FlowMessage.php                # Nachrichtenobjekt
-│   ├── FlowException.php              # Exception-Objekt mit Kontext
-│   ├── FlowMessageReadOnly.php        # Read-Only-Wrapper für Messages
-│   ├── FlowResult.php                 # Ergebnisobjekt für boolesche Stub-Rückgaben
-│   ├── FlowRun.php                    # Ausführungsprotokoll (Runtime-Hash, Queue-ID)
-│   ├── ObserveItem.php                # Queue-Eintrag
-│   ├── Stub.php                       # Prozessor-Unit mit Source-Snapshotting
-│   └── Uuid.php                       # UUIDv7-Fabrik
-├── service/
-│   ├── Flower/                        # Flower Micro-Router
-│   │   ├── Flower.php                 # Singleton: Request-Handling, Auth
-│   │   ├── Router.php                 # Routen-Registry (Symfony Routing)
-│   │   └── MethodEnum.php             # GET, POST
-│   ├── bootstrap.php                  # Config-Initialisierung & Routen-Definition
-│   ├── index.php                      # API-Einstiegspunkt (PHP Built-in Server)
-│   └── worker.php                     # FrankenPHP Worker-Einstiegspunkt
-├── templates/
-│   ├── flowcrafter.php.dist           # Vorlage für flowcrafter create
-│   ├── Dockerfile.service.dist        # Vorlage für Service-Container
-│   ├── Dockerfile.observer.dist       # Vorlage für Observer-Container
-│   └── docker-compose.yml.dist        # Vorlage für Docker Compose
-├── tests/                             # PHPUnit + Testcontainers (MySQL, Redis, ESDB)
-└── composer.json
-```
+> **Hinweis:** Horizontale Skalierung des Observers erfordert atomaren Queue-Zugriff im Storage-Backend. **MySQL** nutzt `SELECT ... FOR UPDATE SKIP LOCKED`, **EventSourcingDB** nutzt Claim-Events mit `IsSubjectPristine`-Precondition. Bei eigenen `StorageInterface`-Implementierungen liegt die Verantwortung beim Nutzer.
 
 ---
 

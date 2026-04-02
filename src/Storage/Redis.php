@@ -505,6 +505,7 @@ class Redis extends Service implements StorageInterface
         unset($data['flowStatus']);
         unset($data['isExecutable']);
         unset($data['isReadOnly']);
+        unset($data['readOnlyReasons']);
         $data['time'] = $flow->getTime()->getTimestamp();
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));

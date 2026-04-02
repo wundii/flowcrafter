@@ -45,7 +45,7 @@ final class FlowServiceRebuildCommand extends Command
         $clear = (bool) $input->getOption('clear');
 
         $output->writeln(sprintf(
-            '<fg=%s>%s database</>',
+            '<fg=%s>%s database initialized</>',
             OutputColorEnum::DEFAULT->value,
             $storageClass,
         ));
@@ -64,22 +64,31 @@ final class FlowServiceRebuildCommand extends Command
                 }
             }
 
+            $flowHashes = iterator_to_array($storage->findAllFlowHashes());
+            $total = count($flowHashes);
             $count = 0;
 
-            foreach ($storage->findAllFlowHashes() as $flowHash) {
+            $progressBar = $output->createProgressBar($total);
+            $progressBar->start();
+
+            foreach ($flowHashes as $flowHash) {
                 $flow = $storage->findFlowByHash($flowHash);
-                if (!$flow instanceof Flow) {
-                    continue;
+                if ($flow instanceof Flow) {
+                    $storage->saveFlow($flow);
+                    ++$count;
                 }
 
-                $storage->saveFlow($flow);
-                ++$count;
+                $progressBar->advance();
             }
 
+            $progressBar->finish();
+            $output->writeln('');
+
             $output->writeln(sprintf(
-                '<fg=%s>Rebuilt %d flow(s).</>',
+                '<fg=%s>Rebuilt %d of %d flow(s).</>',
                 OutputColorEnum::DEFAULT->value,
                 $count,
+                $total,
             ));
         } catch (Exception $exception) {
             $output->writeln(sprintf(

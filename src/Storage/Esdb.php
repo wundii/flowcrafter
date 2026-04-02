@@ -6,6 +6,7 @@ namespace Wundii\Flowcrafter\Storage;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use RuntimeException;
 use Thenativeweb\Eventsourcingdb\Bound;
 use Thenativeweb\Eventsourcingdb\BoundType;
 use Thenativeweb\Eventsourcingdb\Client;
@@ -47,6 +48,8 @@ class Esdb extends Service
     public const TYPE_RESULT = 'flowcrafter.flow.result.v1';
 
     public const TYPE_QUEUE = 'flowcrafter.flow.queue.v1';
+
+    public const TYPE_QUEUE_CLAIM = 'flowcrafter.flow.queue.claim.v1';
 
     public const TYPE_RUN = 'flowcrafter.flow.run.v1';
 
@@ -453,6 +456,24 @@ class Esdb extends Service
 
             $this->client->registerEventSchema($eventType, $registerEventSchema);
         }
+
+        if (!in_array(self::TYPE_QUEUE_CLAIM, $eventTypes, true)) {
+            $eventType = self::TYPE_QUEUE_CLAIM;
+            $registerEventSchema = [
+                'type' => 'object',
+                'properties' => [
+                    'eventId' => [
+                        'type' => 'string',
+                    ],
+                ],
+                'required' => [
+                    'eventId',
+                ],
+                'additionalProperties' => false,
+            ];
+
+            $this->client->registerEventSchema($eventType, $registerEventSchema);
+        }
     }
 
     public function registerFlowSchema(FlowSchema $flowSchema): void
@@ -557,6 +578,7 @@ class Esdb extends Service
         unset($data['flowStatus']);
         unset($data['isExecutable']);
         unset($data['isReadOnly']);
+        unset($data['readOnlyReasons']);
 
         $subjectSchema = '/flow/schema/' . $flow->getSchema()->getHash();
         $eventCandidate = new EventCandidate(
@@ -708,27 +730,18 @@ class Esdb extends Service
     {
         $this->client->abortIn($maxExecutionTimeInSeconds);
 
-        $lastFlowRunWithQueueId = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
-            'AND e.data.queueId != null ' .
-            'ORDER BY e.id DESC ' .
-            'TOP 1 ' .
-            'PROJECT INTO e.data.queueId'
-        );
-        $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
-        $lastQueueId = $lastFlowRunEvent[0] ?? null;
-
-        $lowerBound = $lastQueueId !== null
-            ? new Bound(id: $lastQueueId, type: BoundType::EXCLUSIVE)
-            : null;
+        $lowerBound = $this->resolveQueueLowerBound();
 
         $observeEventsOptions = new ObserveEventsOptions(
-            recursive: true,
+            recursive: false,
             lowerBound: $lowerBound,
         );
 
-        foreach ($this->client->observeEvents('/flow/queue', $observeEventsOptions) as $event) {
+        foreach ($this->client->observeEvents(self::QUEUE_SUBJECT, $observeEventsOptions) as $event) {
+            if (!$this->claimQueueItem($event->id)) {
+                continue;
+            }
+
             yield new ObserveItem(
                 queueId: $event->id,
                 type: $event->data['type'] ?? '',
@@ -744,20 +757,7 @@ class Esdb extends Service
 
     public function openQueues(): int
     {
-        $lastFlowRunWithQueueId = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
-            'AND e.data.queueId != null ' .
-            'ORDER BY e.id DESC ' .
-            'TOP 1 ' .
-            'PROJECT INTO e.data.queueId'
-        );
-        $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
-        $lastQueueId = $lastFlowRunEvent[0] ?? null;
-
-        $lowerBound = $lastQueueId !== null
-            ? new Bound(id: $lastQueueId, type: BoundType::EXCLUSIVE)
-            : null;
+        $lowerBound = $this->resolveQueueLowerBound();
 
         $events = $this->client->readEvents(
             self::QUEUE_SUBJECT,
@@ -803,20 +803,7 @@ class Esdb extends Service
      */
     public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable
     {
-        $lastFlowRunWithQueueId = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
-            'AND e.data.queueId != null ' .
-            'ORDER BY e.id DESC ' .
-            'TOP 1 ' .
-            'PROJECT INTO e.data.queueId'
-        );
-        $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
-        $lastQueueId = $lastFlowRunEvent[0] ?? null;
-
-        $lowerBound = $lastQueueId !== null
-            ? new Bound(id: $lastQueueId, type: BoundType::EXCLUSIVE)
-            : null;
+        $lowerBound = $this->resolveQueueLowerBound();
 
         $events = $this->client->readEvents(
             self::QUEUE_SUBJECT,
@@ -960,5 +947,50 @@ class Esdb extends Service
                 time: new DateTimeImmutable($stubSourceEvent['time']),
             );
         }
+    }
+
+    private function claimQueueItem(string $eventId): bool
+    {
+        $subject = self::QUEUE_SUBJECT . '/claim/' . $eventId;
+
+        try {
+            $this->client->writeEvents(
+                [
+                    new EventCandidate(
+                        source: self::SOURCE,
+                        subject: $subject,
+                        type: self::TYPE_QUEUE_CLAIM,
+                        data: [
+                            'eventId' => $eventId,
+                        ],
+                    ),
+                ],
+                [
+                    new IsSubjectPristine($subject),
+                ]
+            );
+
+            return true;
+        } catch (RuntimeException) {
+            return false;
+        }
+    }
+
+    private function resolveQueueLowerBound(): ?Bound
+    {
+        $lastFlowRunWithQueueId = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
+            'AND e.data.queueId != null ' .
+            'ORDER BY e.id DESC ' .
+            'TOP 1 ' .
+            'PROJECT INTO e.data.queueId'
+        );
+        $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
+        $lastQueueId = $lastFlowRunEvent[0] ?? null;
+
+        return $lastQueueId !== null
+            ? new Bound(id: $lastQueueId, type: BoundType::EXCLUSIVE)
+            : null;
     }
 }

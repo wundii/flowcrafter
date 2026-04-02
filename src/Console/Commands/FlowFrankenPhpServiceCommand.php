@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Console\Commands;
 
+use ReflectionClass;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -69,10 +70,14 @@ final class FlowFrankenPhpServiceCommand extends Command
             $env['FLOWCRAFTER_CONFIG'] = $configFile;
         }
 
-        $this->flowcrafterConfig->getStorage()->initializeDatabase();
+        $storage = $this->flowcrafterConfig->getStorage();
+        $storageClass = (new ReflectionClass($storage))->getShortName();
+        $storage->initializeDatabase();
+
         $output->writeln(sprintf(
-            '<fg=%s>database initialized</>',
+            '<fg=%s>%s database initialized</>',
             OutputColorEnum::DEFAULT->value,
+            $storageClass,
         ));
 
         $output->writeln(sprintf(

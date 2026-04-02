@@ -64,7 +64,8 @@ final class Converter
         $dataMapper = new DataMapper($dataConfig);
         $flowSchemaArray = Assert::array($flow['flowSchema'] ?? null, 'Decoded JSON is not an array.');
 
-        $readOnly = self::detectReadOnly($flow, $flowSchemaArray);
+        $readOnlyReasons = self::detectReadOnly($flow, $flowSchemaArray);
+        $readOnly = $readOnlyReasons !== [];
         $flowSource = $readOnly
             ? Assert::string($flow['flowSource'] ?? null, 'FlowSource must be a string.')
             : Assert::classString($flow['flowSource'] ?? null, FlowInterface::class, 'FlowSource must be a string.');
@@ -190,7 +191,7 @@ final class Converter
                 },
                 Assert::array($flow['flowResults'] ?? [], 'Results must be an array.'),
             ),
-            $readOnly,
+            $readOnlyReasons,
         );
     }
 
@@ -261,55 +262,83 @@ final class Converter
         return $filename;
     }
 
+    private static function displayValue(mixed $value): string
+    {
+        return is_string($value) ? $value : gettype($value);
+    }
+
+    /**
+     * @param class-string $interface
+     * @return string[] empty when valid
+     */
+    private static function validateClassSource(mixed $value, string $interface, string $label): array
+    {
+        if (!is_string($value)) {
+            return [sprintf("%s '%s' is not a string", $label, gettype($value))];
+        }
+
+        if (!class_exists($value)) {
+            return [sprintf("%s '%s' class does not exist", $label, $value)];
+        }
+
+        if (!is_subclass_of($value, $interface)) {
+            $short = substr(strrchr($interface, '\\') ?: $interface, 1);
+
+            return [sprintf("%s '%s' does not implement %s", $label, $value, $short)];
+        }
+
+        return [];
+    }
+
     /**
      * @param array<mixed> $flow
      * @param array<mixed> $flowSchemaArray
+     * @return string[]
      */
-    private static function detectReadOnly(array $flow, array $flowSchemaArray): bool
+    private static function detectReadOnly(array $flow, array $flowSchemaArray): array
     {
-        if (!Assert::isValidClassString($flow['flowSource'] ?? null, FlowInterface::class)) {
-            return true;
-        }
+        $reasons = [];
+
+        $flowSource = $flow['flowSource'] ?? null;
+        $reasons = [...$reasons, ...self::validateClassSource($flowSource, FlowInterface::class, 'flowSource')];
 
         foreach (Assert::array($flowSchemaArray['stubs'] ?? [], 'Stubs must be an array.') as $stubData) {
             $stubArray = Assert::array($stubData, 'Each stub must be an array.');
-            if (!Assert::isValidClassString($stubArray['source'] ?? null, StubInterface::class)) {
-                return true;
-            }
+            $stubSource = $stubArray['source'] ?? null;
+            $reasons = [...$reasons, ...self::validateClassSource($stubSource, StubInterface::class, 'Stub source')];
         }
 
         foreach (Assert::array($flow['flowMessages'] ?? [], 'Messages must be an array.') as $msgData) {
             $message = Assert::array($msgData, 'Each Message must be an array.');
             $messageSource = $message['messageSource'] ?? null;
             $messageHash = $message['messageHash'] ?? null;
-            if (!Assert::isValidClassString($messageSource, MessageInterface::class)) {
-                return true;
+            $messageErrors = self::validateClassSource($messageSource, MessageInterface::class, 'Message source');
+            if ($messageErrors !== []) {
+                $reasons = [...$reasons, ...$messageErrors];
+                continue;
             }
 
-            if (!Assert::isValidClassString($message['stubSource'] ?? null, StubInterface::class)) {
-                return true;
-            }
+            $stubSource = $message['stubSource'] ?? null;
+            $reasons = [...$reasons, ...self::validateClassSource($stubSource, StubInterface::class, sprintf("Message '%s' stub source", self::displayValue($messageSource)))];
 
             /** @phpstan-ignore-next-line */
             if ($messageHash !== Source::message($messageSource)->messageHash) {
-                return true;
+                $reasons[] = sprintf("Message '%s' property-hash mismatch", self::displayValue($messageSource));
             }
         }
 
         foreach (Assert::array($flow['flowExceptions'] ?? [], 'Exceptions must be an array.') as $excData) {
             $exception = Assert::array($excData, 'Each Exception must be an array.');
-            if (!Assert::isValidClassString($exception['stubSource'] ?? null, StubInterface::class)) {
-                return true;
-            }
+            $stubSource = $exception['stubSource'] ?? null;
+            $reasons = [...$reasons, ...self::validateClassSource($stubSource, StubInterface::class, 'Exception stub source')];
         }
 
         foreach (Assert::array($flow['flowResults'] ?? [], 'Results must be an array.') as $resData) {
             $result = Assert::array($resData, 'Each Result must be an array.');
-            if (!Assert::isValidClassString($result['stubSource'] ?? null, StubInterface::class)) {
-                return true;
-            }
+            $stubSource = $result['stubSource'] ?? null;
+            $reasons = [...$reasons, ...self::validateClassSource($stubSource, StubInterface::class, 'Result stub source')];
         }
 
-        return false;
+        return $reasons;
     }
 }

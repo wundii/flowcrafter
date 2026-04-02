@@ -75,6 +75,7 @@ final class ConverterTest extends TestCase
             'flowStatus' => 'IN_PROGRESS',
             'isExecutable' => true,
             'isReadOnly' => false,
+            'readOnlyReasons' => [],
         ]);
 
         $this->assertSame($expectedJson, $json);
@@ -217,6 +218,7 @@ final class ConverterTest extends TestCase
             'flowStatus' => 'FAILED',
             'isExecutable' => true,
             'isReadOnly' => false,
+            'readOnlyReasons' => [],
         ]);
 
         $this->assertSame($expectedJson, $json);
