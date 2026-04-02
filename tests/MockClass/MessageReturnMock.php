@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\MockClass;
 
-use Wundii\Flowcrafter\AbstractMessageReturn;
+use Wundii\Flowcrafter\AbstractMessage;
+use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 
-readonly class MessageReturnMock extends AbstractMessageReturn
+readonly class MessageReturnMock extends AbstractMessage implements MessageReturnInterface
 {
     public function __construct(
         private string $data,

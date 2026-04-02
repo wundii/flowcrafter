@@ -17,11 +17,11 @@ use Throwable;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
 use Wundii\Flowcrafter\Console\Commands\FlowConfigCreateCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowDevCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowDiagramMermaidCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowDockerInitCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowObserverCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowServiceCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowStorageInitCommand;
-use Wundii\Flowcrafter\Console\Commands\FlowDiagramMermaidCommand;
-use Wundii\Flowcrafter\Console\Commands\FlowObserverCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowStorageRebuildCommand;
 
 final class FlowConsole extends BaseApplication

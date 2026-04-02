@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\MockClass;
 
-use Wundii\Flowcrafter\AbstractMessageData;
+use Wundii\Flowcrafter\AbstractMessage;
+use Wundii\Flowcrafter\Interface\MessageDataInterface;
 
-readonly class MessageDataSecondMock extends AbstractMessageData
+readonly class MessageDataSecondMock extends AbstractMessage implements MessageDataInterface
 {
     public function __construct(
         private string $data,
