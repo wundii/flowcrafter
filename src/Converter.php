@@ -76,121 +76,16 @@ final class Converter
             $flowSource,
             new FlowSchema(
                 Assert::string($flowSchemaArray['type'] ?? null, 'Schema type must be a string.'),
-                array_map(
-                    static function (mixed $array) use ($readOnly): Stub {
-                        $stubArray = Assert::array($array, 'Each stub must be an array.');
-                        $source = $readOnly
-                            ? Assert::string($stubArray['source'] ?? null, 'Each Source must be a string.')
-                            : Assert::classString($stubArray['source'] ?? null, StubInterface::class, 'Each Source must be a string.');
-
-                        return new Stub(
-                            /** @phpstan-ignore argument.type */
-                            $source,
-                            /** @phpstan-ignore-next-line */
-                            Assert::array($stubArray['messages'] ?? null, 'Each Messages must be an array.'),
-                            /** @phpstan-ignore-next-line */
-                            Assert::array($stubArray['returnTypes'] ?? null, 'Each ReturnTypes must be an array.'),
-                            MessageEnum::from(Assert::string($stubArray['messageEnum'] ?? null, 'Each MessageEnum must have a string messageEnum.')),
-                            $readOnly,
-                        );
-                    },
-                    Assert::array($flowSchemaArray['stubs'] ?? [], 'Stubs must be an array.'),
-                )
+                array_map(static fn (mixed $a): Stub => self::mapStub($a, $readOnly), Assert::array($flowSchemaArray['stubs'] ?? [], 'Stubs must be an array.')),
             ),
             Assert::string($flow['flowSchemaHash'] ?? null, 'FlowSchemaHash must be a string.'),
             Assert::datetimeImmutable($flow['time'] ?? null, 'Time must be a valid date string.'),
             Assert::string($flow['flowHash'] ?? null, 'Hash must be a string.'),
             Assert::nullOrString($flow['flowSubject'] ?? null, 'Subject must be null or string.'),
-            array_map(
-                static function (mixed $array) use ($dataMapper, $readOnly): FlowMessage {
-                    $message = Assert::array($array, 'Each Message must be an array.');
-
-                    $messageData = Assert::array($message['message'] ?? [], 'Each Message must be an array.');
-                    $messageSource = $readOnly
-                        ? Assert::string($message['messageSource'] ?? null, 'Each Message must have a string source.')
-                        : Assert::classString($message['messageSource'] ?? null, MessageInterface::class, 'Each Message must have a string source.');
-
-                    $flowMessage = $readOnly
-                        ? new FlowMessageReadOnly($messageSource, $messageData)
-                        /** @phpstan-ignore argument.type */
-                        : $dataMapper->array($messageData, $messageSource);
-
-                    $stubSource = $readOnly
-                        ? Assert::string($message['stubSource'] ?? null, 'Each Message must have a string SubInterface.')
-                        : Assert::classString($message['stubSource'] ?? null, StubInterface::class, 'Each Message must have a string SubInterface.');
-
-                    return new FlowMessage(
-                        Assert::string($message['flowHash'] ?? null, 'Each Message must have a string flowHash.'),
-                        Assert::string($message['flowRuntimeHash'] ?? null, 'Each Message must have a string flowRuntimeHash.'),
-                        /** @phpstan-ignore argument.type */
-                        $stubSource,
-                        Assert::string($message['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
-                        MessageTypeEnum::from(Assert::string($message['messageType'] ?? null, 'Each Message must have a string messageType.')),
-                        /** @phpstan-ignore argument.type */
-                        $messageSource,
-                        Assert::string($message['messageHash'] ?? '', 'Each messageHash must be a string.'),
-                        Assert::object($flowMessage, MessageInterface::class, 'Each Message must have an MessageInterface message.'),
-                        Assert::datetimeImmutable($message['time'] ?? null, 'Each Message must have a valid time date string.'),
-                        Assert::string($message['hash'] ?? null, 'Each Message must have a string hash.'),
-                        Assert::nullOrString($message['predecessorHash'] ?? null, 'Each Message must have a string predecessorHash.'),
-                        $readOnly,
-                    );
-                },
-                Assert::array($flow['flowMessages'] ?? [], 'Messages must be an array.'),
-            ),
-            array_map(
-                static function (mixed $array) use ($readOnly): FlowException {
-                    $exception = Assert::array($array, 'Each Exception must be an array.');
-
-                    return new FlowException(
-                        Assert::string($exception['flowHash'] ?? null, 'Each Exception must have a string flowHash.'),
-                        Assert::string($exception['flowRuntimeHash'] ?? null, 'Each Exception must have a string flowRuntimeHash.'),
-                        Assert::string($exception['flowType'] ?? null, 'Each Exception must have a string flowType.'),
-                        Assert::string($exception['stubSource'] ?? null, 'Each Exception must have a string stubSource.'), /** @phpstan-ignore argument.type */
-                        Assert::string($exception['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
-                        Assert::int($exception['code'] ?? null, 'Each Exception must have an integer code.'),
-                        Assert::string($exception['message'] ?? null, 'Each Exception must have a string message.'),
-                        Assert::string($exception['file'] ?? null, 'Each Exception must have a string file.'),
-                        Assert::int($exception['line'] ?? null, 'Each Exception must have an integer line.'),
-                        Assert::string($exception['traceString'] ?? null, 'Each Exception must have a string traceString.'),
-                        Assert::datetimeImmutable($exception['time'] ?? null, 'Time must be a valid date string.'),
-                        Assert::string($exception['hash'] ?? null, 'Each Exception must have a string hash.'),
-                        $readOnly,
-                    );
-                },
-                Assert::array($flow['flowExceptions'] ?? [], 'Exceptions must be an array.'),
-            ),
-            array_map(
-                static function (mixed $array): FlowRun {
-                    $run = Assert::array($array, 'Each Run must be an array.');
-
-                    return new FlowRun(
-                        Assert::string($run['flowHash'] ?? null, 'Each Run must have a string flowHash.'),
-                        Assert::string($run['flowRuntimeHash'] ?? null, 'Each Run must have a string flowRuntimeHash.'),
-                        Assert::string($run['flowType'] ?? null, 'Each Run must have a string flowType.'),
-                        Assert::datetimeImmutable($run['time'] ?? null, 'Time must be a valid date string.'),
-                        Assert::nullOrString($run['queueId'] ?? null, 'Each Run must have a null or string queueId.'),
-                    );
-                },
-                Assert::array($flow['flowRuns'] ?? [], 'Runs must be an array.'),
-            ),
-            array_map(
-                static function (mixed $array) use ($readOnly): FlowResult {
-                    $result = Assert::array($array, 'Each Result must be an array.');
-
-                    return new FlowResult(
-                        Assert::string($result['flowHash'] ?? null, 'Each Result must have a string flowHash.'),
-                        Assert::string($result['flowRuntimeHash'] ?? null, 'Each Result must have a string flowRuntimeHash.'),
-                        Assert::string($result['stubSource'] ?? null, 'Each Result must have a string stubSource.'), /** @phpstan-ignore argument.type */
-                        Assert::string($result['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
-                        Assert::bool($result['result'] ?? null, 'Each Result must have a bool result.'),
-                        Assert::datetimeImmutable($result['time'] ?? null, 'Time must be a valid date string.'),
-                        Assert::string($result['hash'] ?? null, 'Each Result must have a string hash.'),
-                        $readOnly,
-                    );
-                },
-                Assert::array($flow['flowResults'] ?? [], 'Results must be an array.'),
-            ),
+            array_map(static fn (mixed $a): FlowMessage => self::mapFlowMessage($a, $dataMapper, $readOnly), Assert::array($flow['flowMessages'] ?? [], 'Messages must be an array.')),
+            array_map(static fn (mixed $a): FlowException => self::mapFlowException($a, $readOnly), Assert::array($flow['flowExceptions'] ?? [], 'Exceptions must be an array.')),
+            array_map(static fn (mixed $a): FlowRun => self::mapFlowRun($a), Assert::array($flow['flowRuns'] ?? [], 'Runs must be an array.')),
+            array_map(static fn (mixed $a): FlowResult => self::mapFlowResult($a, $readOnly), Assert::array($flow['flowResults'] ?? [], 'Results must be an array.')),
             $readOnlyReasons,
         );
     }
@@ -260,6 +155,114 @@ final class Converter
         }
 
         return $filename;
+    }
+
+    private static function mapStub(mixed $array, bool $readOnly): Stub
+    {
+        $stubArray = Assert::array($array, 'Each stub must be an array.');
+        $source = $readOnly
+            ? Assert::string($stubArray['source'] ?? null, 'Each Source must be a string.')
+            : Assert::classString($stubArray['source'] ?? null, StubInterface::class, 'Each Source must be a string.');
+
+        return new Stub(
+            /** @phpstan-ignore argument.type */
+            $source,
+            /** @phpstan-ignore-next-line */
+            Assert::array($stubArray['messages'] ?? null, 'Each Messages must be an array.'),
+            /** @phpstan-ignore-next-line */
+            Assert::array($stubArray['returnTypes'] ?? null, 'Each ReturnTypes must be an array.'),
+            MessageEnum::from(Assert::string($stubArray['messageEnum'] ?? null, 'Each MessageEnum must have a string messageEnum.')),
+            $readOnly,
+        );
+    }
+
+    /**
+     * @param DataMapper<object> $dataMapper
+     */
+        private static function mapFlowMessage(mixed $array, DataMapper $dataMapper, bool $readOnly): FlowMessage
+    {
+        $message = Assert::array($array, 'Each Message must be an array.');
+
+        $messageData = Assert::array($message['message'] ?? [], 'Each Message must be an array.');
+        $messageSource = $readOnly
+            ? Assert::string($message['messageSource'] ?? null, 'Each Message must have a string source.')
+            : Assert::classString($message['messageSource'] ?? null, MessageInterface::class, 'Each Message must have a string source.');
+
+        $flowMessage = $readOnly
+            ? new FlowMessageReadOnly($messageSource, $messageData)
+            /** @phpstan-ignore argument.type */
+            : $dataMapper->array($messageData, $messageSource);
+
+        $stubSource = $readOnly
+            ? Assert::string($message['stubSource'] ?? null, 'Each Message must have a string SubInterface.')
+            : Assert::classString($message['stubSource'] ?? null, StubInterface::class, 'Each Message must have a string SubInterface.');
+
+        return new FlowMessage(
+            Assert::string($message['flowHash'] ?? null, 'Each Message must have a string flowHash.'),
+            Assert::string($message['flowRuntimeHash'] ?? null, 'Each Message must have a string flowRuntimeHash.'),
+            /** @phpstan-ignore argument.type */
+            $stubSource,
+            Assert::string($message['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
+            MessageTypeEnum::from(Assert::string($message['messageType'] ?? null, 'Each Message must have a string messageType.')),
+            /** @phpstan-ignore argument.type */
+            $messageSource,
+            Assert::string($message['messageHash'] ?? '', 'Each messageHash must be a string.'),
+            Assert::object($flowMessage, MessageInterface::class, 'Each Message must have an MessageInterface message.'),
+            Assert::datetimeImmutable($message['time'] ?? null, 'Each Message must have a valid time date string.'),
+            Assert::string($message['hash'] ?? null, 'Each Message must have a string hash.'),
+            Assert::nullOrString($message['predecessorHash'] ?? null, 'Each Message must have a string predecessorHash.'),
+            $readOnly,
+        );
+    }
+
+    private static function mapFlowException(mixed $array, bool $readOnly): FlowException
+    {
+        $exception = Assert::array($array, 'Each Exception must be an array.');
+
+        return new FlowException(
+            Assert::string($exception['flowHash'] ?? null, 'Each Exception must have a string flowHash.'),
+            Assert::string($exception['flowRuntimeHash'] ?? null, 'Each Exception must have a string flowRuntimeHash.'),
+            Assert::string($exception['flowType'] ?? null, 'Each Exception must have a string flowType.'),
+            Assert::string($exception['stubSource'] ?? null, 'Each Exception must have a string stubSource.'), /** @phpstan-ignore argument.type */
+            Assert::string($exception['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
+            Assert::int($exception['code'] ?? null, 'Each Exception must have an integer code.'),
+            Assert::string($exception['message'] ?? null, 'Each Exception must have a string message.'),
+            Assert::string($exception['file'] ?? null, 'Each Exception must have a string file.'),
+            Assert::int($exception['line'] ?? null, 'Each Exception must have an integer line.'),
+            Assert::string($exception['traceString'] ?? null, 'Each Exception must have a string traceString.'),
+            Assert::datetimeImmutable($exception['time'] ?? null, 'Time must be a valid date string.'),
+            Assert::string($exception['hash'] ?? null, 'Each Exception must have a string hash.'),
+            $readOnly,
+        );
+    }
+
+    private static function mapFlowRun(mixed $array): FlowRun
+    {
+        $run = Assert::array($array, 'Each Run must be an array.');
+
+        return new FlowRun(
+            Assert::string($run['flowHash'] ?? null, 'Each Run must have a string flowHash.'),
+            Assert::string($run['flowRuntimeHash'] ?? null, 'Each Run must have a string flowRuntimeHash.'),
+            Assert::string($run['flowType'] ?? null, 'Each Run must have a string flowType.'),
+            Assert::datetimeImmutable($run['time'] ?? null, 'Time must be a valid date string.'),
+            Assert::nullOrString($run['queueId'] ?? null, 'Each Run must have a null or string queueId.'),
+        );
+    }
+
+    private static function mapFlowResult(mixed $array, bool $readOnly): FlowResult
+    {
+        $result = Assert::array($array, 'Each Result must be an array.');
+
+        return new FlowResult(
+            Assert::string($result['flowHash'] ?? null, 'Each Result must have a string flowHash.'),
+            Assert::string($result['flowRuntimeHash'] ?? null, 'Each Result must have a string flowRuntimeHash.'),
+            Assert::string($result['stubSource'] ?? null, 'Each Result must have a string stubSource.'), /** @phpstan-ignore argument.type */
+            Assert::string($result['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
+            Assert::bool($result['result'] ?? null, 'Each Result must have a bool result.'),
+            Assert::datetimeImmutable($result['time'] ?? null, 'Time must be a valid date string.'),
+            Assert::string($result['hash'] ?? null, 'Each Result must have a string hash.'),
+            $readOnly,
+        );
     }
 
     private static function displayValue(mixed $value): string
