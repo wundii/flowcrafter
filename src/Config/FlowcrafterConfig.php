@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Config;
 
+use ReflectionClass;
 use RuntimeException;
+use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
+use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\Interface\StorageConfigInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 
@@ -115,6 +118,20 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $dependencies = $this->getArrayWithStrings(OptionEnum::DEPENDENCIES_INJECTION);
 
         return $dependencies;
+    }
+
+    public function initializeStorage(FlowSymfonyStyle $flowSymfonyStyle): StorageInterface
+    {
+        $storage = $this->getStorage();
+        $storageClass = (new ReflectionClass($storage))->getShortName();
+        $storage->initializeDatabase();
+        $flowSymfonyStyle->writeln(sprintf(
+            '<fg=%s>%s database initialized</>',
+            OutputColorEnum::DEFAULT->value,
+            $storageClass,
+        ));
+
+        return $storage;
     }
 
     public function getStorage(): StorageInterface

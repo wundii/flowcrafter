@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Console\Commands;
 
 use Exception;
-use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -17,7 +16,7 @@ use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\Flow;
 
-final class FlowServiceRebuildCommand extends Command
+final class FlowStorageRebuildCommand extends Command
 {
     public function __construct(
         private FlowcrafterConfig $flowcrafterConfig
@@ -27,7 +26,7 @@ final class FlowServiceRebuildCommand extends Command
 
     protected function configure(): void
     {
-        $this->setName('service:rebuild');
+        $this->setName('storage:rebuild');
         $this->setDescription('Rebuild the SQLite flow_list from the primary storage');
         $this->addOption('clear', null, InputOption::VALUE_NONE, 'Truncate flow_list before rebuilding');
     }
@@ -39,16 +38,9 @@ final class FlowServiceRebuildCommand extends Command
         $output = new FlowSymfonyStyle($input, $output);
         $output->startApplication(FlowConsole::vendorVersion());
 
-        $storage = $this->flowcrafterConfig->getStorage();
-        $storageClass = (new ReflectionClass($storage))->getShortName();
+        $storage = $this->flowcrafterConfig->initializeStorage($output);
 
         $clear = (bool) $input->getOption('clear');
-
-        $output->writeln(sprintf(
-            '<fg=%s>%s database initialized</>',
-            OutputColorEnum::DEFAULT->value,
-            $storageClass,
-        ));
 
         try {
             if ($clear) {

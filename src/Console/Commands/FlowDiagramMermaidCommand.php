@@ -18,11 +18,11 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 
-final class FlowMermaidCommand extends Command
+final class FlowDiagramMermaidCommand extends Command
 {
     protected function configure(): void
     {
-        $this->setName('mermaid');
+        $this->setName('diagram:mermaid');
         $this->setDescription('Generate a Mermaid state diagram for a Flow');
         $this->addArgument(
             'flow',

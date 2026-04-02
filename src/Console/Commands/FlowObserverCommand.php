@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Console\Commands;
 
-use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -14,6 +13,7 @@ use Throwable;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Console\FlowConsole;
+use Wundii\Flowcrafter\Console\Heartbeat;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\FlowObserver;
@@ -48,14 +48,7 @@ final class FlowObserverCommand extends Command
         $workersOption = $input->getOption('workers');
         $workers = max(1, (int) $workersOption);
 
-        $storage = $this->flowcrafterConfig->getStorage();
-        $storageClass = (new ReflectionClass($storage))->getShortName();
-        $storage->initializeDatabase();
-        $output->writeln(sprintf(
-            '<fg=%s>%s database initialized</>',
-            OutputColorEnum::DEFAULT->value,
-            $storageClass,
-        ));
+        $this->flowcrafterConfig->initializeStorage($output);
 
         $output->writeln(sprintf(
             '<fg=%s>starting %d observer worker(s)</>',
@@ -73,11 +66,10 @@ final class FlowObserverCommand extends Command
 
     private function runObserver(FlowSymfonyStyle $flowSymfonyStyle): int
     {
-        $heartbeatFile = sys_get_temp_dir() . '/flowcrafter/observer.' . gethostname() . '.' . getmypid() . '.heartbeat';
-        @mkdir(dirname($heartbeatFile), 0755, true);
+        $heartbeat = new Heartbeat();
 
-        register_shutdown_function(static function () use ($heartbeatFile): void {
-            @unlink($heartbeatFile);
+        register_shutdown_function(static function () use ($heartbeat): void {
+            $heartbeat->cleanup();
         });
 
         $storage = $this->flowcrafterConfig->getStorage();
@@ -88,7 +80,7 @@ final class FlowObserverCommand extends Command
             $flowSymfonyStyle->writeln($message);
         };
 
-        @touch($heartbeatFile);
+        $heartbeat->touch();
 
         /** @phpstan-ignore while.alwaysTrue */
         while (true) {
@@ -99,7 +91,7 @@ final class FlowObserverCommand extends Command
                 sleep(2);
             }
 
-            @touch($heartbeatFile);
+            $heartbeat->touch();
         }
     }
 
@@ -107,13 +99,7 @@ final class FlowObserverCommand extends Command
     {
         $flowcrafterScript = dirname(__DIR__, 3) . '/bin/flowcrafter.php';
 
-        $env = null;
-        $configFile = $this->bootstrapConfig->getBootstrapConfigFile();
-        if ($configFile !== null) {
-            $env = [
-                'FLOWCRAFTER_CONFIG' => $configFile,
-            ] + getenv();
-        }
+        $env = $this->bootstrapConfig->getProcessEnv();
 
         register_shutdown_function(function (): void {
             $this->cleanup();
@@ -152,7 +138,16 @@ final class FlowObserverCommand extends Command
         );
         $process->setTimeout(null);
         $process->start(function (string $type, string $data) use ($flowSymfonyStyle, $index): void {
-            $flowSymfonyStyle->write(sprintf('[worker %d] %s', $index, $data));
+            $prefix = sprintf('[worker %d] ', $index);
+            $lines = explode("\n", $data);
+            foreach ($lines as $i => $line) {
+                if ($i === count($lines) - 1 && $line === '') {
+                    $flowSymfonyStyle->write("\n");
+                    continue;
+                }
+
+                $flowSymfonyStyle->write($prefix . $line . ($i < count($lines) - 1 ? "\n" : ''));
+            }
         });
 
         return $process;

@@ -15,5 +15,3 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 COPY . .
 
 EXPOSE 8000
-
-CMD ["vendor/bin/flowcrafter", "frankenphp:service"]

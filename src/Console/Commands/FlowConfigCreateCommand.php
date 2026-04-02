@@ -4,29 +4,27 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Console\Commands;
 
-use Exception;
-use ReflectionClass;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\Bootstrap\BootstrapConfigInitializer;
 use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 
-final class FlowInitCommand extends Command
+final class FlowConfigCreateCommand extends Command
 {
     public function __construct(
-        private FlowcrafterConfig $flowcrafterConfig
+        private readonly BootstrapConfigInitializer $bootstrapConfigInitializer
     ) {
         parent::__construct();
     }
 
     protected function configure(): void
     {
-        $this->setName('init');
-        $this->setDescription('Initialize Flowcrafter Database properties');
+        $this->setName('config:create');
+        $this->setDescription('Create a new Flowcrafter configuration file if it does not exist');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -36,25 +34,21 @@ final class FlowInitCommand extends Command
         $output = new FlowSymfonyStyle($input, $output);
         $output->startApplication(FlowConsole::vendorVersion());
 
-        $storage = $this->flowcrafterConfig->getStorage();
-        $storageClass = (new ReflectionClass($storage))->getShortName();
+        $configFile = $this->bootstrapConfigInitializer->createConfig((string) getcwd());
+        $outputColor = OutputColorEnum::DEFAULT;
+        $outputMessage = 'Configuration file ' . $configFile . ' was successfully created.';
 
-        try {
-            $storage->initializeDatabase();
-            $output->writeln(sprintf(
-                '<fg=%s>Successfully initialized %s database</>',
-                OutputColorEnum::DEFAULT->value,
-                $storageClass,
-            ));
-        } catch (Exception $exception) {
-            $output->writeln(sprintf(
-                '<fg=%s>%s: %s</>',
-                OutputColorEnum::RED->value,
-                $storageClass,
-                $exception->getMessage(),
-            ));
+        if ($configFile === null) {
+            $output->isFailing();
+            $outputColor = OutputColorEnum::RED;
+            $outputMessage = 'Configuration file could not be created.';
         }
 
+        $output->writeln(sprintf(
+            '<fg=%s>%s</>',
+            $outputColor->value,
+            $outputMessage,
+        ));
         $output->writeln('');
 
         $usageExecuteTime = Helper::formatTime(microtime(true) - $startExecuteTime);

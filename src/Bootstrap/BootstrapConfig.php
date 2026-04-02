@@ -42,4 +42,19 @@ final class BootstrapConfig
     {
         return $this->bootstrapConfigFile;
     }
+
+    /**
+     * @return array<string, string>|null
+     */
+    public function getProcessEnv(): ?array
+    {
+        $configFile = $this->bootstrapConfigFile;
+        if ($configFile === null) {
+            return null;
+        }
+
+        return [
+            'FLOWCRAFTER_CONFIG' => $configFile,
+        ] + array_filter(getenv(), 'is_string');
+    }
 }

@@ -24,7 +24,7 @@ final class FlowDockerInitCommand extends Command
     protected function configure(): void
     {
         $this->setName('docker:init');
-        $this->setDescription('Generate Dockerfiles and docker-compose.yml for service and observer');
+        $this->setDescription('Generate Dockerfile and docker-compose.yml for service and observer');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -36,8 +36,7 @@ final class FlowDockerInitCommand extends Command
         $projectDir = (string) getcwd();
 
         $files = [
-            'Dockerfile.service' => $templatesDir . '/Dockerfile.service.dist',
-            'Dockerfile.observer' => $templatesDir . '/Dockerfile.observer.dist',
+            'Dockerfile' => $templatesDir . '/Dockerfile.dist',
             'docker-compose.yml' => $templatesDir . '/docker-compose.yml.dist',
         ];
 

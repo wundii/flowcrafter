@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Console\Commands;
 
-use ReflectionClass;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -18,7 +17,7 @@ use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 
-final class FlowFrankenPhpServiceCommand extends Command
+final class FlowServiceCommand extends Command
 {
     private const DEFAULT_HOST = '0.0.0.0';
 
@@ -39,7 +38,7 @@ final class FlowFrankenPhpServiceCommand extends Command
 
     protected function configure(): void
     {
-        $this->setName('frankenphp:service');
+        $this->setName('service');
         $this->setDescription('Start the API server (FrankenPHP worker mode) standalone');
         $this->addOption('host', null, InputOption::VALUE_OPTIONAL, 'Server host');
         $this->addOption('port', null, InputOption::VALUE_OPTIONAL, 'Server port');
@@ -64,21 +63,9 @@ final class FlowFrankenPhpServiceCommand extends Command
 
         $caddyfile = $this->buildCaddyfile($host, $port, $serviceDir, $workers, $https);
 
-        $env = [];
-        $configFile = $this->bootstrapConfig->getBootstrapConfigFile();
-        if ($configFile !== null) {
-            $env['FLOWCRAFTER_CONFIG'] = $configFile;
-        }
+        $env = $this->bootstrapConfig->getProcessEnv();
 
-        $storage = $this->flowcrafterConfig->getStorage();
-        $storageClass = (new ReflectionClass($storage))->getShortName();
-        $storage->initializeDatabase();
-
-        $output->writeln(sprintf(
-            '<fg=%s>%s database initialized</>',
-            OutputColorEnum::DEFAULT->value,
-            $storageClass,
-        ));
+        $this->flowcrafterConfig->initializeStorage($output);
 
         $output->writeln(sprintf(
             '<fg=%s>starting API server (FrankenPHP worker mode) on %s:%s with %s worker(s)</>',
@@ -88,15 +75,20 @@ final class FlowFrankenPhpServiceCommand extends Command
             $workers,
         ));
         $output->writeln(sprintf(
-            '<fg=%s>with Caddyfile: %s</>',
+            '<fg=%s>Caddyfile: %s</>',
             OutputColorEnum::DEFAULT->value,
             $caddyfile,
+        ));
+        $output->writeln(sprintf(
+            '<fg=%s>Service Storage: %s</>',
+            OutputColorEnum::DEFAULT->value,
+            $this->flowcrafterConfig->getServerStorage(),
         ));
 
         $serverProcess = new Process(
             [$frankenPhpBinary, 'run', '--config', $caddyfile, '--adapter', 'caddyfile'],
             null,
-            $env !== [] ? $env : null,
+            $env,
         );
         $serverProcess->setTimeout(null);
         $serverProcess->start(function (string $type, string $data) use ($output): void {

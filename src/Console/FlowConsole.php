@@ -15,14 +15,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
-use Wundii\Flowcrafter\Console\Commands\FlowCreateCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowConfigCreateCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowDevCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowDockerInitCommand;
-use Wundii\Flowcrafter\Console\Commands\FlowFrankenPhpServiceCommand;
-use Wundii\Flowcrafter\Console\Commands\FlowInitCommand;
-use Wundii\Flowcrafter\Console\Commands\FlowMermaidCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowServiceCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowStorageInitCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowDiagramMermaidCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowObserverCommand;
-use Wundii\Flowcrafter\Console\Commands\FlowServiceRebuildCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowStorageRebuildCommand;
 
 final class FlowConsole extends BaseApplication
 {
@@ -32,26 +32,26 @@ final class FlowConsole extends BaseApplication
     public const NAME = 'FlowCrafter';
 
     public function __construct(
-        FlowCreateCommand $flowCreateCommand,
+        FlowConfigCreateCommand $flowConfigCreateCommand,
         FlowDevCommand $flowDevCommand,
+        FlowDiagramMermaidCommand $flowDiagramMermaidCommand,
         FlowDockerInitCommand $flowDockerInitCommand,
-        FlowObserverCommand $flowFrankenPhpObserverCommand,
-        FlowFrankenPhpServiceCommand $flowFrankenPhpServiceCommand,
-        FlowInitCommand $flowInitCommand,
-        FlowMermaidCommand $flowMermaidCommand,
-        FlowServiceRebuildCommand $flowServiceRebuildCommand,
+        FlowObserverCommand $flowObserverCommand,
+        FlowServiceCommand $flowServiceCommand,
+        FlowStorageInitCommand $flowStorageInitCommand,
+        FlowStorageRebuildCommand $flowStorageRebuildCommand,
     ) {
         parent::__construct(self::NAME, self::vendorVersion());
 
         $this->addCommands([
-            $flowCreateCommand,
+            $flowConfigCreateCommand,
             $flowDevCommand,
+            $flowDiagramMermaidCommand,
             $flowDockerInitCommand,
-            $flowFrankenPhpObserverCommand,
-            $flowFrankenPhpServiceCommand,
-            $flowInitCommand,
-            $flowMermaidCommand,
-            $flowServiceRebuildCommand,
+            $flowObserverCommand,
+            $flowServiceCommand,
+            $flowStorageInitCommand,
+            $flowStorageRebuildCommand,
         ]);
         $this->setDefaultCommand('list');
         $this->setDefinition($this->getInputDefinition());

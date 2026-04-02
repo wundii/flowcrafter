@@ -14,6 +14,7 @@ use Throwable;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Console\FlowConsole;
+use Wundii\Flowcrafter\Console\Heartbeat;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\FlowObserver;
@@ -22,13 +23,12 @@ final class FlowDevCommand extends Command
 {
     private ?Process $serverProcess = null;
 
-    private string $pidFile;
+    private ?Heartbeat $heartbeat = null;
 
     public function __construct(
         private FlowcrafterConfig $flowcrafterConfig,
         private BootstrapConfig $bootstrapConfig,
     ) {
-        $this->pidFile = sys_get_temp_dir() . '/flowcrafter/observer.' . gethostname() . '.' . getmypid() . '.heartbeat';
         parent::__construct();
     }
 
@@ -61,13 +61,7 @@ final class FlowDevCommand extends Command
             $port,
         ));
 
-        $env = null;
-        $configFile = $this->bootstrapConfig->getBootstrapConfigFile();
-        if ($configFile !== null) {
-            $env = [
-                'FLOWCRAFTER_CONFIG' => $configFile,
-            ] + getenv();
-        }
+        $env = $this->bootstrapConfig->getProcessEnv();
 
         $serverProcess = new Process(
             [PHP_BINARY, '-S', sprintf('%s:%s', $host, $port), $serviceIndex],
@@ -96,7 +90,7 @@ final class FlowDevCommand extends Command
         ));
         $output->writeln('');
 
-        @mkdir(dirname($this->pidFile), 0755, true);
+        $this->heartbeat = new Heartbeat();
 
         $storage = $this->flowcrafterConfig->getStorage();
         $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
@@ -118,7 +112,7 @@ final class FlowDevCommand extends Command
             }
 
             if (time() - $lastHeartbeat >= 10) {
-                @touch($this->pidFile);
+                $this->heartbeat->touch();
                 $lastHeartbeat = time();
             }
         }
@@ -135,6 +129,6 @@ final class FlowDevCommand extends Command
             $this->serverProcess->stop();
         }
 
-        @unlink($this->pidFile);
+        $this->heartbeat?->cleanup();
     }
 }
