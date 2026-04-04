@@ -16,6 +16,7 @@ use Tests\MockClass\NextStubMock;
 use Tests\MockClass\OtherStubMock;
 use Tests\MockClass\PostStubMock;
 use Tests\MockClass\StubMock;
+use Tests\MockClass\WorkflowBoolMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Flow;
@@ -204,5 +205,22 @@ final class FlowRunnerTest extends TestCase
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
         $this->assertSame(strtoupper($result->getData()), $result->getData());
         $this->assertStringEndsWith('THE END', $result->getData());
+    }
+
+    public function testRunWithoutMessageReturnInterface(): void
+    {
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.bool.v1',
+            flowSource: WorkflowBoolMock::class,
+        );
+        $result = $flowRunner->run(new MessageInitMock('test data'));
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertCount(0, $flow->getFlowExceptions());
+        $this->assertCount(1, $flow->getFlowMessages());
+        $this->assertCount(1, $flow->getFlowResults());
+        $this->assertTrue($flow->getFlowResults()[0]->getResult());
+        $this->assertTrue($result);
     }
 }

@@ -40,7 +40,7 @@ composer require wundii/flowcrafter
 
 ## Konfiguration
 
-Erstelle eine `flowcrafter.php` im Projektstamm (oder via `vendor/bin/flowcrafter create`):
+Erstelle eine `flowcrafter.php` im Projektstamm (oder via `vendor/bin/flowcrafter config:create`):
 
 ```php
 <?php
@@ -107,18 +107,18 @@ $flowcrafterConfig->setStorageConfig(new EsdbConfig('http://localhost:3000', 'my
 ### 1. Config Datei erstellen und konfigurieren
 
 ```bash
-vendor/bin/flowcrafter create
+vendor/bin/flowcrafter config:create
 ```
 
 ### 2. Storage initialisieren
 
 ```bash
-vendor/bin/flowcrafter init
+vendor/bin/flowcrafter storage:init
 ```
 
 Legt alle Tabellen / Indizes im konfigurierten Backend sowie die SQLite-Tabellen (`flow_list`, `flow_run_list`) an.
 
-> **Hinweis:** `frankenphp:service` und `observer` rufen `initializeDatabase()` beim Start automatisch auf — ein manuelles `init` ist nur beim ersten Setup oder nach manuellen Schema-Änderungen nötig.
+> **Hinweis:** `service` und `observer` rufen `initializeDatabase()` beim Start automatisch auf — ein manuelles `storage:init` ist nur beim ersten Setup oder nach manuellen Schema-Änderungen nötig.
 
 ### 3. Entwicklung: API-Server + Observer starten
 
@@ -149,7 +149,7 @@ Erzeugt `Dockerfile.service`, `Dockerfile.observer` und `docker-compose.yml` im 
 
 ```bash
 # API-Server (FrankenPHP Worker Mode)
-vendor/bin/flowcrafter frankenphp:service [--host=0.0.0.0] [--port=8000] [--workers=4]
+vendor/bin/flowcrafter service [--host=0.0.0.0] [--port=8000] [--workers=4]
 
 # Observer (ein oder mehrere Worker)
 vendor/bin/flowcrafter observer [--workers=1]
@@ -157,7 +157,7 @@ vendor/bin/flowcrafter observer [--workers=1]
 
 | Container    | Command                         | Skalierung                                    |
 | ------------ | ------------------------------- | --------------------------------------------- |
-| **service**  | `vendor/bin/flowcrafter frankenphp:service` | vertikal (FrankenPHP Worker)         |
+| **service**  | `vendor/bin/flowcrafter service` | vertikal (FrankenPHP Worker)         |
 | **observer** | `vendor/bin/flowcrafter observer --workers N` | horizontal (mehrere Worker-Prozesse) |
 
 > **Hinweis:** Horizontale Skalierung des Observers erfordert atomaren Queue-Zugriff im Storage-Backend. **MySQL** nutzt `SELECT ... FOR UPDATE SKIP LOCKED`, **EventSourcingDB** nutzt Claim-Events mit `IsSubjectPristine`-Precondition. Bei eigenen `StorageInterface`-Implementierungen liegt die Verantwortung beim Nutzer.
@@ -335,16 +335,16 @@ In CheckMK den **Prometheus Special Agent** oder einen **HTTP-Check** auf `/metr
 
 ```bash
 # Konfigurationsdatei (flowcrafter.php) erzeugen
-vendor/bin/flowcrafter create
+vendor/bin/flowcrafter config:create
 
 # Storage-Tabellen / -Indizes anlegen
-vendor/bin/flowcrafter init
+vendor/bin/flowcrafter storage:init
 
 # Entwicklung: API-Server + Observer zusammen starten
 vendor/bin/flowcrafter dev [--host=0.0.0.0] [--port=8000]
 
 # Produktion: API-Server (FrankenPHP Worker Mode)
-vendor/bin/flowcrafter frankenphp:service [--host=0.0.0.0] [--port=8000] [--workers=4]
+vendor/bin/flowcrafter service [--host=0.0.0.0] [--port=8000] [--workers=4]
 
 # Observer-Worker starten (ein oder mehrere)
 vendor/bin/flowcrafter observer [--workers=1]
@@ -353,13 +353,13 @@ vendor/bin/flowcrafter observer [--workers=1]
 vendor/bin/flowcrafter docker:init
 
 # Mermaid-Diagramm für einen Flow generieren
-vendor/bin/flowcrafter mermaid App\\MyFlow [--output=./]
+vendor/bin/flowcrafter diagram:mermaid App\\MyFlow [--output=./]
 
 # SQLite-Cache aus dem primären Backend neu aufbauen (z. B. nach Deployment)
-vendor/bin/flowcrafter service:rebuild [--clear]
+vendor/bin/flowcrafter storage:rebuild [--clear]
 ```
 
-> `service:rebuild` iteriert alle Flow-Hashes aus dem primären Backend und schreibt die Flow-Daten in die SQLite neu. Mit `--clear` wird die SQLite vor dem Rebuild geleert.
+> `storage:rebuild` iteriert alle Flow-Hashes aus dem primären Backend und schreibt die Flow-Daten in die SQLite neu. Mit `--clear` wird die SQLite vor dem Rebuild geleert.
 
 ---
 

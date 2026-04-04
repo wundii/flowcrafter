@@ -6,6 +6,7 @@ namespace Tests;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Tests\MockClass\BoolStubMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
@@ -123,6 +124,36 @@ final class FlowBuilderTest extends TestCase
         $this->assertSame(NextStubMock::class, $stubs[1]->getSource());
         $this->assertSame(OtherStubMock::class, $stubs[2]->getSource());
         $this->assertSame(PostStubMock::class, $stubs[3]->getSource());
+    }
+
+    public function testBuildWithoutMessageReturn(): void
+    {
+        $flowBuilder = new FlowBuilder(
+            'flow.test.v1',
+            MessageInitMock::class,
+        );
+
+        $flowBuilder->addStub(BoolStubMock::class);
+
+        $flowSchema = $flowBuilder->build();
+
+        $this->assertSame('flow.test.v1', $flowSchema->type());
+        $this->assertCount(1, $flowSchema->stubs());
+    }
+
+    public function testBuildMissingMessageReturnStillValidatesWhenProvided(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('MessageReturn');
+
+        $flowBuilder = new FlowBuilder(
+            'flow.test.v1',
+            MessageInitMock::class,
+            MessageReturnMock::class,
+        );
+
+        $flowBuilder->addStub(BoolStubMock::class);
+        $flowBuilder->build();
     }
 
     public function testBuildInitStubIsDetected(): void

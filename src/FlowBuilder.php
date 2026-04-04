@@ -25,12 +25,12 @@ class FlowBuilder
 
     /**
      * @param class-string<MessageInitInterface> $messageInit
-     * @param class-string<MessageReturnInterface> $messageReturn
+     * @param class-string<MessageReturnInterface>|null $messageReturn
      */
     public function __construct(
         private readonly string $type,
         private readonly string $messageInit,
-        private readonly string $messageReturn,
+        private readonly ?string $messageReturn = null,
     ) {
         Assert::classString(
             $this->messageInit,
@@ -38,11 +38,13 @@ class FlowBuilder
             'Message must be an instance of MessageInitInterface'
         );
 
-        Assert::classString(
-            $this->messageReturn,
-            MessageEnum::RETURN->interface(),
-            'Message must be an instance of MessageReturnInterface'
-        );
+        if ($this->messageReturn !== null) {
+            Assert::classString(
+                $this->messageReturn,
+                MessageEnum::RETURN->interface(),
+                'Message must be an instance of MessageReturnInterface'
+            );
+        }
     }
 
     /**
@@ -71,16 +73,18 @@ class FlowBuilder
             ));
         }
 
-        $returnTypes = [];
-        foreach ($this->stubs as $stub) {
-            $returnTypes = array_merge($returnTypes, $stub->getReturnTypes());
-        }
+        if ($this->messageReturn !== null) {
+            $returnTypes = [];
+            foreach ($this->stubs as $stub) {
+                $returnTypes = array_merge($returnTypes, $stub->getReturnTypes());
+            }
 
-        if (!in_array($this->messageReturn, array_unique($returnTypes), true)) {
-            throw new InvalidArgumentException(sprintf(
-                'MessageReturn "%s" is not added to the flow.',
-                $this->messageReturn,
-            ));
+            if (!in_array($this->messageReturn, array_unique($returnTypes), true)) {
+                throw new InvalidArgumentException(sprintf(
+                    'MessageReturn "%s" is not added to the flow.',
+                    $this->messageReturn,
+                ));
+            }
         }
 
         return new FlowSchema($this->type, $this->stubs);

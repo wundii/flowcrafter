@@ -69,7 +69,7 @@ class FlowRunner
         ?string $queueId = null,
         array $includeStubs = [],
     ): bool|MessageReturnInterface {
-        $storedFlow = $this->storage?->findFlowByHash((string) $flowHash);
+        $storedFlow = $flowHash !== null ? $this->storage?->findFlowByHash($flowHash) : null;
 
         $flowSchemaHash = $storedFlow instanceof Flow ? $storedFlow->getSchemaHash() : null;
         $flowSubject = $storedFlow instanceof Flow ? $storedFlow->getSubject() : $this->flowSubject;
@@ -249,7 +249,7 @@ class FlowRunner
                 $this->storage?->appendFlowMessage($flowMessage);
             }
 
-            if (is_object($processResult) && !$processResult instanceof MessageReturnInterface) {
+            if ($processResult instanceof MessageInterface && !$processResult instanceof MessageReturnInterface) {
                 $this->executeStubsRecursive($flow, $processResult, $flowMessageWait->getHash());
                 continue;
             }
