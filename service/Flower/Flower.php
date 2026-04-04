@@ -26,11 +26,10 @@ class Flower
     {
     }
 
-    public static function router(): Router
+    public static function reset(): void
     {
-        $flower = self::getInstance();
-
-        return $flower->router;
+        self::$flower = null;
+        Router::reset();
     }
 
     public static function resetRequest(): void
@@ -40,10 +39,22 @@ class Flower
         }
     }
 
-    public static function run(?string $secret = null): void
+    public static function router(): Router
     {
         $flower = self::getInstance();
-        $request = $flower->request;
+
+        return $flower->router;
+    }
+
+    public static function run(?string $secret = null): void
+    {
+        self::handle($secret)->send();
+    }
+
+    public static function handle(?string $secret = null, ?Request $request = null): Response
+    {
+        $flower = self::getInstance();
+        $request = $request ?? $flower->request;
         $router = $flower->router();
         $response = null;
 
@@ -52,8 +63,7 @@ class Flower
             $authHeader = (string) $request->headers->get('Authorization', '');
             $provided = str_starts_with($authHeader, 'Bearer ') ? substr($authHeader, 7) : '';
             if (!hash_equals($secret, $provided)) {
-                (new Response('Unauthorized', 401))->send();
-                return;
+                return new Response('Unauthorized', 401);
             }
         }
 
@@ -81,7 +91,7 @@ class Flower
             $response = new Response('Internal Server Error: ' . $e->getMessage(), 500);
         }
 
-        $response->send();
+        return $response;
     }
 
     /**

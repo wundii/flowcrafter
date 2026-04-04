@@ -224,7 +224,7 @@ Bei jeder Flow-Ausführung wird der Quellcode der beteiligten Stubs als `StubSou
 
 ## API-Endpunkte
 
-Die REST-API wird über `service/index.php` bereitgestellt (Flower Micro-Router). Alle Endpunkte außer `GET /` und `GET /metrics` erfordern einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
+Die REST-API wird über `service/Index.php` bereitgestellt (Flower Micro-Router). Alle Endpunkte außer `GET /` und `GET /metrics` erfordern einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 
 ### Flows & Exceptions
 

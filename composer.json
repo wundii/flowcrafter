@@ -35,6 +35,7 @@
   "autoload": {
     "psr-4": {
       "Wundii\\Flower\\": "service/Flower/",
+      "Wundii\\Service\\": "service/",
       "Wundii\\Flowcrafter\\": "src/"
     }
   },

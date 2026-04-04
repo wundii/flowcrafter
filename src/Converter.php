@@ -179,7 +179,7 @@ final class Converter
     /**
      * @param DataMapper<object> $dataMapper
      */
-        private static function mapFlowMessage(mixed $array, DataMapper $dataMapper, bool $readOnly): FlowMessage
+    private static function mapFlowMessage(mixed $array, DataMapper $dataMapper, bool $readOnly): FlowMessage
     {
         $message = Assert::array($array, 'Each Message must be an array.');
 

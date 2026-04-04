@@ -203,6 +203,7 @@ final class FlowSchemaTest extends TestCase
         $this->assertSame('flow.workflow.v1', $data['type']);
         $this->assertCount(4, $data['stubs']);
     }
+
     private function createSchema(): FlowSchema
     {
         return FlowSchema::create(WorkflowMock::class);

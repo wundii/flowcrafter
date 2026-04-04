@@ -52,7 +52,7 @@ final class FlowDevCommand extends Command
         $host = $input->getOption('host');
         /** @var string $port */
         $port = $input->getOption('port');
-        $serviceIndex = dirname(__DIR__, 3) . '/service/index.php';
+        $serviceIndex = dirname(__DIR__, 3) . '/service/Index.php';
 
         $output->writeln(sprintf(
             '<fg=%s>starting API server (PHP built-in) on %s:%s</>',

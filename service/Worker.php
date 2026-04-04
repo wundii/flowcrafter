@@ -7,14 +7,14 @@ use Wundii\Flower\Flower;
 
 try {
     /** @var FlowcrafterConfig $bootstrap */
-    $bootstrap = require __DIR__ . '/bootstrap.php';
+    $bootstrap = require __DIR__ . '/Bootstrap.php';
 } catch (Throwable $throwable) {
     fwrite(STDERR, 'Bootstrap failed: ' . $throwable->getMessage() . "\n");
     exit(1);
 }
 
 if (!function_exists('frankenphp_handle_request')) {
-    throw new RuntimeException('worker.php requires FrankenPHP — use index.php for the PHP built-in server');
+    throw new RuntimeException('Worker.php requires FrankenPHP — use Index.php for the PHP built-in server');
 }
 
 $secret = $bootstrap->getServerSecret();

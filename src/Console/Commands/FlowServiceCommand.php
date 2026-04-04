@@ -132,7 +132,7 @@ final class FlowServiceCommand extends Command
             	root * {$serviceDir}
 
             	php_server {
-            		worker {$serviceDir}/worker.php {$workers}
+            		worker {$serviceDir}/Worker.php {$workers}
             	}
             }
             CADDYFILE;

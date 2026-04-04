@@ -44,7 +44,6 @@ class Router
     ): void {
         $this->routeCollection->add($path, new Route(
             path: $path,
-            // defaults: ['_controller' => $path],
             methods: [$methodEnum->value]
         ));
 
@@ -62,5 +61,10 @@ class Router
     public function handlerCollection(): array
     {
         return $this->handlerCollection;
+    }
+
+    public static function reset(): void
+    {
+        self::$router = null;
     }
 }
