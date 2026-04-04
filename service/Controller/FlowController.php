@@ -26,8 +26,8 @@ use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 final class FlowController
 {
     public function __construct(
-        private readonly StorageInterface $storage,
         private readonly FlowcrafterConfig $flowcrafterConfig,
+        private readonly StorageInterface $storage,
     ) {
     }
 

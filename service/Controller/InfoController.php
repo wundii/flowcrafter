@@ -16,8 +16,8 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 final class InfoController
 {
     public function __construct(
-        private readonly StorageInterface $storage,
         private readonly FlowcrafterConfig $flowcrafterConfig,
+        private readonly StorageInterface $storage,
     ) {
     }
 

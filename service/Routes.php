@@ -22,9 +22,9 @@ final class Routes
         $router = Flower::router();
 
         $exceptionController = new ExceptionController($storage);
-        $flowController = new FlowController($storage, $flowcrafterConfig);
+        $flowController = new FlowController($flowcrafterConfig, $storage);
         $healthController = new HealthController();
-        $infoController = new InfoController($storage, $flowcrafterConfig);
+        $infoController = new InfoController($flowcrafterConfig, $storage);
         $queueController = new QueueController($storage);
         $schemaController = new SchemaController($storage);
 
