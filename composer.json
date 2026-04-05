@@ -59,6 +59,7 @@
       "vendor/bin/rector process",
       "vendor/bin/ecs check --fix"
     ],
+    "coverage": "vendor/bin/phpunit --coverage-clover coverage.xml",
     "phplint": "vendor/bin/phplint",
     "stan": "vendor/bin/phpstan analyze",
     "qa": [

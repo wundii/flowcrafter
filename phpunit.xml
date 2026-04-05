@@ -21,4 +21,13 @@
       <directory>tests</directory>
     </testsuite>
   </testsuites>
+  <source>
+    <include>
+      <directory>src</directory>
+      <directory>service</directory>
+    </include>
+    <exclude>
+      <directory>src/Testing</directory>
+    </exclude>
+  </source>
 </phpunit>

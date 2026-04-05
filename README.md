@@ -42,21 +42,6 @@ persistiert.
 composer require wundii/flowcrafter
 ```
 
-## Quickstart
-
-```bash
-# 1. Config-Datei erzeugen
-vendor/bin/flowcrafter config:create
-
-# 2. Storage initialisieren
-vendor/bin/flowcrafter storage:init
-
-# 3. Dev-Server (API + Observer) starten
-vendor/bin/flowcrafter dev
-```
-
-Details siehe [docs/getting-started.md](docs/getting-started.md).
-
 ## Dokumentation
 
 Die vollständige Dokumentation liegt im [`docs/`](docs/)-Ordner:
@@ -72,6 +57,21 @@ Die vollständige Dokumentation liegt im [`docs/`](docs/)-Ordner:
 | [Console Commands](docs/commands.md) | Command-Referenz |
 | [Deployment](docs/deployment.md) | Produktion: FrankenPHP + Docker |
 | [Entwicklung](docs/development.md) | QA-Scripts für Contributor |
+
+## Quickstart
+
+```bash
+# 1. Config-Datei erzeugen
+vendor/bin/flowcrafter config:create
+
+# 2. Storage initialisieren
+vendor/bin/flowcrafter storage:init
+
+# 3. Dev-Server (API + Observer) starten
+vendor/bin/flowcrafter dev
+```
+
+Details siehe [docs/getting-started.md](docs/getting-started.md).
 
 ## Web-UI
 
