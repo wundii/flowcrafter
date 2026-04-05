@@ -17,6 +17,7 @@ use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Heartbeat;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
+use Wundii\Flowcrafter\Console\Preflight\StoragePreflight;
 use Wundii\Flowcrafter\FlowObserver;
 
 final class FlowDevCommand extends Command
@@ -28,6 +29,7 @@ final class FlowDevCommand extends Command
     public function __construct(
         private FlowcrafterConfig $flowcrafterConfig,
         private BootstrapConfig $bootstrapConfig,
+        private StoragePreflight $storagePreflight,
     ) {
         parent::__construct();
     }
@@ -47,6 +49,10 @@ final class FlowDevCommand extends Command
     {
         $output = new FlowSymfonyStyle($input, $output);
         $output->startApplication(FlowConsole::vendorVersion());
+
+        if (!$this->storagePreflight->ensureReady($output)) {
+            return Command::FAILURE;
+        }
 
         /** @var string $host */
         $host = $input->getOption('host');

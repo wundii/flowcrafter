@@ -109,6 +109,7 @@ final class QueueController
 
         return new JsonResponse([
             'queued' => true,
+            'subject' => $flowSubject,
         ]);
     }
 }

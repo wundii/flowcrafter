@@ -13,6 +13,8 @@ use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 
 interface ServiceInterface
 {
+    public function isServiceStorageInitialized(): bool;
+
     public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
 
     public function countExceptionsByFlowHash(string $flowHash): int;

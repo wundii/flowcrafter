@@ -10,6 +10,7 @@ use InvalidArgumentException;
 use PDO as Client;
 use PDOException;
 use RuntimeException;
+use Throwable;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Enum\SortEnum;
@@ -69,6 +70,23 @@ class MySql extends Service implements StorageInterface
                 Client::ATTR_EMULATE_PREPARES => false,
             ]
         );
+    }
+
+    public function isPrimaryStorageInitialized(): bool
+    {
+        try {
+            $stmt = $this->client->prepare(
+                'SELECT COUNT(*) FROM information_schema.tables ' .
+                'WHERE table_schema = DATABASE() AND table_name = :table_name'
+            );
+            $stmt->execute([
+                ':table_name' => self::TYPE_INSTANCE,
+            ]);
+
+            return (int) $stmt->fetchColumn() === 1;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     public function initializeDatabase(): void

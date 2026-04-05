@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use PDO as Client;
 use Symfony\Component\Filesystem\Filesystem;
+use Throwable;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
@@ -97,6 +98,23 @@ abstract class Service implements StorageInterface
             CREATE INDEX IF NOT EXISTS flow_exception_list_time ON flow_exception_list(time);
             SQL
         );
+    }
+
+    public function isServiceStorageInitialized(): bool
+    {
+        try {
+            $stmt = $this->client->query(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' " .
+                "AND name IN ('flow_list', 'flow_run_list', 'flow_exception_list')"
+            );
+            if ($stmt === false) {
+                return false;
+            }
+
+            return (int) $stmt->fetchColumn() === 3;
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     public function countFlows(): int

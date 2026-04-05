@@ -9,6 +9,7 @@ use DateTimeInterface;
 use InvalidArgumentException;
 use Redis as Client;
 use RuntimeException;
+use Throwable;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Enum\SortEnum;
@@ -114,6 +115,15 @@ class Redis extends Service implements StorageInterface
             $this->client->rawCommand('FT.INFO', $indexName);
             return true;
         } catch (\RedisException) {
+            return false;
+        }
+    }
+
+    public function isPrimaryStorageInitialized(): bool
+    {
+        try {
+            return $this->existIndex(self::INDEX_INSTANCE);
+        } catch (Throwable) {
             return false;
         }
     }

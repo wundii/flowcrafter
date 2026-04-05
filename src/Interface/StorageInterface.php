@@ -18,6 +18,8 @@ interface StorageInterface extends ServiceInterface
 {
     public function initializeDatabase(): void;
 
+    public function isPrimaryStorageInitialized(): bool;
+
     public function registerFlowSchema(FlowSchema $flowSchema): void;
 
     public function registerMessageSource(MessageSourceEntity $messageSourceEntity): void;

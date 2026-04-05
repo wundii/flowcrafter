@@ -17,6 +17,7 @@ use Thenativeweb\Eventsourcingdb\IsSubjectPristine;
 use Thenativeweb\Eventsourcingdb\ObserveEventsOptions;
 use Thenativeweb\Eventsourcingdb\Order;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
+use Throwable;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Enum\SortEnum;
@@ -69,6 +70,19 @@ class Esdb extends Service
             $esdbConfig->getUrl(),
             $esdbConfig->getApiToken(),
         );
+    }
+
+    public function isPrimaryStorageInitialized(): bool
+    {
+        try {
+            $eventTypesQl = 'FROM e IN eventtypes PROJECT INTO e';
+            $eventTypes = $this->client->runEventQlQuery($eventTypesQl);
+            $eventTypes = iterator_to_array($eventTypes);
+
+            return in_array(self::TYPE_INSTANCE, $eventTypes, true);
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     public function initializeDatabase(): void
