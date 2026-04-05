@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 try {
     /** @var FlowcrafterConfig $bootstrap */
-    $bootstrap = require __DIR__ . '/Bootstrap.php';
+    $bootstrap = require __DIR__ . '/bootstrap.php';
 } catch (Throwable $throwable) {
     http_response_code(503);
     header('Content-Type: application/json');

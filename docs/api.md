@@ -1,7 +1,7 @@
 # REST-API
 - [Back to README.md](./../README.md)
 
-Die REST-API wird über `service/Index.php` bereitgestellt (Flower
+Die REST-API wird über `service/index.php` bereitgestellt (Flower
 Micro-Router). Alle Endpunkte außer `GET /` und `GET /metrics` erfordern
 einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 
