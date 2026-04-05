@@ -48,15 +48,15 @@ Die vollständige Dokumentation liegt im [`docs/`](docs/)-Ordner:
 
 | Kapitel | Inhalt |
 |---|---|
-| [Getting Started](docs/getting-started.md) | Erste Schritte: Config, Storage, Dev-Server |
-| [Konfiguration](docs/configuration.md) | `flowcrafter.php`, Storage-Backends, Server-Einstellungen |
-| [Konzepte](docs/concepts.md) | Flow, Status, Schema, Messages, includeStubs, Observer |
-| [Testing](docs/testing.md) | Flows & Stubs testen mit PHPUnit 11+ |
-| [REST-API](docs/api.md) | Endpunkte, Pagination, Auth |
-| [Monitoring](docs/monitoring.md) | Prometheus / OpenMetrics, CheckMK |
 | [Console Commands](docs/commands.md) | Command-Referenz |
 | [Deployment](docs/deployment.md) | Produktion: FrankenPHP + Docker |
 | [Entwicklung](docs/development.md) | QA-Scripts für Contributor |
+| [Getting Started](docs/getting-started.md) | Erste Schritte: Config, Storage, Dev-Server |
+| [Konfiguration](docs/configuration.md) | `flowcrafter.php`, Storage-Backends, Server-Einstellungen |
+| [Konzepte](docs/concepts.md) | Flow, Status, Schema, Messages, includeStubs, Observer |
+| [Monitoring](docs/monitoring.md) | Prometheus / OpenMetrics, CheckMK |
+| [REST-API](docs/api.md) | Endpunkte, Pagination, Auth |
+| [Testing](docs/testing.md) | Flows & Stubs testen mit PHPUnit 11+ |
 
 ## Quickstart
 

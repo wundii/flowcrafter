@@ -2,5 +2,6 @@
 /cache/*
 /data/
 /vendor/
-/composer.lock
+composer.lock
 flowcrafter.php
+coverage.xml
