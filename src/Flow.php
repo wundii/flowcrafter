@@ -265,9 +265,7 @@ class Flow implements JsonSerializable
             return false;
         }
 
-        $flowSchema = FlowSchema::create($this->flowSource);
-
-        return $this->flowSchemaHash === $flowSchema->getHash();
+        return $this->flowSchemaHash === $this->flowSchema->getHash();
     }
 
     public function isReadOnly(): bool

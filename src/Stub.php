@@ -77,16 +77,15 @@ class Stub implements JsonSerializable
     public static function create(
         string $source,
     ): self {
+        $reflectionClass = new ReflectionClass($source);
 
         try {
-            $reflectionClass = new ReflectionClass($source);
             $instance = $reflectionClass->newInstanceWithoutConstructor();
             $returnTypes = $instance->returnTypes();
         } catch (Exception) {
             $returnTypes = [];
         }
 
-        $reflectionClass = new ReflectionClass($source);
         $constructor = $reflectionClass->getConstructor();
 
         if (!$constructor instanceof ReflectionMethod) {

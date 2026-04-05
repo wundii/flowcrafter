@@ -47,6 +47,7 @@ trait EsdbClientTestTrait
             ),
         );
         $esdb->initializeDatabase();
+        $esdb->truncateFlowList();
 
         return $esdb;
     }

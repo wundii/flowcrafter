@@ -63,6 +63,7 @@ trait MySqlClientTestTrait
             ),
         );
         $mySql->initializeDatabase();
+        $mySql->truncateFlowList();
 
         return $mySql;
     }

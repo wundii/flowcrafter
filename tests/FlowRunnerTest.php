@@ -207,6 +207,19 @@ final class FlowRunnerTest extends TestCase
         $this->assertStringEndsWith('THE END', $result->getData());
     }
 
+    public function testCreateInstanceWithoutRunThrows(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Container is not initialized');
+
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+        );
+
+        $flowRunner->createInstance(StubMock::class, []);
+    }
+
     public function testRunWithoutMessageReturnInterface(): void
     {
         $flowRunner = new FlowRunner(

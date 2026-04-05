@@ -11,14 +11,26 @@ use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 
-readonly class FlowSchema implements JsonSerializable
+class FlowSchema implements JsonSerializable
 {
+    private ?string $hash = null;
+
+    /**
+     * @var array<class-string<MessageInterface>, Stub[]>|null
+     */
+    private ?array $messageToSubsMap = null;
+
+    /**
+     * @var Stub[]|null
+     */
+    private ?array $leafStubs = null;
+
     /**
      * @param Stub[] $stubs
      */
     public function __construct(
-        private string $type,
-        private array $stubs,
+        private readonly string $type,
+        private readonly array $stubs,
     ) {
     }
 
@@ -103,6 +115,10 @@ readonly class FlowSchema implements JsonSerializable
      */
     public function getMessageToSubsMap(): array
     {
+        if ($this->messageToSubsMap !== null) {
+            return $this->messageToSubsMap;
+        }
+
         $map = [];
 
         foreach ($this->stubs as $stub) {
@@ -111,17 +127,25 @@ readonly class FlowSchema implements JsonSerializable
             }
         }
 
+        $this->messageToSubsMap = $map;
+
         return $map;
     }
 
     public function getHash(): string
     {
+        if ($this->hash !== null) {
+            return $this->hash;
+        }
+
         $json = json_encode($this->jsonSerialize());
         if ($json === false) {
             throw new RuntimeException('Failed to encode flow schema to JSON.');
         }
 
-        return md5($json);
+        $this->hash = md5($json);
+
+        return $this->hash;
     }
 
     /**
@@ -129,6 +153,10 @@ readonly class FlowSchema implements JsonSerializable
      */
     public function getLeafStubs(): array
     {
+        if ($this->leafStubs !== null) {
+            return $this->leafStubs;
+        }
+
         $allMessages = [];
 
         foreach ($this->stubs as $stub) {
@@ -137,7 +165,7 @@ readonly class FlowSchema implements JsonSerializable
             }
         }
 
-        return array_values(array_filter($this->stubs, function (Stub $stub) use ($allMessages): bool {
+        $this->leafStubs = array_values(array_filter($this->stubs, function (Stub $stub) use ($allMessages): bool {
             foreach ($stub->getReturnTypes() as $returnType) {
                 if (in_array($returnType, $allMessages, true)) {
                     return false;
@@ -146,6 +174,8 @@ readonly class FlowSchema implements JsonSerializable
 
             return true;
         }));
+
+        return $this->leafStubs;
     }
 
     /**

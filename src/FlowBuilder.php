@@ -108,7 +108,7 @@ class FlowBuilder
     {
         $messages = [];
         foreach ($this->stubs as $stub) {
-            $messages = array_merge($messages, $stub->getMessages());
+            array_push($messages, ...$stub->getMessages());
         }
 
         return $messages;
@@ -121,7 +121,7 @@ class FlowBuilder
     {
         $returnTypes = [];
         foreach ($this->stubs as $stub) {
-            $returnTypes = array_merge($returnTypes, $stub->getReturnTypes());
+            array_push($returnTypes, ...$stub->getReturnTypes());
         }
 
         return array_unique($returnTypes);
@@ -132,17 +132,22 @@ class FlowBuilder
      */
     private function buildAdjacencyMap(): array
     {
-        $adjacency = [];
+        /** @var array<class-string, string[]> $messageToStubs message class → list of stub sources consuming it */
+        $messageToStubs = [];
+        foreach ($this->stubs as $stub) {
+            foreach ($stub->getMessages() as $messageClass) {
+                $messageToStubs[$messageClass][] = $stub->getSource();
+            }
+        }
 
+        $adjacency = [];
         foreach ($this->stubs as $stub) {
             $source = $stub->getSource();
             $adjacency[$source] = [];
 
             foreach ($stub->getReturnTypes() as $returnType) {
-                foreach ($this->stubs as $candidate) {
-                    if (in_array($returnType, $candidate->getMessages(), true)) {
-                        $adjacency[$source][] = $candidate->getSource();
-                    }
+                foreach ($messageToStubs[$returnType] ?? [] as $consumerSource) {
+                    $adjacency[$source][] = $consumerSource;
                 }
             }
         }

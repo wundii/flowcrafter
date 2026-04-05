@@ -48,6 +48,7 @@ trait RedisClientTestTrait
             ),
         );
         $redis->initializeDatabase();
+        $redis->truncateFlowList();
 
         return $redis;
     }

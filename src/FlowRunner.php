@@ -20,6 +20,8 @@ class FlowRunner
 {
     private ?Flow $flow = null;
 
+    private ?ContainerBuilder $container = null;
+
     /**
      * @var string[]
      */
@@ -96,6 +98,7 @@ class FlowRunner
         $this->storage?->registerFlowSchema($flowSchema);
         $this->storage?->registerFlowInstance($flow);
         $this->storage?->appendFlowRun($flow, $queueId); #start to run the flow
+        $this->container = $this->buildContainer($flowSchema);
         $this->executedStubKey = [];
         $this->includeStubs = $includeStubs;
         $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
@@ -114,20 +117,49 @@ class FlowRunner
      */
     public function createInstance(string $stubSource, array $flowMessages): StubInterface
     {
-        $messages = array_map(
-            static fn (FlowMessage $flowMessage): MessageInterface => $flowMessage->getMessage(),
-            $flowMessages,
-        );
+        if (!$this->container instanceof ContainerBuilder) {
+            throw new RuntimeException('Container is not initialized. Call run() first.');
+        }
 
+        foreach ($flowMessages as $flowMessage) {
+            $message = $flowMessage->getMessage();
+            $this->container->set(get_class($message), $message);
+        }
+
+        $stubInstance = $this->container->get($stubSource);
+        if (!$stubInstance instanceof StubInterface) {
+            throw new RuntimeException('Stub instance must implement StubInterface.');
+        }
+
+        return $stubInstance;
+    }
+
+    private function buildContainer(FlowSchema $flowSchema): ContainerBuilder
+    {
         $containerBuilder = new ContainerBuilder();
-        foreach ($messages as $message) {
-            $className = get_class($message);
+        $containerBuilder->setResourceTracking(false);
 
-            $definition = new Definition($className);
+        $messageClasses = [];
+        foreach ($flowSchema->stubs() as $stub) {
+            foreach ($stub->getMessages() as $messageClass) {
+                $messageClasses[$messageClass] = true;
+            }
+
+            foreach ($stub->getReturnTypes() as $returnType) {
+                $messageClasses[$returnType] = true;
+            }
+
+            $containerBuilder->autowire($stub->getSource())
+                ->setPublic(true)
+                ->setShared(false);
+        }
+
+        foreach (array_keys($messageClasses) as $messageClass) {
+            $definition = new Definition($messageClass);
             $definition->setSynthetic(true);
             $definition->setPublic(true);
 
-            $containerBuilder->setDefinition($className, $definition);
+            $containerBuilder->setDefinition($messageClass, $definition);
         }
 
         foreach ($this->dependenciesInjection as $dependencyInjection) {
@@ -142,14 +174,7 @@ class FlowRunner
             $containerBuilder->setDefinition($className, $definition);
         }
 
-        $containerBuilder->autowire($stubSource)
-            ->setPublic(true);
-
         $containerBuilder->compile();
-
-        foreach ($messages as $message) {
-            $containerBuilder->set(get_class($message), $message);
-        }
 
         foreach ($this->dependenciesInjection as $dependencyInjection) {
             if (!is_object($dependencyInjection)) {
@@ -159,12 +184,7 @@ class FlowRunner
             $containerBuilder->set(get_class($dependencyInjection), $dependencyInjection);
         }
 
-        $stubInstance = $containerBuilder->get($stubSource);
-        if (!$stubInstance instanceof StubInterface) {
-            throw new RuntimeException('Stub instance must implement StubInterface.');
-        }
-
-        return $stubInstance;
+        return $containerBuilder;
     }
 
     /**

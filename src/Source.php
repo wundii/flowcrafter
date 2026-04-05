@@ -15,10 +15,24 @@ use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 class Source
 {
     /**
+     * @var array<class-string, StubSourceEntity>
+     */
+    private static array $stubCache = [];
+
+    /**
+     * @var array<class-string, MessageSourceEntity>
+     */
+    private static array $messageCache = [];
+
+    /**
      * @param class-string $source
      */
     public static function stub(string $source): StubSourceEntity
     {
+        if (isset(self::$stubCache[$source])) {
+            return self::$stubCache[$source];
+        }
+
         if (!class_exists($source)) {
             throw new InvalidArgumentException(sprintf('Source class "%s" does not exist.', $source));
         }
@@ -38,12 +52,16 @@ class Source
             throw new InvalidArgumentException(sprintf('Source class "%s" is unreadable', $source));
         }
 
-        return new StubSourceEntity(
+        $stubSourceEntity = new StubSourceEntity(
             stubHash: md5($fileContent),
             stubSource: $source,
             sourceContent: $fileContent,
             time: new DateTimeImmutable('now'),
         );
+
+        self::$stubCache[$source] = $stubSourceEntity;
+
+        return $stubSourceEntity;
     }
 
     /**
@@ -51,6 +69,10 @@ class Source
      */
     public static function message(string $messageClass): MessageSourceEntity
     {
+        if (isset(self::$messageCache[$messageClass])) {
+            return self::$messageCache[$messageClass];
+        }
+
         if (!class_exists($messageClass)) {
             throw new InvalidArgumentException(sprintf('Message class "%s" does not exist.', $messageClass));
         }
@@ -99,11 +121,15 @@ class Source
             throw new InvalidArgumentException(sprintf('Message class "%s" is unreadable', $messageClass));
         }
 
-        return new MessageSourceEntity(
+        $messageSourceEntity = new MessageSourceEntity(
             messageHash: md5($resultJson),
             messageSource: $messageClass,
             propertyNames: $result,
             time: new DateTimeImmutable('now'),
         );
+
+        self::$messageCache[$messageClass] = $messageSourceEntity;
+
+        return $messageSourceEntity;
     }
 }
