@@ -11,6 +11,7 @@ use Wundii\Flowcrafter\Bootstrap\BootstrapConfigInitializer;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
+use Wundii\Flowcrafter\Interface\StorageInterface;
 
 final readonly class StoragePreflight
 {
@@ -74,9 +75,27 @@ final readonly class StoragePreflight
 
         $this->renderRow($flowSymfonyStyle, 'Service DB', $serviceOk, sprintf('SQLite (%s)', $serviceStorageFile));
         $this->renderRow($flowSymfonyStyle, 'Primary DB', $primaryOk, $backendName);
+
+        $drift = ($serviceOk && $primaryOk) ? $this->detectDrift($storage) : null;
+        if ($drift !== null) {
+            $this->renderWarnRow($flowSymfonyStyle, 'Sync drift', sprintf(
+                'service: %d / primary: %d flows',
+                $drift['service'],
+                $drift['primary'],
+            ));
+        }
+
         $flowSymfonyStyle->writeln('');
 
         if ($serviceOk && $primaryOk) {
+            if ($drift !== null) {
+                $flowSymfonyStyle->writeln(sprintf(
+                    '<fg=%s>Run `bin/flowcrafter storage:rebuild` to re-sync the service index.</>',
+                    OutputColorEnum::YELLOW->value,
+                ));
+                $flowSymfonyStyle->writeln('');
+            }
+
             return true;
         }
 
@@ -110,5 +129,30 @@ final readonly class StoragePreflight
             : sprintf('<fg=%s>[MISS]</>', OutputColorEnum::RED->value);
 
         $flowSymfonyStyle->writeln(sprintf('  %s  %-12s %s', $icon, $label, $detail));
+    }
+
+    private function renderWarnRow(FlowSymfonyStyle $flowSymfonyStyle, string $label, string $detail): void
+    {
+        $icon = sprintf('<fg=%s>[WARN]</>', OutputColorEnum::YELLOW->value);
+
+        $flowSymfonyStyle->writeln(sprintf('  %s  %-12s %s', $icon, $label, $detail));
+    }
+
+    /**
+     * @return array{service: int, primary: int}|null
+     */
+    private function detectDrift(StorageInterface $storage): ?array
+    {
+        $serviceCount = $storage->countFlows();
+        $primaryCount = iterator_count($storage->findAllFlowHashes());
+
+        if ($serviceCount === $primaryCount) {
+            return null;
+        }
+
+        return [
+            'service' => $serviceCount,
+            'primary' => $primaryCount,
+        ];
     }
 }
