@@ -103,6 +103,7 @@ jobs:
         run: composer test
 
   code_coverage:
+    needs: [ code-quality ]
     name: 'PHP Code Coverage'
     runs-on: ubuntu-latest
     steps:
