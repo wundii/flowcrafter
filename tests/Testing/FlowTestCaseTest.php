@@ -65,7 +65,33 @@ final class FlowTestCaseTest extends FlowTestCase
         $this->assertTrue($result);
         $this->assertFlowStatus(StatusEnum::OK);
         $this->assertFlowBoolResult(true);
+        $this->assertFlowBoolResultFrom(BoolStubMock::class, true);
         $this->assertFlowResultCount(1);
+    }
+
+    public function testAssertFlowBoolResultFromFailsWhenStubNotFound(): void
+    {
+        $this->runFlow(
+            flowType: 'flow.workflow.bool.v1',
+            flowSource: WorkflowBoolMock::class,
+            initMessage: new MessageInitMock('has data'),
+        );
+
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Expected a FlowResult from stub');
+        $this->assertFlowBoolResultFrom(FailStubMock::class, true);
+    }
+
+    public function testAssertFlowBoolResultFromFailsOnWrongBool(): void
+    {
+        $this->runFlow(
+            flowType: 'flow.workflow.bool.v1',
+            flowSource: WorkflowBoolMock::class,
+            initMessage: new MessageInitMock('has data'),
+        );
+
+        $this->expectException(AssertionFailedError::class);
+        $this->assertFlowBoolResultFrom(BoolStubMock::class, false);
     }
 
     public function testRunFlowFailed(): void

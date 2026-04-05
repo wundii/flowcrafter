@@ -211,6 +211,46 @@ trait FlowAssertTrait
     /**
      * @param class-string<StubInterface> $stubSource
      */
+    protected function assertFlowBoolResultFrom(string $stubSource, bool $expected, ?Flow $flow = null): void
+    {
+        $flow ??= $this->lastFlow();
+        $matched = false;
+        foreach ($flow->getFlowResults() as $flowResult) {
+            if ($flowResult->getStubSource() !== $stubSource) {
+                continue;
+            }
+
+            $matched = true;
+            Assert::assertSame(
+                $expected,
+                $flowResult->getResult(),
+                sprintf(
+                    'Expected FlowResult from stub "%s" to be %s, got %s.',
+                    $stubSource,
+                    $expected ? 'true' : 'false',
+                    $flowResult->getResult() ? 'true' : 'false',
+                ),
+            );
+        }
+
+        $recordedSources = [];
+        foreach ($flow->getFlowResults() as $flowResult) {
+            $recordedSources[$flowResult->getStubSource()] = true;
+        }
+
+        Assert::assertTrue(
+            $matched,
+            sprintf(
+                'Expected a FlowResult from stub "%s". Recorded result stubs: [%s].',
+                $stubSource,
+                implode(', ', array_keys($recordedSources)),
+            ),
+        );
+    }
+
+    /**
+     * @param class-string<StubInterface> $stubSource
+     */
     protected function assertStubExecuted(string $stubSource, ?Flow $flow = null): void
     {
         $flow ??= $this->lastFlow();

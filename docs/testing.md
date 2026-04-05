@@ -217,7 +217,8 @@ $this->assertFlowMessageCount(6);
 ### Bool-Ergebnisse (Leaf-Stubs)
 
 ```php
-$this->assertFlowBoolResult(true);   // alle FlowResults sind true
+$this->assertFlowBoolResult(true);                        // alle FlowResults sind true
+$this->assertFlowBoolResultFrom(AuditStub::class, true);  // nur Results eines bestimmten Stubs
 $this->assertFlowResultCount(2);
 ```
 
