@@ -11,6 +11,7 @@ use Wundii\Flowcrafter\Bootstrap\BootstrapConfigInitializer;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
+use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 
 final readonly class StoragePreflight
@@ -89,11 +90,7 @@ final readonly class StoragePreflight
 
         if ($serviceOk && $primaryOk) {
             if ($drift !== null) {
-                $flowSymfonyStyle->writeln(sprintf(
-                    '<fg=%s>Run `bin/flowcrafter storage:rebuild` to re-sync the service index.</>',
-                    OutputColorEnum::YELLOW->value,
-                ));
-                $flowSymfonyStyle->writeln('');
+                $this->offerRebuild($flowSymfonyStyle, $storage);
             }
 
             return true;
@@ -118,8 +115,60 @@ final readonly class StoragePreflight
             return false;
         }
 
+        $drift = $this->detectDrift($storage);
+        if ($drift !== null) {
+            $this->renderWarnRow($flowSymfonyStyle, 'Sync drift', sprintf(
+                'service: %d / primary: %d flows',
+                $drift['service'],
+                $drift['primary'],
+            ));
+            $flowSymfonyStyle->writeln('');
+            $this->offerRebuild($flowSymfonyStyle, $storage);
+        }
+
         $flowSymfonyStyle->writeln('');
         return true;
+    }
+
+    private function offerRebuild(FlowSymfonyStyle $flowSymfonyStyle, StorageInterface $storage): void
+    {
+        if (!$flowSymfonyStyle->confirm('Run `storage:rebuild --clear` now to re-sync the service index?', true)) {
+            $flowSymfonyStyle->writeln(sprintf(
+                '<fg=%s>Skipped. Run `bin/flowcrafter storage:rebuild --clear` manually when ready.</>',
+                OutputColorEnum::YELLOW->value,
+            ));
+            $flowSymfonyStyle->writeln('');
+            return;
+        }
+
+        try {
+            $storage->truncateFlowList();
+
+            $flowHashes = iterator_to_array($storage->findAllFlowHashes());
+            $count = 0;
+            foreach ($flowHashes as $flowHash) {
+                $flow = $storage->findFlowByHash($flowHash);
+                if ($flow instanceof Flow) {
+                    $storage->saveFlow($flow);
+                    ++$count;
+                }
+            }
+
+            $flowSymfonyStyle->writeln(sprintf(
+                '<fg=%s>Rebuilt %d of %d flow(s).</>',
+                OutputColorEnum::GREEN->value,
+                $count,
+                count($flowHashes),
+            ));
+        } catch (Throwable $throwable) {
+            $flowSymfonyStyle->writeln(sprintf(
+                '<fg=%s>Rebuild failed: %s</>',
+                OutputColorEnum::RED->value,
+                $throwable->getMessage(),
+            ));
+        }
+
+        $flowSymfonyStyle->writeln('');
     }
 
     private function renderRow(FlowSymfonyStyle $flowSymfonyStyle, string $label, bool $ok, string $detail): void
