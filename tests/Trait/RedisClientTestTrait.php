@@ -15,48 +15,55 @@ trait RedisClientTestTrait
 {
     private const PORT = 6379;
 
-    private StartedGenericContainer $container;
+    private static ?StartedGenericContainer $container = null;
 
     private Redis $client;
+
+    public static function setUpBeforeClass(): void
+    {
+        parent::setUpBeforeClass();
+
+        self::$container = (new GenericContainer('redis:latest'))
+            ->withExposedPorts(self::PORT)
+            ->start();
+    }
+
+    public static function tearDownAfterClass(): void
+    {
+        self::$container?->stop();
+        self::$container = null;
+
+        parent::tearDownAfterClass();
+    }
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $port = self::PORT;
-
-        $this->container = $this->startContainer($port);
-        $host = $this->container->getHost();
-        $port = $this->container->getMappedPort($port);
+        if (!self::$container instanceof StartedGenericContainer) {
+            self::fail('Redis container was not started');
+        }
 
         $this->client = new Redis();
-        $this->client->connect($host, $port);
-    }
-
-    protected function tearDown(): void
-    {
-        $this->container->stop();
-        parent::tearDown();
+        $this->client->connect(self::$container->getHost(), self::$container->getMappedPort(self::PORT));
+        $this->client->flushDB();
     }
 
     protected function storage(): StorageInterface
     {
+        if (!self::$container instanceof StartedGenericContainer) {
+            self::fail('Redis container was not started');
+        }
+
         $redis = new RedisStorage(
             new RedisConfig(
-                $this->container->getHost(),
-                $this->container->getMappedPort(6379),
+                self::$container->getHost(),
+                self::$container->getMappedPort(self::PORT),
             ),
         );
         $redis->initializeDatabase();
         $redis->truncateFlowList();
 
         return $redis;
-    }
-
-    protected function startContainer(int $port): StartedGenericContainer
-    {
-        return (new GenericContainer('redis:latest'))
-            ->withExposedPorts($port)
-            ->start();
     }
 }

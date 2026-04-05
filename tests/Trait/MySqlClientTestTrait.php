@@ -21,42 +21,58 @@ trait MySqlClientTestTrait
 
     private const PASSWORD = 'yutani';
 
-    private StartedGenericContainer $container;
+    private static ?StartedGenericContainer $container = null;
 
     private Client $client;
+
+    public static function setUpBeforeClass(): void
+    {
+        parent::setUpBeforeClass();
+
+        self::$container = (new MariaDBContainer())
+            ->withMariaDBDatabase(self::DATABASE)
+            ->withMariaDBUser(self::USERNAME, self::PASSWORD)
+            ->withExposedPorts(self::PORT)
+            ->start();
+    }
+
+    public static function tearDownAfterClass(): void
+    {
+        self::$container?->stop();
+        self::$container = null;
+
+        parent::tearDownAfterClass();
+    }
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $port = self::PORT;
-        $database = self::DATABASE;
-        $username = self::USERNAME;
-        $password = self::PASSWORD;
+        if (!self::$container instanceof StartedGenericContainer) {
+            self::fail('MariaDB container was not started');
+        }
 
-        $this->container = $this->startContainer($port, $database, $username, $password);
-        $host = $this->container->getHost();
-        $port = $this->container->getMappedPort($port);
-
-        $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $host, $port, $database);
-        $this->client = new Client($dsn, $username, $password, [
+        $host = self::$container->getHost();
+        $port = self::$container->getMappedPort(self::PORT);
+        $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $host, $port, self::DATABASE);
+        $this->client = new Client($dsn, self::USERNAME, self::PASSWORD, [
             Client::ATTR_ERRMODE => Client::ERRMODE_EXCEPTION,
             Client::ATTR_DEFAULT_FETCH_MODE => Client::FETCH_ASSOC,
         ]);
-    }
 
-    protected function tearDown(): void
-    {
-        $this->container->stop();
-        parent::tearDown();
+        $this->truncateAllTables();
     }
 
     protected function storage(): StorageInterface
     {
+        if (!self::$container instanceof StartedGenericContainer) {
+            self::fail('MariaDB container was not started');
+        }
+
         $mySql = new MySql(
             new MysqlConfig(
-                $this->container->getHost(),
-                $this->container->getMappedPort(self::PORT),
+                self::$container->getHost(),
+                self::$container->getMappedPort(self::PORT),
                 self::DATABASE,
                 self::USERNAME,
                 self::PASSWORD,
@@ -68,12 +84,19 @@ trait MySqlClientTestTrait
         return $mySql;
     }
 
-    protected function startContainer(int $port, string $database, string $username, string $password): StartedGenericContainer
+    private function truncateAllTables(): void
     {
-        return (new MariaDBContainer())
-            ->withMariaDBDatabase($database)
-            ->withMariaDBUser($username, $password)
-            ->withExposedPorts($port)
-            ->start();
+        /** @var list<string> $tables */
+        $tables = $this->client->query('SHOW TABLES')->fetchAll(Client::FETCH_COLUMN);
+        if ($tables === []) {
+            return;
+        }
+
+        $this->client->exec('SET FOREIGN_KEY_CHECKS = 0');
+        foreach ($tables as $table) {
+            $this->client->exec(sprintf('TRUNCATE TABLE `%s`', $table));
+        }
+
+        $this->client->exec('SET FOREIGN_KEY_CHECKS = 1');
     }
 }
