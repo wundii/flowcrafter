@@ -7,6 +7,11 @@ namespace Tests;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Tests\MockClass\BoolStubMock;
+use Tests\MockClass\DanglingStubMock;
+use Tests\MockClass\DisconnectedStubMock;
+use Tests\MockClass\LoopStubAlphaMock;
+use Tests\MockClass\LoopStubBetaMock;
+use Tests\MockClass\LoopStubGammaMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
@@ -174,5 +179,94 @@ final class FlowBuilderTest extends TestCase
 
         $this->assertSame(StubMock::class, $initStub->getSource());
         $this->assertSame(MessageEnum::INIT, $initStub->getMessageEnum());
+    }
+
+    public function testBuildDetectsLoop(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Loop detected in stub chain');
+
+        $flowBuilder = new FlowBuilder(
+            'flow.test.v1',
+            MessageInitMock::class,
+        );
+
+        $flowBuilder->addStub(LoopStubAlphaMock::class);
+        $flowBuilder->addStub(LoopStubBetaMock::class);
+        $flowBuilder->addStub(LoopStubGammaMock::class);
+
+        $flowBuilder->build();
+    }
+
+    public function testBuildDetectsDisconnectedStub(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('not connected to the flow');
+
+        $flowBuilder = new FlowBuilder(
+            'flow.test.v1',
+            MessageInitMock::class,
+            MessageReturnMock::class,
+        );
+
+        // StubMock(InitMock) -> DataMock -> NextStubMock (leaf, bool)
+        // DisconnectedStubMock(DataSecondMock) -> ReturnMock — not reachable from init
+        $flowBuilder->addStub(StubMock::class);
+        $flowBuilder->addStub(NextStubMock::class);
+        $flowBuilder->addStub(DisconnectedStubMock::class);
+
+        $flowBuilder->build();
+    }
+
+    public function testAddDuplicateStubThrows(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('already added');
+
+        $flowBuilder = new FlowBuilder(
+            'flow.test.v1',
+            MessageInitMock::class,
+        );
+
+        $flowBuilder->addStub(StubMock::class);
+        $flowBuilder->addStub(StubMock::class);
+    }
+
+    public function testConstructorWithInvalidTypeFormat(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('must start with "flow."');
+
+        new FlowBuilder(
+            'invalid-type',
+            MessageInitMock::class,
+        );
+    }
+
+    public function testConstructorWithMissingVersion(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('must start with "flow."');
+
+        new FlowBuilder(
+            'flow.test',
+            MessageInitMock::class,
+        );
+    }
+
+    public function testBuildDetectsDanglingReturnType(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('not consumed by any stub');
+
+        $flowBuilder = new FlowBuilder(
+            'flow.test.v1',
+            MessageInitMock::class,
+        );
+
+        // DanglingStubMock(InitMock) -> DataMock, but no stub consumes DataMock
+        $flowBuilder->addStub(DanglingStubMock::class);
+
+        $flowBuilder->build();
     }
 }
