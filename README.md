@@ -10,31 +10,26 @@
 [![codecov](https://img.shields.io/codecov/c/github/wundii/flowcrafter/main?token=TNC2MM0MWS&style=for-the-badge)](https://codecov.io/github/wundii/flowcrafter)
 [![Downloads](https://img.shields.io/packagist/dt/wundii/flowcrafter.svg?style=for-the-badge)](https://packagist.org/packages/wundii/flowcrafter)
 
-PHP-Bibliothek zur Definition, Ausführung und Überwachung
-nachrichtengetriebener Workflows (State Machines). Flows werden als
-typsichere PHP-Klassen definiert und über austauschbare Storage-Backends
-persistiert.
+PHP-Engine für message-driven Workflows — Schema-as-Code,
+typsicheres Routing über Message-Klassen, synchrone und asynchrone
+Ausführung mit vollständigem Audit-Log.
 
 ## Features
 
-- Typsichere Workflow-Definitionen via PHP-Interfaces
-- Drei Storage-Backends: **MySQL**, **Redis**, **EventSourcingDB**
-- **SQLite Service-Layer**: schneller Query-Cache für die API — kein
-  Read-Zugriff auf das primäre Backend nötig
-- Synchrone Ausführung (`FlowRunner`) und asynchrone Queue-Verarbeitung
+- Typsichere Workflow-Definitionen als PHP-Klassen — kein YAML/XML
+- Storage-Backends: **MySQL**, **Redis**, **EventSourcingDB** mit
+  SQLite-Service-Layer als Query-Cache — eigene Backends via
+  `StorageInterface` frei erweiterbar
+- Synchrone Ausführung (`FlowRunner`) + asynchrone Queue-Verarbeitung
   (`FlowObserver`)
-- Vollständiges Message- und Exception-Logging pro Flow-Instanz
-- **Flow-Status** (`IN_PROGRESS`, `IN_PROGRESS_EXCEEDED`, `OK`,
-  `WARNING`, `FAILED`) automatisch berechnet
-- Stub-Source-Snapshotting + Schema-Versionierung via MD5-Hash
-- REST-API (Flower Micro-Router) + Prometheus / OpenMetrics (`/metrics`)
-- Dependency Injection für Stubs via Symfony DI Container
-- Symfony Console Commands für Init, Observer, Serve, Rebuild,
-  Mermaid-Diagramme
-- PHPStan Level 10, ECS Code Style, vollständige Integration-Tests mit
-  Testcontainers
-- **Testing-Helper** für Anwender: `FlowTestCase` + `FlowAssertTrait`
-  für storageless Unit-Tests mit PHPUnit 11+
+- Automatischer Flow-Status, vollständiges Message- & Exception-Logging,
+  Schema-Versionierung via Hash
+- REST-API für Flows, Schemas, Queues & Exceptions inkl.
+  Prometheus/OpenMetrics-Endpunkt
+- Symfony Console Commands für Config, Storage-Init/Rebuild, Dev-Server,
+  Observer und Mermaid-Diagramme
+- Testing-Helper (`FlowTestCase`, `FlowAssertTrait`) für storageless
+  Unit-Tests
 
 ## Installation
 

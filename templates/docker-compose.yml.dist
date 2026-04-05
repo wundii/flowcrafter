@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: ["vendor/bin/flowcrafter", "frankenphp:service"]
+    command: ["vendor/bin/flowcrafter", "service"]
     ports:
       - "8000:8000"
     environment:
