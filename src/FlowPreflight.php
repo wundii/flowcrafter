@@ -44,15 +44,18 @@ final readonly class FlowPreflight
      */
     public function ensureMessageSource(string $messageSource): string
     {
-        return Assert::classString(
-            $messageSource,
-            AbstractMessage::class,
-            sprintf('messageSource "%s" must extend %s.', $messageSource, AbstractMessage::class),
-        );
+        if (!class_exists($messageSource)) {
+            throw new InvalidArgumentException(sprintf('messageSource "%s" does not exist.', $messageSource));
+        }
+
+        Source::message($messageSource);
+
+        /** @var class-string<AbstractMessage> $messageSource */
+        return $messageSource;
     }
 
     /**
-     * @param class-string<MessageInterface> $messageSource
+     * @param class-string<AbstractMessage> $messageSource
      * @param array<mixed> $message
      */
     public function hydrateMessage(string $messageSource, array $message): MessageInterface
@@ -62,12 +65,13 @@ final readonly class FlowPreflight
         $expectedKeys = $messageSourceEntity->propertyNames[$shortName] ?? [];
 
         $missingKeys = array_diff($expectedKeys, array_keys($message));
+        $unknownKeys = array_diff(array_keys($message), $expectedKeys);
         if ($missingKeys !== []) {
             throw new InvalidArgumentException(sprintf(
-                'message payload for "%s" is missing required keys: %s. Expected keys: %s.',
+                'message payload for "%s" is missing required keys: %s. Unknown keys: %s.',
                 $messageSource,
                 implode(', ', $missingKeys),
-                implode(', ', $expectedKeys),
+                implode(', ', $unknownKeys),
             ));
         }
 

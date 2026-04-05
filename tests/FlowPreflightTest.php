@@ -72,12 +72,24 @@ final class FlowPreflightTest extends TestCase
         $this->assertSame('nested', $message->getMessageSubDataMock()->getValue());
     }
 
-    public function testHydrateMessageRejectsIncompletePayload(): void
+    public function testHydrateMessageWithWrongPayload(): void
+    {
+        $flowPreflight = new FlowPreflight();
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('message payload for "Tests\\MockClass\\MessageInitMock" is missing required keys: data. Unknown keys: data2');
+        $flowPreflight->hydrateMessage(MessageInitMock::class, [
+            'data2' => 'hello',
+        ]);
+    }
+
+    public function testHydrateMessageWithIncompletePayload(): void
     {
         $flowPreflight = new FlowPreflight();
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('missing required keys');
-        $flowPreflight->hydrateMessage(MessageDataSecondMock::class, ['data' => 'hello']);
+        $flowPreflight->hydrateMessage(MessageDataSecondMock::class, [
+            'data' => 'hello',
+        ]);
     }
 
     public function testHydrateMessageRejectsWithEmptyPayload(): void
