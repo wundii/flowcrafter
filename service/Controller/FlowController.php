@@ -162,20 +162,21 @@ final class FlowController
             ], 400);
         }
 
-        try {
-            $messageSource = $this->flowPreflight->ensureMessageSource($messageSource);
-            $messageInstance = $this->flowPreflight->hydrateMessage($messageSource, $message);
-        } catch (InvalidArgumentException $invalidArgumentException) {
-            return new JsonResponse([
-                'error' => $invalidArgumentException->getMessage(),
-            ], 400);
-        }
-
         $existingFlow = $this->storage->findFlowByHash($flowHash);
         if (!$existingFlow instanceof Flow) {
             return new JsonResponse([
                 'error' => 'Flow not found',
             ], 404);
+        }
+
+        try {
+            $flowSource = $this->flowPreflight->ensureFlowSource($existingFlow->getSource());
+            $messageSource = $this->flowPreflight->ensureMessageSource($flowSource, $messageSource);
+            $messageInstance = $this->flowPreflight->hydrateMessage($messageSource, $message);
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            return new JsonResponse([
+                'error' => $invalidArgumentException->getMessage(),
+            ], 400);
         }
 
         if (!$existingFlow->isExecutable()) {

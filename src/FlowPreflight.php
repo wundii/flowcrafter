@@ -40,15 +40,25 @@ final readonly class FlowPreflight
     }
 
     /**
+     * @param class-string<FlowInterface> $flowSource
      * @return class-string<AbstractMessage>
      */
-    public function ensureMessageSource(string $messageSource): string
+    public function ensureMessageSource(string $flowSource, string $messageSource): string
     {
         if (!class_exists($messageSource)) {
             throw new InvalidArgumentException(sprintf('messageSource "%s" does not exist.', $messageSource));
         }
 
         Source::message($messageSource);
+
+        $schema = $flowSource::schema();
+        if (!array_key_exists($messageSource, $schema->getMessageToSubsMap())) {
+            throw new InvalidArgumentException(sprintf(
+                'messageSource "%s" is not consumed by any stub in flow "%s".',
+                $messageSource,
+                $flowSource,
+            ));
+        }
 
         /** @var class-string<AbstractMessage> $messageSource */
         return $messageSource;

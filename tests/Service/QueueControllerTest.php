@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\HttpFoundation\Request;
 use Tests\MockClass\MessageInitMock;
+use Tests\MockClass\MessageSubDataMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\Interface\StorageInterface;
@@ -45,6 +46,22 @@ final class QueueControllerTest extends TestCase
 
         $this->assertSame(400, $jsonResponse->getStatusCode());
         $this->assertStringContainsString('AbstractMessage', (string) $jsonResponse->getContent());
+    }
+
+    public function testEnqueueReturns400ForMessageNotInFlow(): void
+    {
+        $queueController = $this->makeController();
+        $jsonResponse = $queueController->enqueue($this->makeRequest([
+            'type' => 'flow.workflow.v1',
+            'flowSource' => WorkflowMock::class,
+            'messageSource' => MessageSubDataMock::class,
+            'message' => [
+                'value' => 'x',
+            ],
+        ]));
+
+        $this->assertSame(400, $jsonResponse->getStatusCode());
+        $this->assertStringContainsString('is not consumed by any stub', (string) $jsonResponse->getContent());
     }
 
     public function testEnqueueReturns400ForIncompletePayload(): void

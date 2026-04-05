@@ -10,6 +10,7 @@ use stdClass;
 use Tests\MockClass\BareMessageInterfaceMock;
 use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
+use Tests\MockClass\MessageSubDataMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -39,21 +40,32 @@ final class FlowPreflightTest extends TestCase
     public function testEnsureMessageSourceAcceptsValidMessageClass(): void
     {
         $flowPreflight = new FlowPreflight();
-        $this->assertSame(MessageInitMock::class, $flowPreflight->ensureMessageSource(MessageInitMock::class));
+        $this->assertSame(
+            MessageInitMock::class,
+            $flowPreflight->ensureMessageSource(WorkflowMock::class, MessageInitMock::class),
+        );
     }
 
     public function testEnsureMessageSourceRejectsNonMessageClass(): void
     {
         $flowPreflight = new FlowPreflight();
         $this->expectException(InvalidArgumentException::class);
-        $flowPreflight->ensureMessageSource(stdClass::class);
+        $flowPreflight->ensureMessageSource(WorkflowMock::class, stdClass::class);
     }
 
     public function testEnsureMessageSourceRejectsMessageInterfaceWithoutAbstractMessage(): void
     {
         $flowPreflight = new FlowPreflight();
         $this->expectException(InvalidArgumentException::class);
-        $flowPreflight->ensureMessageSource(BareMessageInterfaceMock::class);
+        $flowPreflight->ensureMessageSource(WorkflowMock::class, BareMessageInterfaceMock::class);
+    }
+
+    public function testEnsureMessageSourceRejectsMessageNotConsumedByFlow(): void
+    {
+        $flowPreflight = new FlowPreflight();
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is not consumed by any stub');
+        $flowPreflight->ensureMessageSource(WorkflowMock::class, MessageSubDataMock::class);
     }
 
     public function testHydrateMessageReturnsMessageInstanceForValidPayload(): void

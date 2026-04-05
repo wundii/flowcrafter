@@ -86,7 +86,7 @@ final class QueueController
 
         try {
             $flowSource = $this->flowPreflight->ensureFlowSource($flowSource);
-            $messageSource = $this->flowPreflight->ensureMessageSource($messageSource);
+            $messageSource = $this->flowPreflight->ensureMessageSource($flowSource, $messageSource);
             $this->flowPreflight->hydrateMessage($messageSource, $message);
         } catch (InvalidArgumentException $invalidArgumentException) {
             return new JsonResponse([
