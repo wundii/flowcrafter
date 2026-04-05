@@ -194,7 +194,7 @@ class FlowRunner
     {
         $messageClass = get_class($message);
 
-        if (!isset($this->messageToStubsMap[$messageClass])) {
+        if (!array_key_exists($messageClass, $this->messageToStubsMap)) {
             return;
         }
 

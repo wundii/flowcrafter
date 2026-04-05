@@ -234,14 +234,14 @@ class FlowBuilder
         while ($queue !== []) {
             $current = array_shift($queue);
 
-            if (isset($visited[$current])) {
+            if (array_key_exists($current, $visited)) {
                 continue;
             }
 
             $visited[$current] = true;
 
             foreach ($adjacency[$current] ?? [] as $neighbor) {
-                if (!isset($visited[$neighbor])) {
+                if (!array_key_exists($neighbor, $visited)) {
                     $queue[] = $neighbor;
                 }
             }
@@ -249,7 +249,7 @@ class FlowBuilder
 
         $unreachable = [];
         foreach ($this->stubs as $stub) {
-            if (!isset($visited[$stub->getSource()])) {
+            if (!array_key_exists($stub->getSource(), $visited)) {
                 $unreachable[] = $stub->getSource();
             }
         }

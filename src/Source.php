@@ -29,7 +29,7 @@ class Source
      */
     public static function stub(string $source): StubSourceEntity
     {
-        if (isset(self::$stubCache[$source])) {
+        if (array_key_exists($source, self::$stubCache)) {
             return self::$stubCache[$source];
         }
 
@@ -69,7 +69,7 @@ class Source
      */
     public static function message(string $messageClass): MessageSourceEntity
     {
-        if (isset(self::$messageCache[$messageClass])) {
+        if (array_key_exists($messageClass, self::$messageCache)) {
             return self::$messageCache[$messageClass];
         }
 
