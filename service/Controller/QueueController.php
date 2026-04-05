@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace Wundii\Service\Controller;
 
+use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Throwable;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 
 final class QueueController
 {
     public function __construct(
         private readonly StorageInterface $storage,
+        private readonly FlowPreflight $flowPreflight,
     ) {
     }
 
@@ -81,17 +84,17 @@ final class QueueController
             ], 400);
         }
 
-        if (!class_exists($messageSource)) {
+        try {
+            $flowSource = $this->flowPreflight->ensureFlowSource($flowSource);
+            $messageSource = $this->flowPreflight->ensureMessageSource($messageSource);
+            $this->flowPreflight->hydrateMessage($messageSource, $message);
+        } catch (InvalidArgumentException $invalidArgumentException) {
             return new JsonResponse([
-                'error' => 'Unknown message class',
+                'error' => $invalidArgumentException->getMessage(),
             ], 400);
         }
 
         try {
-            /**
-             * @var class-string $flowSource
-             * @var class-string $messageSource
-             */
             $this->storage->appendObserveItem(
                 type: $type,
                 flowSource: $flowSource,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Service;
 
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flower\Flower;
 use Wundii\Flower\MethodEnum;
@@ -22,10 +23,11 @@ final class Routes
         $router = Flower::router();
 
         $exceptionController = new ExceptionController($storage);
-        $flowController = new FlowController($flowcrafterConfig, $storage);
+        $flowPreflight = new FlowPreflight();
+        $flowController = new FlowController($flowcrafterConfig, $storage, $flowPreflight);
         $healthController = new HealthController();
         $infoController = new InfoController($flowcrafterConfig, $storage);
-        $queueController = new QueueController($storage);
+        $queueController = new QueueController($storage, $flowPreflight);
         $schemaController = new SchemaController($storage);
 
         $router->add('/', MethodEnum::GET, $healthController->index(...));

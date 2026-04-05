@@ -6,18 +6,16 @@ namespace Wundii\Service\Controller;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Throwable;
-use Wundii\DataMapper\DataConfig;
-use Wundii\DataMapper\DataMapper;
-use Wundii\DataMapper\Enum\ApproachEnum;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\FlowRunner;
-use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
@@ -28,6 +26,7 @@ final class FlowController
     public function __construct(
         private readonly FlowcrafterConfig $flowcrafterConfig,
         private readonly StorageInterface $storage,
+        private readonly FlowPreflight $flowPreflight,
     ) {
     }
 
@@ -163,9 +162,12 @@ final class FlowController
             ], 400);
         }
 
-        if (!class_exists($messageSource)) {
+        try {
+            $messageSource = $this->flowPreflight->ensureMessageSource($messageSource);
+            $messageInstance = $this->flowPreflight->hydrateMessage($messageSource, $message);
+        } catch (InvalidArgumentException $invalidArgumentException) {
             return new JsonResponse([
-                'error' => 'Unknown message class',
+                'error' => $invalidArgumentException->getMessage(),
             ], 400);
         }
 
@@ -183,16 +185,6 @@ final class FlowController
         }
 
         try {
-            $dataConfig = new DataConfig(approachEnum: ApproachEnum::CONSTRUCTOR);
-            $dataMapper = new DataMapper($dataConfig);
-            $messageInstance = $dataMapper->array($message, $messageSource);
-
-            if (!$messageInstance instanceof MessageInterface) {
-                return new JsonResponse([
-                    'error' => 'Invalid message class or data',
-                ], 400);
-            }
-
             $flowRunner = new FlowRunner(
                 type: $existingFlow->getType(),
                 flowSource: $existingFlow->getSource(),
