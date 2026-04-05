@@ -82,6 +82,11 @@ Flows, Messages, Exceptions und Queues in Echtzeit:
 ```bash
 docker run -p 3000:3000 -v ./data:/flowcrafter/data wundii/flowcrafter-ui:latest
 ```
+<p align="center">
+  <picture>
+    <img src="https://raw.githubusercontent.com/wundii/flowcrafter-ui/refs/heads/main/assets/screen_01.png" alt="wundii/flowcrafter" style="width: 100%; max-width: 600px; height: auto;">
+  </picture>
+</p>
 
 ## Minimalbeispiel
 
