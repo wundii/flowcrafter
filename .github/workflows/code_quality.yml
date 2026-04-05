@@ -101,3 +101,28 @@ jobs:
 
       - name: Run PHPUnitTests
         run: composer test
+
+  code_coverage:
+    name: 'PHP Code Coverage'
+    runs-on: ubuntu-latest
+    steps:
+      - name: PHP-Setup
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ needs.generate-matrix.outputs.first }}
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Composer install
+        run: |
+          composer install --prefer-dist --no-progress
+
+      - name: Run tests and collect coverage
+        run: vendor/bin/phpunit --coverage-clover coverage.xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: wundii/flowcrafter
