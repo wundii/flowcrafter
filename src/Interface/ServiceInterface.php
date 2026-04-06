@@ -10,6 +10,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
 
 interface ServiceInterface
 {
@@ -61,6 +62,11 @@ interface ServiceInterface
      * @return FlowStatsEntity[]
      */
     public function findFlowStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable;
+
+    /**
+     * @return FlowTypeStatsEntity[]
+     */
+    public function findFlowTypeStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): array;
 
     public function saveFlow(Flow $flow): void;
 

@@ -19,6 +19,7 @@ use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 final class FlowStorageRedisTest extends TestCase
@@ -806,5 +807,51 @@ final class FlowStorageRedisTest extends TestCase
 
         $stats = iterator_to_array($storage->findFlowStats(null, null, 'flow.nonexistent'));
         $this->assertCount(0, $stats);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindFlowTypeStats(): void
+    {
+        $storage = $this->storage();
+        $flowRunnerA = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+        $flowRunnerB = new FlowRunner(
+            type: 'flow.workflow.fail.v1',
+            flowSource: WorkflowFailMock::class,
+            storage: $storage,
+        );
+        $flowRunnerA->run(new MessageInitMock('test data1'));
+        $flowRunnerA->run(new MessageInitMock('test data2'));
+
+        try {
+            $flowRunnerB->run(new MessageInitMock('test data3'));
+        } catch (Exception) {
+        }
+
+        $stats = $storage->findFlowTypeStats();
+        $this->assertCount(2, $stats);
+
+        $statsMap = [];
+        foreach ($stats as $stat) {
+            $this->assertInstanceOf(FlowTypeStatsEntity::class, $stat);
+            $statsMap[$stat->prefix] = $stat;
+        }
+
+        $this->assertArrayHasKey('flow.workflow', $statsMap);
+        $this->assertSame('flow.workflow.v1', $statsMap['flow.workflow']->flowType);
+        $this->assertSame(2, $statsMap['flow.workflow']->total);
+        $this->assertSame(0, $statsMap['flow.workflow']->failed);
+        $this->assertSame(100, $statsMap['flow.workflow']->successRate);
+        $this->assertNotNull($statsMap['flow.workflow']->lastTime);
+
+        $this->assertArrayHasKey('flow.workflow.fail', $statsMap);
+        $this->assertSame(1, $statsMap['flow.workflow.fail']->total);
+        $this->assertSame(1, $statsMap['flow.workflow.fail']->failed);
+        $this->assertSame(0, $statsMap['flow.workflow.fail']->successRate);
     }
 }

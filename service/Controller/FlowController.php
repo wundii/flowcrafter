@@ -20,6 +20,7 @@ use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
 
 final class FlowController
 {
@@ -62,6 +63,30 @@ final class FlowController
             'total' => $total,
             'hasMore' => $hasMore,
         ]);
+    }
+
+    public function types(Request $request): JsonResponse
+    {
+        $fromStr = $request->query->get('from');
+        $toStr = $request->query->get('to');
+        $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $fromStr) : null;
+        $to = is_string($toStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $toStr) : null;
+        $from = $from instanceof DateTimeImmutable ? $from : null;
+        $to = $to instanceof DateTimeImmutable ? $to : null;
+
+        $stats = $this->storage->findFlowTypeStats($from, $to);
+
+        return new JsonResponse(array_map(
+            static fn (FlowTypeStatsEntity $flowTypeStatsEntity): array => [
+                'prefix' => $flowTypeStatsEntity->prefix,
+                'flowType' => $flowTypeStatsEntity->flowType,
+                'total' => $flowTypeStatsEntity->total,
+                'failed' => $flowTypeStatsEntity->failed,
+                'successRate' => $flowTypeStatsEntity->successRate,
+                'lastTime' => $flowTypeStatsEntity->lastTime,
+            ],
+            $stats,
+        ));
     }
 
     public function stats(Request $request): JsonResponse

@@ -17,6 +17,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
 
 abstract class Service implements StorageInterface
 {
@@ -290,9 +291,12 @@ abstract class Service implements StorageInterface
 
         $where = $where === '' ? ' WHERE flow_subject LIKE :flow_subject' : $where . ' AND flow_subject LIKE :flow_subject';
         $params[':flow_subject'] = '%' . $flowSubject . '%';
+        $params[':flow_subject_exact'] = $flowSubject;
+        $params[':flow_subject_prefix'] = $flowSubject . '%';
 
         $sql = 'SELECT * FROM flow_list' . $where .
-            ' ORDER BY last_term ' . $sortEnum->name .
+            ' ORDER BY CASE WHEN flow_subject = :flow_subject_exact THEN 0 WHEN flow_subject LIKE :flow_subject_prefix THEN 1 ELSE 2 END,' .
+            ' last_term ' . $sortEnum->name .
             ' LIMIT :top OFFSET :skip';
 
         $params[':top'] = $top;
@@ -430,6 +434,47 @@ abstract class Service implements StorageInterface
         $stmt->execute($params);
 
         yield from array_map($this->mapFlowExceptionListRow(...), $stmt->fetchAll(Client::FETCH_ASSOC));
+    }
+
+    /**
+     * @return FlowTypeStatsEntity[]
+     */
+    public function findFlowTypeStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): array
+    {
+        [$where, $params] = $this->buildDateFilter($from, $to, 'last_term');
+
+        $sql = <<<'SQL'
+            SELECT
+                flow_type,
+                COUNT(*) AS total,
+                SUM(CASE WHEN status IN ('FAILED', 'WARNING', 'IN_PROGRESS_EXCEEDED') THEN 1 ELSE 0 END) AS failed,
+                MAX(last_term) AS last_time
+            FROM flow_list
+            SQL;
+
+        $sql .= $where . ' GROUP BY flow_type ORDER BY flow_type ASC';
+
+        $stmt = $this->client->prepare($sql);
+        $stmt->execute($params);
+
+        $result = [];
+        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
+            /** @var array{flow_type: string, total: int|string, failed: int|string, last_time: string|null} $row */
+            $total = (int) $row['total'];
+            $failed = (int) $row['failed'];
+            $prefix = (string) preg_replace('/\.v\d+$/', '', $row['flow_type']);
+
+            $result[] = new FlowTypeStatsEntity(
+                prefix: $prefix,
+                flowType: $row['flow_type'],
+                total: $total,
+                failed: $failed,
+                successRate: $total > 0 ? (int) round((($total - $failed) / $total) * 100) : null,
+                lastTime: $row['last_time'],
+            );
+        }
+
+        return $result;
     }
 
     public function truncateFlowList(): void

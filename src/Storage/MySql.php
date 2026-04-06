@@ -690,6 +690,7 @@ class MySql extends Service implements StorageInterface
                 'hash' => $exception['hash'] ?? '',
                 'flowHash' => $exception['flow_hash'] ?? '',
                 'flowRuntimeHash' => $exception['flow_runtime_hash'] ?? '',
+                'flowType' => $exception['flow_type'] ?? '',
                 'stubSource' => $exception['stub_source'] ?? '',
                 'stubHash' => $exception['stub_hash'] ?? null,
                 'code' => $exception['code'] ?? 0,

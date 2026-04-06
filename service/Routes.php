@@ -41,6 +41,7 @@ final class Routes
         $router->add('/api/flows/run', MethodEnum::POST, $flowController->run(...));
         $router->add('/api/flows/search', MethodEnum::GET, $flowController->search(...));
         $router->add('/api/flows/stats', MethodEnum::GET, $flowController->stats(...));
+        $router->add('/api/flows/types', MethodEnum::GET, $flowController->types(...));
 
         $router->add('/api/schemas', MethodEnum::GET, $schemaController->list(...));
         $router->add('/api/schema/stub-source', MethodEnum::GET, $schemaController->stubSource(...));
