@@ -11,6 +11,7 @@ use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
@@ -65,6 +66,8 @@ interface StorageInterface extends ServiceInterface
      * @return iterable<array<mixed>>
      */
     public function findAllSchemas(): iterable;
+
+    public function findFlowInstanceByHash(string $flowHash): ?FlowInstanceEntity;
 
     public function findFlowByHash(string $flowHash): ?Flow;
 

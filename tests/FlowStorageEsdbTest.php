@@ -16,6 +16,7 @@ use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
+use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
@@ -170,6 +171,32 @@ final class FlowStorageEsdbTest extends TestCase
         $this->assertInstanceOf(FlowException::class, $exceptions[0]);
         $this->assertInstanceOf(FlowException::class, $exceptions[1]);
         $this->assertLessThan($exceptions[0]->getHash(), $exceptions[1]->getHash());
+    }
+
+    public function testFindFlowInstanceByHash(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowSubject: 'test-subject',
+            storage: $storage,
+        );
+        $flowRunner->run(new MessageInitMock('test data'));
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+
+        $instance = $storage->findFlowInstanceByHash($flow->getHash());
+        $this->assertInstanceOf(FlowInstanceEntity::class, $instance);
+        $this->assertSame($flow->getHash(), $instance->flowHash);
+        $this->assertSame('flow.workflow.v1', $instance->flowType);
+        $this->assertSame(WorkflowMock::class, $instance->flowSource);
+        $this->assertSame('test-subject', $instance->flowSubject);
+        $this->assertSame($flow->getSchemaHash(), $instance->flowSchemaHash);
+        $this->assertNotNull($instance->time);
+
+        $this->assertNotInstanceOf(\Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity::class, $storage->findFlowInstanceByHash('nonexistent-hash'));
     }
 
     public function testFindFlowByHash(): void

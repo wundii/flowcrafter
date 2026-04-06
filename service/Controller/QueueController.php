@@ -10,9 +10,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Throwable;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Enum\SortEnum;
-use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 
 final class QueueController
 {
@@ -62,23 +62,23 @@ final class QueueController
         $message = Assert::array($body['message'] ?? []);
         /** @var class-string[] $includeStubs */
         $includeStubs = Assert::array($body['includeStubs'] ?? []);
-        $type = Assert::string($body['type'] ?? '');
+        $flowType = Assert::string($body['type'] ?? '');
         $flowSource = Assert::string($body['flowSource'] ?? '');
         $flowSubject = Assert::nullOrString($body['flowSubject'] ?? null);
 
         if ($flowHash !== null && $flowHash !== '') {
-            $flow = $this->storage->findFlowByHash($flowHash);
-            if (!$flow instanceof Flow) {
+            $flowInstance = $this->storage->findFlowInstanceByHash($flowHash);
+            if (!$flowInstance instanceof FlowInstanceEntity) {
                 return new JsonResponse([
                     'error' => 'Flow not found',
                 ], 404);
             }
 
-            $type = $flow->getType();
-            $flowSource = $flow->getSource();
+            $flowType = $flowInstance->flowType;
+            $flowSource = $flowInstance->flowSource;
         }
 
-        if ($type === '' || $flowSource === '' || $messageSource === '' || $message === []) {
+        if ($flowType === '' || $flowSource === '' || $messageSource === '' || $message === []) {
             return new JsonResponse([
                 'error' => 'type, flowSource, messageSource and message required',
             ], 400);
@@ -96,7 +96,7 @@ final class QueueController
 
         try {
             $this->storage->appendObserveItem(
-                type: $type,
+                type: $flowType,
                 flowSource: $flowSource,
                 flowHash: $flowHash,
                 messageSource: $messageSource,

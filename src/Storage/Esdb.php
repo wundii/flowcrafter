@@ -31,6 +31,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
+use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
@@ -843,6 +844,31 @@ class Esdb extends Service
                 includeStubs: $allEvent->data['includeStubs'] ?? [],
             );
         }
+    }
+
+    public function findFlowInstanceByHash(string $flowHash): ?FlowInstanceEntity
+    {
+        if ($flowHash === '') {
+            return null;
+        }
+
+        $query = 'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_INSTANCE . '" ' .
+            'AND e.subject == "/flow/' . $flowHash . '" ' .
+            'PROJECT INTO e.data';
+
+        foreach ($this->client->runEventQlQuery($query) as $flowEvent) {
+            return new FlowInstanceEntity(
+                flowHash: $flowEvent['flowHash'] ?? '',
+                flowType: $flowEvent['flowType'] ?? '',
+                flowSource: $flowEvent['flowSource'] ?? '',
+                flowSubject: $flowEvent['flowSubject'] ?? null,
+                flowSchemaHash: $flowEvent['flowSchemaHash'] ?? '',
+                time: new DateTimeImmutable($flowEvent['time'] ?? '' ? $flowEvent['time'] : 'now'),
+            );
+        }
+
+        return null;
     }
 
     public function findFlowByHash(string $flowHash): ?Flow

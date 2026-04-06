@@ -106,21 +106,18 @@ final class FlowDevCommand extends Command
             $output->writeln($message);
         };
 
-        $lastHeartbeat = 0;
+        $this->heartbeat->touch();
 
         /** @phpstan-ignore while.alwaysTrue */
         while ($serverProcess->isRunning()) {
             try {
-                $flowObserver->run(maxExecutionTimeInSeconds: 5.0, logger: $logger);
+                $flowObserver->run(maxExecutionTimeInSeconds: 5.0, logger: $logger, heartbeat: $this->heartbeat);
             } catch (Throwable $e) {
                 $output->writeln('[Observer] error: ' . $e->getMessage());
                 sleep(2);
             }
 
-            if (time() - $lastHeartbeat >= 10) {
-                $this->heartbeat->touch();
-                $lastHeartbeat = time();
-            }
+            $this->heartbeat->touch();
         }
 
         /** @phpstan-ignore deadCode.unreachable */

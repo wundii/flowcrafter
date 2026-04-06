@@ -85,7 +85,7 @@ final class FlowObserverCommand extends Command
         /** @phpstan-ignore while.alwaysTrue */
         while (true) {
             try {
-                $flowObserver->run(maxExecutionTimeInSeconds: 10.0, logger: $logger);
+                $flowObserver->run(maxExecutionTimeInSeconds: 10.0, logger: $logger, heartbeat: $heartbeat);
             } catch (Throwable $e) {
                 $flowSymfonyStyle->writeln('[Observer] error: ' . $e->getMessage());
                 sleep(2);

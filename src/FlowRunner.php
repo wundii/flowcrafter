@@ -15,6 +15,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 
 class FlowRunner
 {
@@ -71,10 +72,10 @@ class FlowRunner
         ?string $queueId = null,
         array $includeStubs = [],
     ): bool|MessageReturnInterface {
-        $storedFlow = $flowHash !== null ? $this->storage?->findFlowByHash($flowHash) : null;
+        $flowInstance = $flowHash !== null ? $this->storage?->findFlowInstanceByHash($flowHash) : null;
 
-        $flowSchemaHash = $storedFlow instanceof Flow ? $storedFlow->getSchemaHash() : null;
-        $flowSubject = $storedFlow instanceof Flow ? $storedFlow->getSubject() : $this->flowSubject;
+        $flowSchemaHash = $flowInstance instanceof FlowInstanceEntity ? $flowInstance->flowSchemaHash : null;
+        $flowSubject = $flowInstance instanceof FlowInstanceEntity ? $flowInstance->flowSubject : $this->flowSubject;
 
         $this->flow = Flow::create(
             flowType: $this->type,

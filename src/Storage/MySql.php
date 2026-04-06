@@ -25,6 +25,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
+use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
@@ -99,7 +100,7 @@ class MySql extends Service implements StorageInterface
                 flow_schema_hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 flow_schema_type VARCHAR(191) NOT NULL,
                 flow_schema JSON NOT NULL,
-                created_at DATETIME NOT NULL,
+                created_at DATETIME(3) NOT NULL,
                 UNIQUE INDEX flow_schema_type_unique (flow_schema_type),
                 INDEX flow_schema_hash (flow_schema_hash)
             )
@@ -112,7 +113,7 @@ class MySql extends Service implements StorageInterface
                 message_hash VARCHAR(32) NOT NULL PRIMARY KEY,
                 message_source VARCHAR(255) NOT NULL,
                 property_names JSON NOT NULL,
-                time DATETIME NOT NULL,
+                time DATETIME(3) NOT NULL,
                 INDEX flow_source_message_hash (message_hash)
             )
             SQL
@@ -124,7 +125,7 @@ class MySql extends Service implements StorageInterface
                 stub_hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 stub_source VARCHAR(191) NOT NULL,
                 source_content TEXT NOT NULL,
-                time DATETIME NOT NULL,
+                time DATETIME(3) NOT NULL,
                 INDEX flow_source_stub_hash (stub_hash)
             )
             SQL
@@ -138,7 +139,7 @@ class MySql extends Service implements StorageInterface
                 flow_source VARCHAR(255) NOT NULL,
                 flow_subject VARCHAR(255) NULL,
                 flow_schema_hash VARCHAR(191) NOT NULL,
-                `time` DATETIME NOT NULL,
+                `time` DATETIME(3) NOT NULL,
                 INDEX idx_flow_instance_flow_hash (flow_hash),
                 INDEX idx_flow_instance_flow_schema_hash (flow_schema_hash),
                 INDEX idx_flow_instance_flow_subject (flow_subject),
@@ -155,7 +156,7 @@ class MySql extends Service implements StorageInterface
                 flow_hash VARCHAR(191) NOT NULL,
                 flow_type VARCHAR(191) NOT NULL,
                 queue_id VARCHAR(191) NULL,
-                `time` DATETIME NOT NULL,
+                `time` DATETIME(3) NOT NULL,
                 INDEX idx_flow_run_flow_hash (flow_hash),
                 INDEX idx_flow_run_runtime_hash (flow_runtime_hash),
                 FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash)
@@ -176,7 +177,7 @@ class MySql extends Service implements StorageInterface
                 message_hash VARCHAR(32) NOT NULL,
                 message JSON NOT NULL,
                 predecessor_hash VARCHAR(191) NULL,
-                `time` DATETIME NOT NULL,
+                `time` DATETIME(3) NOT NULL,
                 INDEX idx_flow_message_flow_hash (flow_hash),
                 INDEX idx_flow_message_flow_runtime_hash (flow_runtime_hash),
                 INDEX idx_flow_message_message_source (message_source),
@@ -202,7 +203,7 @@ class MySql extends Service implements StorageInterface
                 file VARCHAR(2000) NOT NULL,
                 line INT(11) NOT NULL,
                 trace_string TEXT NOT NULL,
-                `time` DATETIME NOT NULL,
+                `time` DATETIME(3) NOT NULL,
                 INDEX idx_flow_exception_flow_hash (flow_hash),
                 INDEX idx_flow_exception_flow_runtime_hash (flow_runtime_hash),
                 INDEX idx_flow_exception_stub_source (stub_source),
@@ -222,7 +223,7 @@ class MySql extends Service implements StorageInterface
                 stub_source VARCHAR(255) NOT NULL,
                 stub_hash VARCHAR(191) NULL,
                 result TINYINT(1) NOT NULL,
-                `time` DATETIME NOT NULL,
+                `time` DATETIME(3) NOT NULL,
                 INDEX idx_flow_result_flow_hash (flow_hash),
                 INDEX idx_flow_result_flow_runtime_hash (flow_runtime_hash),
                 FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
@@ -242,7 +243,7 @@ class MySql extends Service implements StorageInterface
                 message_source VARCHAR(255) NOT NULL,
                 message JSON NOT NULL,
                 include_stubs JSON NOT NULL,
-                created_at DATETIME NOT NULL,
+                created_at DATETIME(3) NOT NULL,
                 INDEX idx_flow_queue_created_at (created_at)
             )
             SQL
@@ -282,7 +283,7 @@ class MySql extends Service implements StorageInterface
             ':hash' => $flowSchema->getHash(),
             ':type' => $flowSchema->type(),
             ':flow_schema' => $flowSchemaJson,
-            ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.u'),
+            ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.v'),
         ]);
     }
 
@@ -301,7 +302,7 @@ class MySql extends Service implements StorageInterface
             ':message_hash' => $messageSourceEntity->messageHash,
             ':message_source' => $messageSourceEntity->messageSource,
             ':property_names' => $propertyNamesJson,
-            ':time' => $messageSourceEntity->time->format('Y-m-d H:i:s.u'),
+            ':time' => $messageSourceEntity->time->format('Y-m-d H:i:s.v'),
         ]);
     }
 
@@ -315,7 +316,7 @@ class MySql extends Service implements StorageInterface
             ':stub_hash' => $stubSourceEntity->stubHash,
             ':stub_source' => $stubSourceEntity->stubSource,
             ':source_content' => $stubSourceEntity->sourceContent,
-            ':time' => $stubSourceEntity->time->format('Y-m-d H:i:s.u'),
+            ':time' => $stubSourceEntity->time->format('Y-m-d H:i:s.v'),
         ]);
     }
 
@@ -332,7 +333,7 @@ class MySql extends Service implements StorageInterface
             ':flow_source' => $flow->getSource(),
             ':flow_subject' => $flow->getSubject(),
             ':flow_schema_hash' => $flow->getSchema()->getHash(),
-            ':time' => $flow->getTime()->format('Y-m-d H:i:s.u'),
+            ':time' => $flow->getTime()->format('Y-m-d H:i:s.v'),
         ]);
     }
 
@@ -348,7 +349,7 @@ class MySql extends Service implements StorageInterface
             ':flow_hash' => $flow->getHash(),
             ':flow_type' => $flow->getType(),
             ':queue_id' => $queueId,
-            ':time' => $flow->getTime()->format('Y-m-d H:i:s.u'),
+            ':time' => $flow->getTime()->format('Y-m-d H:i:s.v'),
         ]);
     }
 
@@ -374,7 +375,7 @@ class MySql extends Service implements StorageInterface
             ':message_source' => $flowMessage->getMessageSource(),
             ':message_hash' => $flowMessage->getMessageHash(),
             ':predecessor_hash' => $flowMessage->getPredecessorHash(),
-            ':time' => $flowMessage->getTime()->format('Y-m-d H:i:s.u'),
+            ':time' => $flowMessage->getTime()->format('Y-m-d H:i:s.v'),
             ':message' => $messageJson,
         ]);
     }
@@ -397,7 +398,7 @@ class MySql extends Service implements StorageInterface
             ':file' => $flowException->getFile(),
             ':line' => $flowException->getLine(),
             ':trace_string' => $flowException->getTraceString(),
-            ':time' => $flowException->getTime()->format('Y-m-d H:i:s.u'),
+            ':time' => $flowException->getTime()->format('Y-m-d H:i:s.v'),
         ]);
     }
 
@@ -415,7 +416,7 @@ class MySql extends Service implements StorageInterface
             ':stub_source' => $flowResult->getStubSource(),
             ':stub_hash' => $flowResult->getStubHash(),
             ':result' => $flowResult->getResult() ? 1 : 0,
-            ':time' => $flowResult->getTime()->format('Y-m-d H:i:s.u'),
+            ':time' => $flowResult->getTime()->format('Y-m-d H:i:s.v'),
         ]);
     }
 
@@ -452,7 +453,7 @@ class MySql extends Service implements StorageInterface
             ':message_source' => $messageSource,
             ':message' => $messageJson,
             ':include_stubs' => $includeStubsJson,
-            ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.u'),
+            ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.v'),
         ]);
     }
 
@@ -562,6 +563,39 @@ class MySql extends Service implements StorageInterface
                 includeStubs: $includeStubsParsed,
             );
         }
+    }
+
+    public function findFlowInstanceByHash(string $flowHash): ?FlowInstanceEntity
+    {
+        $stmt = $this->client->prepare(
+            'SELECT * FROM flow_instance ' .
+            'WHERE flow_hash = :flow_hash LIMIT 1'
+        );
+        $stmt->execute([
+            ':flow_hash' => $flowHash,
+        ]);
+
+        $instance = $stmt->fetch();
+        if (!is_array($instance)) {
+            return null;
+        }
+
+        $flowHash = is_string($instance['flow_hash'] ?? null) ? $instance['flow_hash'] : '';
+        $flowType = is_string($instance['flow_type'] ?? null) ? $instance['flow_type'] : '';
+        /** @var class-string<\Wundii\Flowcrafter\Interface\FlowInterface> $flowSource */
+        $flowSource = is_string($instance['flow_source'] ?? null) ? $instance['flow_source'] : '';
+        $flowSubject = is_string($instance['flow_subject'] ?? null) ? $instance['flow_subject'] : null;
+        $flowSchemaHash = is_string($instance['flow_schema_hash'] ?? null) ? $instance['flow_schema_hash'] : '';
+        $time = is_string($instance['time'] ?? null) ? $instance['time'] : 'now';
+
+        return new FlowInstanceEntity(
+            flowHash: $flowHash,
+            flowType: $flowType,
+            flowSource: $flowSource,
+            flowSubject: $flowSubject,
+            flowSchemaHash: $flowSchemaHash,
+            time: new DateTimeImmutable($time),
+        );
     }
 
     public function findFlowByHash(string $flowHash): ?Flow

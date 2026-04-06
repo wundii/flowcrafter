@@ -24,6 +24,7 @@ use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Config\RedisConfig;
+use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Uuid;
@@ -702,6 +703,34 @@ class Redis extends Service implements StorageInterface
                 includeStubs: $payload['includeStubs'] ?? [],
             );
         }
+    }
+
+    public function findFlowInstanceByHash(string $flowHash): ?FlowInstanceEntity
+    {
+        if ($flowHash === '' || $flowHash === '*') {
+            return null;
+        }
+
+        $flowHash = self::escapeValue($flowHash);
+
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_INSTANCE, '@flowHash:{' . $flowHash . '}', 'RETURN', '1', '$');
+        $flowArray = self::fetchData($result)[0] ?? [];
+
+        if ($flowArray === []) {
+            return null;
+        }
+
+        /** @var class-string<\Wundii\Flowcrafter\Interface\FlowInterface> $flowSource */
+        $flowSource = is_string($flowArray['flowSource'] ?? null) ? $flowArray['flowSource'] : '';
+
+        return new FlowInstanceEntity(
+            flowHash: is_string($flowArray['flowHash'] ?? null) ? $flowArray['flowHash'] : '',
+            flowType: is_string($flowArray['flowType'] ?? null) ? $flowArray['flowType'] : '',
+            flowSource: $flowSource,
+            flowSubject: is_string($flowArray['flowSubject'] ?? null) ? $flowArray['flowSubject'] : null,
+            flowSchemaHash: is_string($flowArray['flowSchemaHash'] ?? null) ? $flowArray['flowSchemaHash'] : '',
+            time: new DateTimeImmutable($this->timestampToRFC3339Extended($flowArray['time'] ?? 0)),
+        );
     }
 
     public function findFlowByHash(string $flowHash): ?Flow

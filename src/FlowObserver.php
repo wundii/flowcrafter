@@ -11,6 +11,7 @@ use RuntimeException;
 use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
 use Wundii\DataMapper\Enum\ApproachEnum;
+use Wundii\Flowcrafter\Console\Heartbeat;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
@@ -36,6 +37,7 @@ readonly class FlowObserver
         ],
         float $maxExecutionTimeInSeconds = 0.0,
         ?Closure $logger = null,
+        ?Heartbeat $heartbeat = null,
     ): void {
         $dataConfig = new DataConfig(
             approachEnum: ApproachEnum::CONSTRUCTOR,
@@ -75,6 +77,8 @@ readonly class FlowObserver
                 queueId: $observeItem->getQueueId(),
                 includeStubs: $observeItem->getIncludeStubs(),
             );
+
+            $heartbeat?->touchIfDue();
         }
     }
 }
