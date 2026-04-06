@@ -8,6 +8,7 @@ use DateTimeInterface;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
+use Wundii\Flowcrafter\Storage\Entity\FlowExceptionListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
@@ -16,7 +17,7 @@ interface ServiceInterface
 {
     public function isServiceStorageInitialized(): bool;
 
-    public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
+    public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int;
 
     public function countExceptionsByFlowHash(string $flowHash): int;
 
@@ -29,9 +30,9 @@ interface ServiceInterface
     public function countFlowsBySubject(string $flowSubject): int;
 
     /**
-     * @return FlowException[]
+     * @return FlowExceptionListEntity[]
      */
-    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
+    public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable;
 
     /**
      * @return FlowListEntity[]

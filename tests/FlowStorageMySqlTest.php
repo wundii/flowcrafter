@@ -16,6 +16,7 @@ use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
+use Wundii\Flowcrafter\Storage\Entity\FlowExceptionListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
@@ -134,12 +135,12 @@ final class FlowStorageMySqlTest extends TestCase
             $this->assertInstanceOf(RuntimeException::class, $exception);
         }
 
-        $exceptions = iterator_to_array($storage->findAllExceptions(SortEnum::ASC));
+        $exceptions = [...$storage->findAllExceptions(SortEnum::ASC)];
         $this->assertCount(2, $exceptions);
         $this->assertSame(2, $storage->countExceptions());
-        $this->assertInstanceOf(FlowException::class, $exceptions[0]);
-        $this->assertInstanceOf(FlowException::class, $exceptions[1]);
-        $this->assertGreaterThan($exceptions[0]->getHash(), $exceptions[1]->getHash());
+        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[0]);
+        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[1]);
+        $this->assertGreaterThan($exceptions[0]->hash, $exceptions[1]->hash);
     }
 
     /**
@@ -166,12 +167,12 @@ final class FlowStorageMySqlTest extends TestCase
             $this->assertInstanceOf(RuntimeException::class, $exception);
         }
 
-        $exceptions = iterator_to_array($storage->findAllExceptions());
+        $exceptions = [...$storage->findAllExceptions()];
         $this->assertCount(2, $exceptions);
         $this->assertSame(2, $storage->countExceptions());
-        $this->assertInstanceOf(FlowException::class, $exceptions[0]);
-        $this->assertInstanceOf(FlowException::class, $exceptions[1]);
-        $this->assertLessThan($exceptions[0]->getHash(), $exceptions[1]->getHash());
+        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[0]);
+        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[1]);
+        $this->assertLessThan($exceptions[0]->hash, $exceptions[1]->hash);
     }
 
     public function testFindFlowInstanceByHash(): void
@@ -461,10 +462,10 @@ final class FlowStorageMySqlTest extends TestCase
         $from = new DateTimeImmutable('-1 day');
         $to = new DateTimeImmutable('+1 day');
 
-        $exceptions = iterator_to_array($storage->findAllExceptions(SortEnum::DESC, 1000, 0, $from, $to));
+        $exceptions = [...$storage->findAllExceptions(SortEnum::DESC, 1000, 0, $from, $to)];
         $this->assertCount(2, $exceptions);
-        $this->assertInstanceOf(FlowException::class, $exceptions[0]);
-        $this->assertInstanceOf(FlowException::class, $exceptions[1]);
+        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[0]);
+        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[1]);
     }
 
     /**
@@ -494,7 +495,7 @@ final class FlowStorageMySqlTest extends TestCase
         $from = new DateTimeImmutable('2020-01-01');
         $to = new DateTimeImmutable('2020-01-02');
 
-        $exceptions = iterator_to_array($storage->findAllExceptions(SortEnum::DESC, 1000, 0, $from, $to));
+        $exceptions = [...$storage->findAllExceptions(SortEnum::DESC, 1000, 0, $from, $to)];
         $this->assertCount(0, $exceptions);
     }
 

@@ -24,6 +24,7 @@ final class ExceptionController
         $top = max(1, min(10000, (int) $request->query->get('top', 1000)));
         $skip = max(0, (int) $request->query->get('skip', 0));
         $flowHash = $request->query->get('flowHash');
+        $status = $request->query->get('status');
         $fromStr = $request->query->get('from');
         $toStr = $request->query->get('to');
         $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $fromStr) : null;
@@ -33,7 +34,7 @@ final class ExceptionController
 
         $exceptions = $flowHash !== null
             ? $this->storage->findExceptionsByFlowHash($flowHash, $sort, $top + 1, $skip, $from, $to)
-            : $this->storage->findAllExceptions($sort, $top + 1, $skip, $from, $to);
+            : $this->storage->findAllExceptions($sort, $top + 1, $skip, $from, $to, $status);
 
         $items = array_values(iterator_to_array($exceptions));
         $hasMore = count($items) > $top;
@@ -43,7 +44,7 @@ final class ExceptionController
 
         $total = $flowHash !== null
             ? $this->storage->countExceptionsByFlowHash($flowHash)
-            : $this->storage->countExceptions();
+            : $this->storage->countExceptions($from, $to, $status);
 
         return new JsonResponse([
             'items' => $items,
