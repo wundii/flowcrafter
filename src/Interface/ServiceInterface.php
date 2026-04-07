@@ -59,7 +59,7 @@ interface ServiceInterface
     /**
      * @return FlowTypeStatsEntity[]
      */
-    public function findFlowTypeStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): array;
+    public function findFlowTypeStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
 
     public function saveFlow(Flow $flow): void;
 

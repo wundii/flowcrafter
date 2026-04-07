@@ -231,8 +231,20 @@ abstract class Service implements StorageInterface
 
         $stmt = $this->client->prepare($sql);
         $stmt->execute($params);
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
 
-        return array_map($this->mapFlowListRow(...), $stmt->fetchAll(Client::FETCH_ASSOC));
+        foreach ($stmt as $row) {
+            /** @var array{flow_hash: string, flow_type: string, flow_source: string, flow_subject: string|null, flow_time: string, last_term: string, status: string} $row */
+            yield new FlowListEntity(
+                flowHash: $row['flow_hash'],
+                flowType: $row['flow_type'],
+                flowSource: $row['flow_source'],
+                flowSubject: $row['flow_subject'],
+                flowTime: new DateTimeImmutable($row['flow_time']),
+                lastTerm: new DateTimeImmutable($row['last_term']),
+                statusEnum: StatusEnum::fromName($row['status']),
+            );
+        }
     }
 
     /**
@@ -254,8 +266,20 @@ abstract class Service implements StorageInterface
 
         $stmt = $this->client->prepare($sql);
         $stmt->execute($params);
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
 
-        return array_map($this->mapFlowListRow(...), $stmt->fetchAll(Client::FETCH_ASSOC));
+        foreach ($stmt as $row) {
+            /** @var array{flow_hash: string, flow_type: string, flow_source: string, flow_subject: string|null, flow_time: string, last_term: string, status: string} $row */
+            yield new FlowListEntity(
+                flowHash: $row['flow_hash'],
+                flowType: $row['flow_type'],
+                flowSource: $row['flow_source'],
+                flowSubject: $row['flow_subject'],
+                flowTime: new DateTimeImmutable($row['flow_time']),
+                lastTerm: new DateTimeImmutable($row['last_term']),
+                statusEnum: StatusEnum::fromName($row['status']),
+            );
+        }
     }
 
     /**
@@ -277,8 +301,20 @@ abstract class Service implements StorageInterface
 
         $stmt = $this->client->prepare($sql);
         $stmt->execute($params);
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
 
-        return array_map($this->mapFlowListRow(...), $stmt->fetchAll(Client::FETCH_ASSOC));
+        foreach ($stmt as $row) {
+            /** @var array{flow_hash: string, flow_type: string, flow_source: string, flow_subject: string|null, flow_time: string, last_term: string, status: string} $row */
+            yield new FlowListEntity(
+                flowHash: $row['flow_hash'],
+                flowType: $row['flow_type'],
+                flowSource: $row['flow_source'],
+                flowSubject: $row['flow_subject'],
+                flowTime: new DateTimeImmutable($row['flow_time']),
+                lastTerm: new DateTimeImmutable($row['last_term']),
+                statusEnum: StatusEnum::fromName($row['status']),
+            );
+        }
     }
 
     /**
@@ -303,8 +339,20 @@ abstract class Service implements StorageInterface
 
         $stmt = $this->client->prepare($sql);
         $stmt->execute($params);
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
 
-        return array_map($this->mapFlowListRow(...), $stmt->fetchAll(Client::FETCH_ASSOC));
+        foreach ($stmt as $row) {
+            /** @var array{flow_hash: string, flow_type: string, flow_source: string, flow_subject: string|null, flow_time: string, last_term: string, status: string} $row */
+            yield new FlowListEntity(
+                flowHash: $row['flow_hash'],
+                flowType: $row['flow_type'],
+                flowSource: $row['flow_source'],
+                flowSubject: $row['flow_subject'],
+                flowTime: new DateTimeImmutable($row['flow_time']),
+                lastTerm: new DateTimeImmutable($row['last_term']),
+                statusEnum: StatusEnum::fromName($row['status']),
+            );
+        }
     }
 
     public function saveFlow(Flow $flow): void
@@ -401,14 +449,32 @@ abstract class Service implements StorageInterface
 
         $stmt = $this->client->prepare($sql);
         $stmt->execute($params);
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
 
-        return array_map($this->mapFlowExceptionListEntityRow(...), $stmt->fetchAll(Client::FETCH_ASSOC));
+        foreach ($stmt as $row) {
+            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: string, stub_hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_status: string} $row */
+            yield new FlowExceptionListEntity(
+                hash: $row['hash'],
+                flowHash: $row['flow_hash'],
+                flowRuntimeHash: $row['flow_runtime_hash'],
+                flowType: $row['flow_type'],
+                stubSource: $row['stub_source'],
+                stubHash: $row['stub_hash'],
+                code: (int) $row['code'],
+                message: $row['message'],
+                file: $row['file'],
+                line: (int) $row['line'],
+                traceString: $row['trace_string'],
+                time: new DateTimeImmutable($row['time']),
+                flowStatus: StatusEnum::fromName($row['flow_status']),
+            );
+        }
     }
 
     /**
      * @return FlowTypeStatsEntity[]
      */
-    public function findFlowTypeStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): array
+    public function findFlowTypeStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
         [$where, $params] = $this->buildDateFilter($from, $to, 'last_term');
 
@@ -416,7 +482,7 @@ abstract class Service implements StorageInterface
             SELECT
                 flow_type,
                 COUNT(*) AS total,
-                SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) AS failed,
+                SUM(CASE WHEN status IN ('FAILED', 'WARNING', 'IN_PROGRESS_EXCEEDED') THEN 1 ELSE 0 END) AS failed,
                 MAX(last_term) AS last_time
             FROM flow_list
             SQL;
@@ -425,15 +491,15 @@ abstract class Service implements StorageInterface
 
         $stmt = $this->client->prepare($sql);
         $stmt->execute($params);
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
 
-        $result = [];
-        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
+        foreach ($stmt as $row) {
             /** @var array{flow_type: string, total: int|string, failed: int|string, last_time: string|null} $row */
             $total = (int) $row['total'];
             $failed = (int) $row['failed'];
             $prefix = (string) preg_replace('/\.v\d+$/', '', $row['flow_type']);
 
-            $result[] = new FlowTypeStatsEntity(
+            yield new FlowTypeStatsEntity(
                 prefix: $prefix,
                 flowType: $row['flow_type'],
                 total: $total,
@@ -442,8 +508,6 @@ abstract class Service implements StorageInterface
                 lastTime: $row['last_time'] ? new DateTimeImmutable($row['last_time']) : null,
             );
         }
-
-        return $result;
     }
 
     public function truncateFlowList(): void
@@ -501,45 +565,5 @@ abstract class Service implements StorageInterface
         }
 
         return [$where, $params];
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function mapFlowListRow(array $row): FlowListEntity
-    {
-        /** @var array{flow_hash: string, flow_type: string, flow_source: string, flow_subject: string|null, flow_time: string, last_term: string, status: string} $row */
-        return new FlowListEntity(
-            flowHash: $row['flow_hash'],
-            flowType: $row['flow_type'],
-            flowSource: $row['flow_source'],
-            flowSubject: $row['flow_subject'],
-            flowTime: new DateTimeImmutable($row['flow_time']),
-            lastTerm: new DateTimeImmutable($row['last_term']),
-            statusEnum: StatusEnum::fromName($row['status']),
-        );
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function mapFlowExceptionListEntityRow(array $row): FlowExceptionListEntity
-    {
-        /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: string, stub_hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_status: string} $row */
-        return new FlowExceptionListEntity(
-            hash: $row['hash'],
-            flowHash: $row['flow_hash'],
-            flowRuntimeHash: $row['flow_runtime_hash'],
-            flowType: $row['flow_type'],
-            stubSource: $row['stub_source'],
-            stubHash: $row['stub_hash'],
-            code: (int) $row['code'],
-            message: $row['message'],
-            file: $row['file'],
-            line: (int) $row['line'],
-            traceString: $row['trace_string'],
-            time: new DateTimeImmutable($row['time']),
-            flowStatus: StatusEnum::fromName($row['flow_status']),
-        );
     }
 }

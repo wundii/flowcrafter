@@ -73,7 +73,7 @@ final class FlowController
 
         $stats = $this->storage->findFlowTypeStats($from, $to);
 
-        return new JsonResponse($stats);
+        return new JsonResponse(iterator_to_array($stats));
     }
 
     public function stats(Request $request): JsonResponse

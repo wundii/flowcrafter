@@ -499,8 +499,11 @@ class MySql extends Service implements StorageInterface
             return;
         }
 
-        foreach ($stmt->fetchAll(Client::FETCH_COLUMN) as $hash) {
-            yield (string) $hash;
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
+
+        foreach ($stmt as $hash) {
+            /** @var array{flow_hash: string} $hash */
+            yield $hash['flow_hash'];
         }
     }
 
@@ -517,7 +520,10 @@ class MySql extends Service implements StorageInterface
             return [];
         }
 
-        foreach ($stmt->fetchAll() as $row) {
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
+
+        foreach ($stmt as $row) {
+            /** @var array{flow_schema: string} $row */
             $flowSchema = $row['flow_schema'];
             $flowSchemaArray = json_decode($flowSchema, true);
             if (!is_array($flowSchemaArray)) {
@@ -542,23 +548,25 @@ class MySql extends Service implements StorageInterface
             return [];
         }
 
-        foreach ($stmt->fetchAll() as $row) {
-            $includeStubsRaw = $row['include_stubs'] ?? '[]';
-            /** @var class-string[] $includeStubsParsed */
-            $includeStubsParsed = is_string($includeStubsRaw) ? (json_decode($includeStubsRaw, true) ?? []) : [];
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
 
-            $messageArray = json_decode($row['message'] ?? '[]', true);
+        foreach ($stmt as $row) {
+            /** @var array{queue_id: string, type: string, flow_subject: string|null, flow_source: class-string<\Wundii\Flowcrafter\Interface\FlowInterface>, flow_hash: string|null, message_source: string, message: string, include_stubs: string|null} $row */
+            /** @var class-string[] $includeStubsParsed */
+            $includeStubsParsed = json_decode($row['include_stubs'] ?? '[]', true) ?? [];
+
+            $messageArray = json_decode($row['message'], true);
             if (!is_array($messageArray)) {
                 throw new RuntimeException('Could not validate message payload.');
             }
 
             yield new ObserveItem(
-                queueId: (string) ($row['queue_id'] ?? ''),
-                type: $row['type'] ?? '',
-                flowSubject: $row['flow_subject'] ?? null,
-                flowSource: $row['flow_source'] ?? '',
-                flowHash: $row['flow_hash'] ?? null,
-                messageSource: $row['message_source'] ?? '',
+                queueId: $row['queue_id'],
+                type: $row['type'],
+                flowSubject: $row['flow_subject'],
+                flowSource: $row['flow_source'],
+                flowHash: $row['flow_hash'],
+                messageSource: $row['message_source'],
                 message: $messageArray,
                 includeStubs: $includeStubsParsed,
             );
@@ -650,8 +658,11 @@ class MySql extends Service implements StorageInterface
             ':flow_hash' => $flowHash,
         ]);
 
-        foreach ($stmt->fetchAll() as $message) {
-            $messageJson = $message['message'] ?? '';
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
+
+        foreach ($stmt as $message) {
+            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, stub_source: string, stub_hash: string|null, message_type: string, message_source: string, message_hash: string, message: string, predecessor_hash: string, time: string} $message */
+            $messageJson = $message['message'];
             if (!json_validate($messageJson)) {
                 throw new RuntimeException('Could not validate flow message payload.');
             }
@@ -662,17 +673,17 @@ class MySql extends Service implements StorageInterface
             }
 
             $flowArray['flowMessages'][] = [
-                'hash' => $message['hash'] ?? '',
-                'flowHash' => $message['flow_hash'] ?? '',
-                'flowRuntimeHash' => $message['flow_runtime_hash'] ?? '',
-                'stubSource' => $message['stub_source'] ?? '',
-                'stubHash' => $message['stub_hash'] ?? null,
-                'messageType' => $message['message_type'] ?? '',
-                'messageSource' => $message['message_source'] ?? '',
-                'messageHash' => $message['message_hash'] ?? '',
+                'hash' => $message['hash'],
+                'flowHash' => $message['flow_hash'],
+                'flowRuntimeHash' => $message['flow_runtime_hash'],
+                'stubSource' => $message['stub_source'],
+                'stubHash' => $message['stub_hash'],
+                'messageType' => $message['message_type'],
+                'messageSource' => $message['message_source'],
+                'messageHash' => $message['message_hash'],
                 'message' => $messageArray,
-                'predecessorHash' => $message['predecessor_hash'] ?? '',
-                'time' => $message['time'] ?? 'now',
+                'predecessorHash' => $message['predecessor_hash'],
+                'time' => $message['time'],
             ];
         }
 
@@ -685,20 +696,23 @@ class MySql extends Service implements StorageInterface
             ':flow_hash' => $flowHash,
         ]);
 
-        foreach ($stmt->fetchAll() as $exception) {
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
+
+        foreach ($stmt as $exception) {
+            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: string, stub_hash: string|null, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string} $exception */
             $flowArray['flowExceptions'][] = [
-                'hash' => $exception['hash'] ?? '',
-                'flowHash' => $exception['flow_hash'] ?? '',
-                'flowRuntimeHash' => $exception['flow_runtime_hash'] ?? '',
-                'flowType' => $exception['flow_type'] ?? '',
-                'stubSource' => $exception['stub_source'] ?? '',
-                'stubHash' => $exception['stub_hash'] ?? null,
-                'code' => $exception['code'] ?? 0,
-                'message' => $exception['message'] ?? '',
-                'file' => $exception['file'] ?? '',
-                'line' => $exception['line'] ?? 0,
-                'traceString' => $exception['trace_string'] ?? '',
-                'time' => $exception['time'] ?? 'now',
+                'hash' => $exception['hash'],
+                'flowHash' => $exception['flow_hash'],
+                'flowRuntimeHash' => $exception['flow_runtime_hash'],
+                'flowType' => $exception['flow_type'],
+                'stubSource' => $exception['stub_source'],
+                'stubHash' => $exception['stub_hash'],
+                'code' => $exception['code'],
+                'message' => $exception['message'],
+                'file' => $exception['file'],
+                'line' => $exception['line'],
+                'traceString' => $exception['trace_string'],
+                'time' => $exception['time'],
             ];
         }
 
@@ -711,15 +725,18 @@ class MySql extends Service implements StorageInterface
             ':flow_hash' => $flowHash,
         ]);
 
-        foreach ($stmt->fetchAll() as $result) {
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
+
+        foreach ($stmt as $result) {
+            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, stub_source: string, stub_hash: string|null, result: int|string, time: string} $result */
             $flowArray['flowResults'][] = [
-                'hash' => $result['hash'] ?? '',
-                'flowHash' => $result['flow_hash'] ?? '',
-                'flowRuntimeHash' => $result['flow_runtime_hash'] ?? '',
-                'stubSource' => $result['stub_source'] ?? '',
-                'stubHash' => $result['stub_hash'] ?? null,
-                'result' => (bool) ($result['result'] ?? false),
-                'time' => $result['time'] ?? 'now',
+                'hash' => $result['hash'],
+                'flowHash' => $result['flow_hash'],
+                'flowRuntimeHash' => $result['flow_runtime_hash'],
+                'stubSource' => $result['stub_source'],
+                'stubHash' => $result['stub_hash'],
+                'result' => (bool) $result['result'],
+                'time' => $result['time'],
             ];
         }
 
@@ -732,13 +749,16 @@ class MySql extends Service implements StorageInterface
             ':flow_hash' => $flowHash,
         ]);
 
-        foreach ($stmt->fetchAll() as $run) {
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
+
+        foreach ($stmt as $run) {
+            /** @var array{flow_hash: string, flow_runtime_hash: string, flow_type: string, time: string, queue_id: string} $run */
             $flowArray['flowRuns'][] = [
-                'flowHash' => $run['flow_hash'] ?? '',
-                'flowRuntimeHash' => $run['flow_runtime_hash'] ?? '',
-                'flowType' => $run['flow_type'] ?? '',
-                'time' => $run['time'] ?? 'now',
-                'queueId' => $run['queue_id'] ?? '',
+                'flowHash' => $run['flow_hash'],
+                'flowRuntimeHash' => $run['flow_runtime_hash'],
+                'flowType' => $run['flow_type'],
+                'time' => $run['time'],
+                'queueId' => $run['queue_id'],
             ];
         }
 
@@ -811,7 +831,9 @@ class MySql extends Service implements StorageInterface
             ':stub_source' => $stubSource,
         ]);
 
-        foreach ($stmt->fetchAll() as $stubSource) {
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
+
+        foreach ($stmt as $stubSource) {
             /** @var array{stub_hash: string, stub_source: class-string<StubInterface>, source_content: string, time: string} $stubSource */
             yield new StubSourceEntity(
                 stubHash: $stubSource['stub_hash'],

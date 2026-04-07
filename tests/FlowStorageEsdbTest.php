@@ -776,7 +776,7 @@ final class FlowStorageEsdbTest extends TestCase
         } catch (Exception) {
         }
 
-        $stats = $storage->findFlowTypeStats();
+        $stats = iterator_to_array($storage->findFlowTypeStats());
         $this->assertCount(2, $stats);
 
         $statsMap = [];

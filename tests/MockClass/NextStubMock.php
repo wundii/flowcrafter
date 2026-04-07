@@ -23,14 +23,6 @@ class NextStubMock implements StubInterface
 
     public function process(): bool
     {
-        $input = $this->messageDataMock->getData();
-
-        $dishes = ['Pasta', 'Risotto', 'Suppe', 'Salat', 'Auflauf'];
-        $dish = $dishes[array_rand($dishes)];
-
-        $ratings = ['fantastisch', 'grandios', 'himmlisch', 'unwiderstehlich', 'legendaer'];
-        $rating = $ratings[array_rand($ratings)];
-
-        return sprintf('%s %s - %s!', $dish, $input, $rating) > sprintf('Bewertung: %d/5 Sterne', random_int(3, 5));
+        return $this->messageDataMock->getData() !== '';
     }
 }
