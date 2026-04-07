@@ -24,7 +24,7 @@ final class FlowDockerInitCommand extends Command
     protected function configure(): void
     {
         $this->setName('docker:init');
-        $this->setDescription('Generate Dockerfile and docker-compose.yml for service and observer');
+        $this->setDescription('Generate Dockerfile and docker-compose.yml for service, observer, and scheduler');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

@@ -30,6 +30,24 @@ services:
       - observer-tmp:/tmp/flowcrafter
       - service-data:/app/data
 
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["vendor/bin/flowcrafter", "scheduler"]
+    environment:
+      FLOWCRAFTER_CONFIG: /app/flowcrafter.php
+    depends_on:
+      - service
+    healthcheck:
+      test: ["CMD-SHELL", "find /tmp/flowcrafter -name '*.heartbeat' -mmin -1 -type f | grep -q ."]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - observer-tmp:/tmp/flowcrafter
+      - service-data:/app/data
+
   ui:
     image: wundii/flowcrafter-ui:latest
     ports:

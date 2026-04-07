@@ -25,6 +25,13 @@ einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 | GET     | `/api/schema/stub-source`  | `className` oder `stubHash` | Stub-Quellcode (aktuell oder historisch) |
 | GET     | `/api/schema/stub-sources` | `stubSource`                | Alle historischen Snapshots eines Stubs  |
 
+## Schedules
+
+| Methode | Pfad                    | Parameter   | Beschreibung                                     |
+| ------- | ----------------------- | ----------- | ------------------------------------------------ |
+| GET     | `/api/schedules`        | —           | Alle entdeckten Schedules (Name, Cron, Klasse)   |
+| GET     | `/api/schedule/source`  | `className` | Quellcode einer Schedule-Klasse                  |
+
 ## Ausführung & Queue
 
 | Methode | Pfad               | Body / Parameter                                                                         | Beschreibung                    |

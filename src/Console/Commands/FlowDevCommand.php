@@ -19,12 +19,15 @@ use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\Console\Preflight\StoragePreflight;
 use Wundii\Flowcrafter\FlowObserver;
+use Wundii\Flowcrafter\FlowScheduler;
 
 final class FlowDevCommand extends Command
 {
     private ?Process $serverProcess = null;
 
     private ?Heartbeat $heartbeat = null;
+
+    private ?Heartbeat $schedulerHeartbeat = null;
 
     public function __construct(
         private FlowcrafterConfig $flowcrafterConfig,
@@ -94,13 +97,26 @@ final class FlowDevCommand extends Command
             '<fg=%s>starting observer</>',
             OutputColorEnum::BLUE->value,
         ));
-        $output->writeln('');
 
         $this->heartbeat = new Heartbeat();
 
         $storage = $this->flowcrafterConfig->getStorage();
         $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
         $flowObserver = new FlowObserver($storage, $dependencyInjections);
+
+        $flowScheduler = new FlowScheduler($storage, $dependencyInjections);
+        $scheduleCount = count($flowScheduler->getScheduleAttributes());
+        if ($scheduleCount > 0) {
+            $output->writeln(sprintf(
+                '<fg=%s>starting scheduler with %d schedule(s)</>',
+                OutputColorEnum::BLUE->value,
+                $scheduleCount,
+            ));
+            $this->schedulerHeartbeat = new Heartbeat('scheduler');
+            $this->schedulerHeartbeat->touch();
+        }
+
+        $output->writeln('');
 
         $logger = static function (string $message) use ($output): void {
             $output->writeln($message);
@@ -117,7 +133,14 @@ final class FlowDevCommand extends Command
                 sleep(2);
             }
 
+            try {
+                $flowScheduler->tick($logger);
+            } catch (Throwable $e) {
+                $output->writeln('[Scheduler] error: ' . $e->getMessage());
+            }
+
             $this->heartbeat->touch();
+            $this->schedulerHeartbeat?->touch();
         }
 
         /** @phpstan-ignore deadCode.unreachable */
@@ -133,5 +156,6 @@ final class FlowDevCommand extends Command
         }
 
         $this->heartbeat?->cleanup();
+        $this->schedulerHeartbeat?->cleanup();
     }
 }

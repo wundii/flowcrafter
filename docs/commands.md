@@ -8,7 +8,7 @@ vendor/bin/flowcrafter config:create
 # Storage-Tabellen / -Indizes anlegen
 vendor/bin/flowcrafter storage:init
 
-# Entwicklung: API-Server + Observer zusammen starten
+# Entwicklung: API-Server + Observer + Scheduler zusammen starten
 vendor/bin/flowcrafter dev [--host=0.0.0.0] [--port=8000]
 
 # Produktion: API-Server (FrankenPHP Worker Mode)
@@ -16,6 +16,9 @@ vendor/bin/flowcrafter service [--host=0.0.0.0] [--port=8000] [--workers=4]
 
 # Observer-Worker starten (ein oder mehrere)
 vendor/bin/flowcrafter observer [--workers=1]
+
+# Scheduler für zeitgesteuerte Flow-Auslösung starten
+vendor/bin/flowcrafter scheduler
 
 # Dockerfiles + docker-compose.yml generieren
 vendor/bin/flowcrafter docker:init

@@ -14,6 +14,7 @@ use Wundii\Service\Controller\FlowController;
 use Wundii\Service\Controller\HealthController;
 use Wundii\Service\Controller\InfoController;
 use Wundii\Service\Controller\QueueController;
+use Wundii\Service\Controller\ScheduleController;
 use Wundii\Service\Controller\SchemaController;
 
 final class Routes
@@ -28,6 +29,7 @@ final class Routes
         $healthController = new HealthController();
         $infoController = new InfoController($flowcrafterConfig, $storage);
         $queueController = new QueueController($storage, $flowPreflight);
+        $scheduleController = new ScheduleController();
         $schemaController = new SchemaController($storage);
 
         $router->add('/', MethodEnum::GET, $healthController->index(...));
@@ -46,6 +48,9 @@ final class Routes
         $router->add('/api/schemas', MethodEnum::GET, $schemaController->list(...));
         $router->add('/api/schema/stub-source', MethodEnum::GET, $schemaController->stubSource(...));
         $router->add('/api/schema/stub-sources', MethodEnum::GET, $schemaController->stubSources(...));
+
+        $router->add('/api/schedules', MethodEnum::GET, $scheduleController->list(...));
+        $router->add('/api/schedule/source', MethodEnum::GET, $scheduleController->source(...));
 
         $router->add('/api/exceptions', MethodEnum::GET, $exceptionController->list(...));
 

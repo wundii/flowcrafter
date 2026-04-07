@@ -81,6 +81,39 @@ Flows als Beschriftung gesetzt. Der `FlowObserver`-Daemon pollt
 `FlowRunner` aus. Exceptions werden protokolliert, der Observer läuft
 mit 2s Retry-Delay weiter.
 
+## Scheduler (zeitgesteuerte Ausführung)
+
+Der `FlowScheduler` ermöglicht zeitgesteuerte Flow-Auslösung über
+Cron-Ausdrücke. Schedule-Klassen werden automatisch aus dem
+Composer-Classmap entdeckt — sie müssen `AbstractSchedule` erweitern
+und das `#[FlowSchedule]`-Attribut tragen:
+
+```php
+use Wundii\Flowcrafter\Attribute\FlowSchedule;
+use Wundii\Flowcrafter\Schedule\AbstractSchedule;
+
+#[FlowSchedule('0 */6 * * *', name: 'order-cleanup')]
+class OrderCleanupSchedule extends AbstractSchedule
+{
+    public function process(): void
+    {
+        $this->enqueue(OrderFlow::class, new OrderInit('cleanup'));
+    }
+}
+```
+
+Innerhalb von `process()` stehen zwei Methoden bereit:
+- `$this->enqueue(...)` — legt eine Message in die Queue (asynchron,
+  vom Observer abgearbeitet)
+- `$this->run(...)` — führt einen Flow synchron aus
+
+Schedule-Klassen unterstützen Constructor-Injection mit den gleichen
+`dependenciesInjection`-Einträgen wie Stubs.
+
+Der Scheduler trackt pro Schedule die letzte Ausführungsminute und
+verhindert so Doppelausführungen innerhalb derselben Minute (relevant
+im Dev-Modus, wo `tick()` häufiger aufgerufen wird).
+
 ## Stub-Source-Snapshotting
 
 Bei jeder Flow-Ausführung wird der Quellcode der beteiligten Stubs als

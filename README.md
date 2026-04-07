@@ -21,13 +21,13 @@ Ausführung mit vollständigem Audit-Log.
   SQLite-Service-Layer als Query-Cache — eigene Backends via
   `StorageInterface` frei erweiterbar
 - Synchrone Ausführung (`FlowRunner`) + asynchrone Queue-Verarbeitung
-  (`FlowObserver`)
+  (`FlowObserver`) + zeitgesteuerte Ausführung (`FlowScheduler`)
 - Automatischer Flow-Status, vollständiges Message- & Exception-Logging,
   Schema-Versionierung via Hash
 - REST-API für Flows, Schemas, Queues & Exceptions inkl.
   Prometheus/OpenMetrics-Endpunkt
 - Symfony Console Commands für Config, Storage-Init/Rebuild, Dev-Server,
-  Observer und Mermaid-Diagramme
+  Observer, Scheduler und Mermaid-Diagramme
 - Testing-Helper (`FlowTestCase`, `FlowAssertTrait`) für storageless
   Unit-Tests
 
@@ -62,7 +62,7 @@ vendor/bin/flowcrafter config:create
 # 2. Storage initialisieren
 vendor/bin/flowcrafter storage:init
 
-# 3. Dev-Server (API + Observer) starten
+# 3. Dev-Server (API + Observer + Scheduler) starten
 vendor/bin/flowcrafter dev
 ```
 
@@ -72,7 +72,7 @@ Details siehe [docs/getting-started.md](docs/getting-started.md).
 
 Das optionale Web-Frontend
 [FlowCrafter UI](https://github.com/wundii/flowcrafter-ui) visualisiert
-Flows, Messages, Exceptions und Queues in Echtzeit:
+Flows, Messages, Exceptions, Schedules und Queues in Echtzeit:
 
 ```bash
 docker run -p 3000:3000 -v ./data:/flowcrafter/data wundii/flowcrafter-ui:latest
@@ -239,6 +239,25 @@ $storage->appendObserveItem(
 ```
 
 Alternativ über die REST-API: `POST /api/flows/run` (synchron) bzw. `POST /api/queue` (async) — siehe [docs/api.md](docs/api.md).
+
+**Zeitgesteuert** — Schedule-Klasse mit Cron-Ausdruck, wird automatisch vom `FlowScheduler` entdeckt und ausgeführt:
+
+```php
+use Wundii\Flowcrafter\Attribute\FlowSchedule;
+use Wundii\Flowcrafter\Schedule\AbstractSchedule;
+
+#[FlowSchedule('0 */6 * * *', name: 'order-cleanup')]
+class OrderCleanupSchedule extends AbstractSchedule
+{
+    public function process(): void
+    {
+        $this->enqueue(OrderFlow::class, new OrderInit('scheduled-cleanup'));
+        // oder synchron: $this->run(OrderFlow::class, new OrderInit('cleanup'));
+    }
+}
+```
+
+Schedule-Klassen werden über das `#[FlowSchedule]`-Attribut automatisch aus dem Composer-Classmap entdeckt — keine manuelle Registrierung nötig. Der Scheduler läuft als eigenständiger Prozess (`vendor/bin/flowcrafter scheduler`) oder im Dev-Modus inline mit.
 
 ### Test
 storageless mit `FlowTestCase`, kein Docker nötig:

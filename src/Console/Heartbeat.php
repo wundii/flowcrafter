@@ -10,9 +10,9 @@ final class Heartbeat
 
     private int $lastTouch = 0;
 
-    public function __construct()
+    public function __construct(string $type = 'observer')
     {
-        $this->file = sys_get_temp_dir() . '/flowcrafter/observer.' . gethostname() . '.' . getmypid() . '.heartbeat';
+        $this->file = sys_get_temp_dir() . '/flowcrafter/' . $type . '.' . gethostname() . '.' . getmypid() . '.heartbeat';
         @mkdir(dirname($this->file), 0755, true);
     }
 
