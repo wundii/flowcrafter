@@ -23,7 +23,6 @@ final class ExceptionController
         $sort = $request->query->get('sort', 'desc') === 'asc' ? SortEnum::ASC : SortEnum::DESC;
         $top = max(1, min(10000, (int) $request->query->get('top', 1000)));
         $skip = max(0, (int) $request->query->get('skip', 0));
-        $flowHash = $request->query->get('flowHash');
         $status = $request->query->get('status');
         $fromStr = $request->query->get('from');
         $toStr = $request->query->get('to');
@@ -32,19 +31,15 @@ final class ExceptionController
         $from = $from instanceof DateTimeImmutable ? $from : null;
         $to = $to instanceof DateTimeImmutable ? $to : null;
 
-        $exceptions = $flowHash !== null
-            ? $this->storage->findExceptionsByFlowHash($flowHash, $sort, $top + 1, $skip, $from, $to)
-            : $this->storage->findAllExceptions($sort, $top + 1, $skip, $from, $to, $status);
+        $exceptions = $this->storage->findAllExceptions($sort, $top + 1, $skip, $from, $to, $status);
 
-        $items = array_values(iterator_to_array($exceptions));
+        $items = iterator_to_array($exceptions);
         $hasMore = count($items) > $top;
         if ($hasMore) {
             array_pop($items);
         }
 
-        $total = $flowHash !== null
-            ? $this->storage->countExceptionsByFlowHash($flowHash)
-            : $this->storage->countExceptions($from, $to, $status);
+        $total = $this->storage->countExceptions($from, $to, $status);
 
         return new JsonResponse([
             'items' => $items,

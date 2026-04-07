@@ -27,6 +27,13 @@ class FailStubMock implements StubInterface
 
     public function process(): MessageReturnInterface
     {
+        if (
+            str_starts_with($this->messageDataMock->getData(), 'Rind')
+            && random_int(1, 10) !== 10
+        ) {
+            return new MessageReturnMock('success');
+        }
+
         throw new RuntimeException('Test Exception ' . $this->messageDataMock->getData());
     }
 }

@@ -14,7 +14,6 @@ use Tests\MockClass\WorkflowMock;
 use Tests\Trait\MySqlClientTestTrait;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
-use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Storage\Entity\FlowExceptionListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
@@ -502,63 +501,6 @@ final class FlowStorageMySqlTest extends TestCase
     /**
      * @throws Exception
      */
-    public function testFindExceptionsByFlowHashWithFromToMatching(): void
-    {
-        $storage = $this->storage();
-        $flowRunner = new FlowRunner(
-            type: 'flow.workflow.fail.v1',
-            flowSource: WorkflowFailMock::class,
-            storage: $storage,
-        );
-
-        try {
-            $flowRunner->run(new MessageInitMock('test data'));
-        } catch (Exception $exception) {
-            $this->assertInstanceOf(RuntimeException::class, $exception);
-        }
-
-        $flow = $flowRunner->getFlow();
-        $this->assertInstanceOf(Flow::class, $flow);
-
-        $from = new DateTimeImmutable('-1 day');
-        $to = new DateTimeImmutable('+1 day');
-
-        $exceptions = iterator_to_array($storage->findExceptionsByFlowHash($flow->getHash(), SortEnum::DESC, 1000, 0, $from, $to));
-        $this->assertCount(1, $exceptions);
-        $this->assertInstanceOf(FlowException::class, $exceptions[0]);
-    }
-
-    /**
-     * @throws Exception
-     */
-    public function testFindExceptionsByFlowHashWithFromToOutOfRange(): void
-    {
-        $storage = $this->storage();
-        $flowRunner = new FlowRunner(
-            type: 'flow.workflow.fail.v1',
-            flowSource: WorkflowFailMock::class,
-            storage: $storage,
-        );
-
-        try {
-            $flowRunner->run(new MessageInitMock('test data'));
-        } catch (Exception $exception) {
-            $this->assertInstanceOf(RuntimeException::class, $exception);
-        }
-
-        $flow = $flowRunner->getFlow();
-        $this->assertInstanceOf(Flow::class, $flow);
-
-        $from = new DateTimeImmutable('2020-01-01');
-        $to = new DateTimeImmutable('2020-01-02');
-
-        $exceptions = iterator_to_array($storage->findExceptionsByFlowHash($flow->getHash(), SortEnum::DESC, 1000, 0, $from, $to));
-        $this->assertCount(0, $exceptions);
-    }
-
-    /**
-     * @throws Exception
-     */
     public function testCountFlowsBySubject(): void
     {
         $storage = $this->storage();
@@ -848,7 +790,7 @@ final class FlowStorageMySqlTest extends TestCase
         $this->assertSame(2, $statsMap['flow.workflow']->total);
         $this->assertSame(0, $statsMap['flow.workflow']->failed);
         $this->assertSame(100, $statsMap['flow.workflow']->successRate);
-        $this->assertNotNull($statsMap['flow.workflow']->lastTime);
+        $this->assertInstanceOf(\DateTimeInterface::class, $statsMap['flow.workflow']->lastTime);
 
         $this->assertArrayHasKey('flow.workflow.fail', $statsMap);
         $this->assertSame(1, $statsMap['flow.workflow.fail']->total);

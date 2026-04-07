@@ -18,9 +18,6 @@ use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
-use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
-use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
-use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
 
 final class FlowController
 {
@@ -48,7 +45,7 @@ final class FlowController
             ? $this->storage->findFlowsByType($type, $sort, $top + 1, $skip, $from, $to)
             : $this->storage->findAllFlows($sort, $top + 1, $skip, $from, $to);
 
-        $items = array_map($this->serializeEntity(...), iterator_to_array($flows));
+        $items = iterator_to_array($flows);
         $hasMore = count($items) > $top;
         if ($hasMore) {
             array_pop($items);
@@ -76,17 +73,7 @@ final class FlowController
 
         $stats = $this->storage->findFlowTypeStats($from, $to);
 
-        return new JsonResponse(array_map(
-            static fn (FlowTypeStatsEntity $flowTypeStatsEntity): array => [
-                'prefix' => $flowTypeStatsEntity->prefix,
-                'flowType' => $flowTypeStatsEntity->flowType,
-                'total' => $flowTypeStatsEntity->total,
-                'failed' => $flowTypeStatsEntity->failed,
-                'successRate' => $flowTypeStatsEntity->successRate,
-                'lastTime' => $flowTypeStatsEntity->lastTime,
-            ],
-            $stats,
-        ));
+        return new JsonResponse($stats);
     }
 
     public function stats(Request $request): JsonResponse
@@ -101,14 +88,7 @@ final class FlowController
 
         $stats = iterator_to_array($this->storage->findFlowStats($from, $to, $type));
 
-        return new JsonResponse(array_map(
-            static fn (FlowStatsEntity $flowStatsEntity): array => [
-                'date' => $flowStatsEntity->date,
-                'instances' => $flowStatsEntity->instances,
-                'runs' => $flowStatsEntity->runs,
-            ],
-            $stats,
-        ));
+        return new JsonResponse($stats);
     }
 
     public function search(Request $request): JsonResponse
@@ -126,7 +106,7 @@ final class FlowController
         $top = max(1, min(100, (int) $request->query->get('top', 10)));
 
         $flows = $this->storage->findFlowsBySubject($subject, SortEnum::DESC, $top + 1);
-        $items = array_map($this->serializeEntity(...), iterator_to_array($flows));
+        $items = iterator_to_array($flows);
         $hasMore = count($items) > $top;
         if ($hasMore) {
             array_pop($items);
@@ -242,21 +222,5 @@ final class FlowController
             'runtimeHash' => $flowRunner->getFlow()?->getRuntimeHash(),
             'messageReturn' => $messageReturn instanceof MessageReturnInterface ? $messageReturn : null,
         ]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function serializeEntity(FlowListEntity $flowListEntity): array
-    {
-        return [
-            'flowHash' => $flowListEntity->flowHash,
-            'flowType' => $flowListEntity->flowType,
-            'flowSource' => $flowListEntity->flowSource,
-            'flowSubject' => $flowListEntity->flowSubject,
-            'flowTime' => $flowListEntity->flowTime->format(DateTimeInterface::RFC3339_EXTENDED),
-            'lastTerm' => $flowListEntity->lastTerm->format(DateTimeInterface::RFC3339_EXTENDED),
-            'status' => $flowListEntity->statusEnum->name,
-        ];
     }
 }

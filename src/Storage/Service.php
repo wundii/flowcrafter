@@ -12,9 +12,7 @@ use Throwable;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
-use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\Interface\StorageInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowExceptionListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
@@ -377,19 +375,9 @@ abstract class Service implements StorageInterface
 
         $stmt = $this->client->prepare(
             'SELECT COUNT(*) FROM flow_exception_list fel' .
-            ' LEFT JOIN flow_list fl ON fel.flow_hash = fl.flow_hash' . $where
+            ' JOIN flow_list fl ON fel.flow_hash = fl.flow_hash' . $where
         );
         $stmt->execute($params);
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    public function countExceptionsByFlowHash(string $flowHash): int
-    {
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_exception_list WHERE flow_hash = :flow_hash');
-        $stmt->execute([
-            ':flow_hash' => $flowHash,
-        ]);
 
         return (int) $stmt->fetchColumn();
     }
@@ -404,7 +392,7 @@ abstract class Service implements StorageInterface
         [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
         $sql = 'SELECT fel.*, fl.status AS flow_status FROM flow_exception_list fel' .
-            ' LEFT JOIN flow_list fl ON fel.flow_hash = fl.flow_hash' . $where .
+            ' JOIN flow_list fl ON fel.flow_hash = fl.flow_hash' . $where .
             ' ORDER BY fel.time ' . $sortEnum->name .
             ' LIMIT :top OFFSET :skip';
 
@@ -415,29 +403,6 @@ abstract class Service implements StorageInterface
         $stmt->execute($params);
 
         return array_map($this->mapFlowExceptionListEntityRow(...), $stmt->fetchAll(Client::FETCH_ASSOC));
-    }
-
-    /**
-     * @return FlowException[]
-     */
-    public function findExceptionsByFlowHash(string $flowHash, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        [$where, $params] = $this->buildDateFilter($from, $to, 'time');
-
-        $where = $where === '' ? ' WHERE flow_hash = :flow_hash' : $where . ' AND flow_hash = :flow_hash';
-        $params[':flow_hash'] = $flowHash;
-
-        $sql = 'SELECT * FROM flow_exception_list' . $where .
-            ' ORDER BY time ' . $sortEnum->name .
-            ' LIMIT :top OFFSET :skip';
-
-        $params[':top'] = max(1, $top);
-        $params[':skip'] = max(0, $skip);
-
-        $stmt = $this->client->prepare($sql);
-        $stmt->execute($params);
-
-        yield from array_map($this->mapFlowExceptionListRow(...), $stmt->fetchAll(Client::FETCH_ASSOC));
     }
 
     /**
@@ -474,7 +439,7 @@ abstract class Service implements StorageInterface
                 total: $total,
                 failed: $failed,
                 successRate: $total > 0 ? (int) round((($total - $failed) / $total) * 100) : null,
-                lastTime: $row['last_time'],
+                lastTime: $row['last_time'] ? new DateTimeImmutable($row['last_time']) : null,
             );
         }
 
@@ -552,28 +517,6 @@ abstract class Service implements StorageInterface
             flowTime: new DateTimeImmutable($row['flow_time']),
             lastTerm: new DateTimeImmutable($row['last_term']),
             statusEnum: StatusEnum::fromName($row['status']),
-        );
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function mapFlowExceptionListRow(array $row): FlowException
-    {
-        /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: class-string<StubInterface>, stub_hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string} $row */
-        return new FlowException(
-            flowHash: $row['flow_hash'],
-            flowRuntimeHash: $row['flow_runtime_hash'],
-            flowType: $row['flow_type'],
-            stubSource: $row['stub_source'],
-            stubHash: $row['stub_hash'],
-            code: (int) $row['code'],
-            message: $row['message'],
-            file: $row['file'],
-            line: (int) $row['line'],
-            traceString: $row['trace_string'],
-            time: new DateTimeImmutable($row['time']),
-            hash: $row['hash'],
         );
     }
 
