@@ -123,7 +123,7 @@ final class ScheduleDiscovery
     {
         $candidates = [
             dirname(__DIR__, 2) . '/vendor/composer/' . $filename,
-            dirname(__DIR__, 5) . '/composer/' . $filename,
+            dirname(__DIR__, 4) . '/composer/' . $filename,
             getcwd() . '/vendor/composer/' . $filename,
         ];
 
