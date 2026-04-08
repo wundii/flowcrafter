@@ -33,6 +33,7 @@ final class ScheduleController
                 'className' => $className,
                 'name' => $attribute->name,
                 'expression' => $attribute->expression,
+                'group' => $attribute->group,
             ];
         }
 

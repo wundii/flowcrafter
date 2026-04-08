@@ -7,7 +7,7 @@ namespace Tests\MockClass;
 use Wundii\Flowcrafter\Attribute\FlowSchedule;
 use Wundii\Flowcrafter\Schedule\AbstractSchedule;
 
-#[FlowSchedule('* * * * *', name: 'test-schedule')]
+#[FlowSchedule('*/5 * * * *', name: 'test-schedule')]
 class ScheduleMock extends AbstractSchedule
 {
     public bool $executed = false;
@@ -15,6 +15,36 @@ class ScheduleMock extends AbstractSchedule
     public function process(): void
     {
         $this->executed = true;
-        $this->enqueue(WorkflowMock::class, new MessageInitMock('scheduled'));
+
+        $animals = [
+            'Aal',
+            'Ente',
+            'Fisch',
+            'Forelle',
+            'Gans',
+            'Hirsch',
+            'Huhn',
+            'Kabeljau',
+            'Kalb',
+            'Kaninchen',
+            'Lachs',
+            'Lamm',
+            'Makrele',
+            'Pute',
+            'Reh',
+            'Rind',
+            'Sardine',
+            'Schwein',
+            'Thunfisch',
+            'Wildschwein',
+        ];
+
+        $animal = $animals[array_rand($animals)];
+
+        $this->enqueue(
+            flowSource: WorkflowMock::class,
+            message: new MessageInitMock($animal),
+            flowSubject: 'test-subject-' . random_int(1, 99999),
+        );
     }
 }

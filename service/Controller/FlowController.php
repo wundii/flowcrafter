@@ -14,6 +14,7 @@ use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\Flow\FlowDiscovery;
 use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
@@ -72,8 +73,16 @@ final class FlowController
         $to = $to instanceof DateTimeImmutable ? $to : null;
 
         $stats = $this->storage->findFlowTypeStats($from, $to);
+        $groupMap = FlowDiscovery::discover();
 
-        return new JsonResponse(iterator_to_array($stats));
+        $result = [];
+        foreach ($stats as $entity) {
+            $item = $entity->jsonSerialize();
+            $item['group'] = $groupMap[$entity->flowType] ?? null;
+            $result[] = $item;
+        }
+
+        return new JsonResponse($result);
     }
 
     public function stats(Request $request): JsonResponse
