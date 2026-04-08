@@ -8,11 +8,11 @@ use DateTimeInterface;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
-use Wundii\Flowcrafter\Storage\Entity\FlowExceptionListEntity;
+use Wundii\Flowcrafter\Storage\Entity\ExceptionListEntity;
+use Wundii\Flowcrafter\Storage\Entity\ExceptionStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
-use Wundii\Flowcrafter\Storage\Entity\ScheduleExceptionListEntity;
 
 interface ServiceInterface
 {
@@ -31,14 +31,14 @@ interface ServiceInterface
     public function countFlowsBySubject(string $flowSubject): int;
 
     /**
-     * @return FlowExceptionListEntity[]
+     * @return ExceptionListEntity[]
      */
     public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable;
 
     /**
-     * @return ScheduleExceptionListEntity[]
+     * @return ExceptionStatsEntity[]
      */
-    public function findAllScheduleExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
+    public function findExceptionStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
 
     /**
      * @return FlowListEntity[]

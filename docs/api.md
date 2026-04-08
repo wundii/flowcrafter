@@ -16,8 +16,8 @@ einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 | GET     | `/api/flows/stats`    | `from`, `to`, `type`                             | Tägliche Flow-Statistiken             |
 | GET     | `/api/flows/search`   | `subject`, `top`                                 | Flows nach `flowSubject` suchen       |
 | GET     | `/api/flows/types`    | `from`, `to`                                     | Flow-Typen mit Runs/Fehler/OK-Rate und optionalem `group` |
-| GET     | `/api/exceptions`     | `sort`, `top`, `skip`, `from`, `to`, `status`    | Flow-Exceptions (paginiert, filterbar) |
-| GET     | `/api/schedule-exceptions` | `sort`, `top`, `skip`, `from`, `to`         | Schedule-Exceptions (paginiert, filterbar) |
+| GET     | `/api/exceptions`     | `sort`, `top`, `skip`, `from`, `to`, `status`    | Flow- und Schedule-Exceptions (paginiert, filterbar, klassifiziert via `type`) |
+| GET     | `/api/exceptions/stats` | `from`, `to`                                   | Tägliche Exception-Statistiken (`{ date, flow, schedule }`) |
 
 ## Schemas & Stub-Source
 
@@ -54,7 +54,7 @@ Details siehe [monitoring.md](monitoring.md).
 
 ## Pagination
 
-Die Endpunkte `/api/flows`, `/api/exceptions` und `/api/schedule-exceptions` unterstützen Paginierung:
+Die Endpunkte `/api/flows` und `/api/exceptions` unterstützen Paginierung:
 
 | Parameter | Default | Beschreibung                 |
 | --------- | ------- | ---------------------------- |

@@ -1,0 +1,67 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Wundii\Flowcrafter\Storage\Entity;
+
+use DateTimeInterface;
+use JsonSerializable;
+use Wundii\Flowcrafter\Enum\StatusEnum;
+
+class ExceptionListEntity implements JsonSerializable
+{
+    public function __construct(
+        public string $type,
+        public string $hash,
+        public int $code,
+        public string $message,
+        public string $file,
+        public int $line,
+        public string $traceString,
+        public DateTimeInterface $time,
+        public ?string $flowHash,
+        public ?string $flowRuntimeHash,
+        public ?string $flowType,
+        public ?string $stubSource,
+        public ?string $stubHash,
+        public ?StatusEnum $flowStatus,
+        public ?string $scheduleClass,
+        public ?string $scheduleName,
+        public ?string $scheduleExpression,
+    ) {
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function jsonSerialize(): array
+    {
+        $data = [
+            'type' => $this->type,
+            'hash' => $this->hash,
+            'code' => $this->code,
+            'message' => $this->message,
+            'file' => $this->file,
+            'line' => $this->line,
+            'traceString' => $this->traceString,
+            'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
+        ];
+
+        if ($this->type === 'flow') {
+            $data['flowHash'] = $this->flowHash;
+            $data['flowRuntimeHash'] = $this->flowRuntimeHash;
+            $data['flowType'] = $this->flowType;
+            $data['stubSource'] = $this->stubSource;
+            $data['stubHash'] = $this->stubHash;
+            $data['flowStatus'] = $this->flowStatus?->name;
+        }
+
+        if ($this->type === 'schedule') {
+            $data['scheduleClass'] = $this->scheduleClass;
+            $data['scheduleName'] = $this->scheduleName;
+            $data['scheduleExpression'] = $this->scheduleExpression;
+        }
+
+        return $data;
+    }
+}

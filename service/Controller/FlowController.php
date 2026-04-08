@@ -14,7 +14,7 @@ use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
-use Wundii\Flowcrafter\Flow\FlowDiscovery;
+use Wundii\Flowcrafter\FlowDiscovery;
 use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;

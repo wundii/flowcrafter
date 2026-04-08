@@ -2,51 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Wundii\Flowcrafter\Flow;
+namespace Wundii\Flowcrafter;
 
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use ReflectionClass;
 use SplFileInfo;
-use Wundii\Flowcrafter\Attribute\FlowGroup;
-use Wundii\Flowcrafter\Interface\FlowInterface;
 
-final class FlowDiscovery
+final class ClassResolver
 {
     /**
-     * @return array<string, string> flowType => group name
+     * @var list<class-string>|null
      */
-    public static function discover(): array
-    {
-        $classNames = self::resolveClassNames();
-
-        $groups = [];
-
-        foreach ($classNames as $className) {
-            if (!is_a($className, FlowInterface::class, true)) {
-                continue;
-            }
-
-            $reflectionClass = new ReflectionClass($className);
-            $attributes = $reflectionClass->getAttributes(FlowGroup::class);
-
-            if ($attributes === []) {
-                continue;
-            }
-
-            $attribute = $attributes[0]->newInstance();
-            $flowType = $className::schema()->type();
-            $groups[$flowType] = $attribute->name;
-        }
-
-        return $groups;
-    }
+    private static ?array $cache = null;
 
     /**
      * @return list<class-string>
      */
-    private static function resolveClassNames(): array
+    public static function resolve(): array
     {
+        if (self::$cache !== null) {
+            return self::$cache;
+        }
+
         $classNames = [];
 
         $classMapFile = self::resolveVendorComposerPath('autoload_classmap.php');
@@ -58,7 +35,9 @@ final class FlowDiscovery
 
         $psr4ClassNames = self::resolveClassNamesFromPsr4();
 
-        return array_values(array_unique([...$classNames, ...$psr4ClassNames]));
+        self::$cache = array_values(array_unique([...$classNames, ...$psr4ClassNames]));
+
+        return self::$cache;
     }
 
     /**
@@ -124,8 +103,8 @@ final class FlowDiscovery
     private static function resolveVendorComposerPath(string $filename): ?string
     {
         $candidates = [
-            dirname(__DIR__, 2) . '/vendor/composer/' . $filename,
-            dirname(__DIR__, 4) . '/composer/' . $filename,
+            dirname(__DIR__) . '/vendor/composer/' . $filename,
+            dirname(__DIR__, 3) . '/composer/' . $filename,
             getcwd() . '/vendor/composer/' . $filename,
         ];
 

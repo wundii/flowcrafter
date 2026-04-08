@@ -14,11 +14,11 @@ use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
-use Wundii\Flowcrafter\Storage\Entity\FlowExceptionListEntity;
+use Wundii\Flowcrafter\Storage\Entity\ExceptionListEntity;
+use Wundii\Flowcrafter\Storage\Entity\ExceptionStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
-use Wundii\Flowcrafter\Storage\Entity\ScheduleExceptionListEntity;
 
 abstract class Service implements StorageInterface
 {
@@ -283,17 +283,51 @@ abstract class Service implements StorageInterface
     }
 
     /**
-     * @return FlowExceptionListEntity[]
+     * @return ExceptionListEntity[]
      */
     public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable
     {
-        [$where, $params] = $this->buildDateFilter($from, $to, 'fel.time');
+        $params = [];
+        $flowWhere = '';
+        $scheduleWhere = '';
 
-        [$where, $params] = $this->applyStatusFilter($where, $params, $status);
+        if ($from instanceof DateTimeInterface && $to instanceof DateTimeInterface) {
+            $flowWhere = ' WHERE fel.time BETWEEN :from AND :to';
+            $scheduleWhere = ' WHERE time BETWEEN :from2 AND :to2';
+            $params[':from'] = $from->format('Y-m-d H:i:s.u');
+            $params[':to'] = $to->format('Y-m-d H:i:s.u');
+            $params[':from2'] = $from->format('Y-m-d H:i:s.u');
+            $params[':to2'] = $to->format('Y-m-d H:i:s.u');
+        } elseif ($from instanceof DateTimeInterface) {
+            $flowWhere = ' WHERE fel.time >= :from';
+            $scheduleWhere = ' WHERE time >= :from2';
+            $params[':from'] = $from->format('Y-m-d H:i:s.u');
+            $params[':from2'] = $from->format('Y-m-d H:i:s.u');
+        } elseif ($to instanceof DateTimeInterface) {
+            $flowWhere = ' WHERE fel.time <= :to';
+            $scheduleWhere = ' WHERE time <= :to2';
+            $params[':to'] = $to->format('Y-m-d H:i:s.u');
+            $params[':to2'] = $to->format('Y-m-d H:i:s.u');
+        }
 
-        $sql = 'SELECT fel.*, fl.status AS flow_status FROM flow_exception_list fel' .
-            ' JOIN flow_list fl ON fel.flow_hash = fl.flow_hash' . $where .
-            ' ORDER BY fel.time ' . $sortEnum->name .
+        [$flowWhere, $params] = $this->applyStatusFilter($flowWhere, $params, $status);
+
+        $sql =
+            "SELECT 'flow' AS exception_type," .
+            ' fel.hash, fel.code, fel.message, fel.file, fel.line, fel.trace_string, fel.time,' .
+            ' fel.flow_hash, fel.flow_runtime_hash, fel.flow_type, fel.stub_source, fel.stub_hash,' .
+            ' fl.status AS flow_status,' .
+            ' NULL AS schedule_class, NULL AS schedule_name, NULL AS schedule_expression' .
+            ' FROM flow_exception_list fel' .
+            ' JOIN flow_list fl ON fel.flow_hash = fl.flow_hash' . $flowWhere .
+            ' UNION ALL' .
+            " SELECT 'schedule' AS exception_type," .
+            ' hash, code, message, file, line, trace_string, time,' .
+            ' NULL, NULL, NULL, NULL, NULL,' .
+            ' NULL AS flow_status,' .
+            ' schedule_class, schedule_name, schedule_expression' .
+            ' FROM schedule_exception_list' . $scheduleWhere .
+            ' ORDER BY time ' . $sortEnum->name .
             ' LIMIT :top OFFSET :skip';
 
         $params[':top'] = max(1, $top);
@@ -304,21 +338,25 @@ abstract class Service implements StorageInterface
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $row) {
-            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: string, stub_hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_status: string} $row */
-            yield new FlowExceptionListEntity(
+            /** @var array{exception_type: string, hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_hash: string|null, flow_runtime_hash: string|null, flow_type: string|null, stub_source: string|null, stub_hash: string|null, flow_status: string|null, schedule_class: string|null, schedule_name: string|null, schedule_expression: string|null} $row */
+            yield new ExceptionListEntity(
+                type: $row['exception_type'],
                 hash: $row['hash'],
-                flowHash: $row['flow_hash'],
-                flowRuntimeHash: $row['flow_runtime_hash'],
-                flowType: $row['flow_type'],
-                stubSource: $row['stub_source'],
-                stubHash: $row['stub_hash'],
                 code: (int) $row['code'],
                 message: $row['message'],
                 file: $row['file'],
                 line: (int) $row['line'],
                 traceString: $row['trace_string'],
                 time: new DateTimeImmutable($row['time']),
-                flowStatus: StatusEnum::fromName($row['flow_status']),
+                flowHash: $row['flow_hash'],
+                flowRuntimeHash: $row['flow_runtime_hash'],
+                flowType: $row['flow_type'],
+                stubSource: $row['stub_source'],
+                stubHash: $row['stub_hash'],
+                flowStatus: $row['flow_status'] !== null ? StatusEnum::fromName($row['flow_status']) : null,
+                scheduleClass: $row['schedule_class'],
+                scheduleName: $row['schedule_name'],
+                scheduleExpression: $row['schedule_expression'],
             );
         }
     }
@@ -351,41 +389,6 @@ abstract class Service implements StorageInterface
                 flowTime: new DateTimeImmutable($row['flow_time']),
                 lastTerm: new DateTimeImmutable($row['last_term']),
                 statusEnum: StatusEnum::fromName($row['status']),
-            );
-        }
-    }
-
-    /**
-     * @return ScheduleExceptionListEntity[]
-     */
-    public function findAllScheduleExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
-    {
-        [$where, $params] = $this->buildDateFilter($from, $to, 'time');
-
-        $params[':top'] = max(1, $top);
-        $params[':skip'] = max(0, $skip);
-
-        $stmt = $this->client->prepare(
-            'SELECT * FROM schedule_exception_list' . $where .
-            ' ORDER BY time ' . $sortEnum->name .
-            ' LIMIT :top OFFSET :skip'
-        );
-        $stmt->execute($params);
-        $stmt->setFetchMode(Client::FETCH_ASSOC);
-
-        foreach ($stmt as $row) {
-            /** @var array{hash: string, schedule_class: string, schedule_name: string, schedule_expression: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string} $row */
-            yield new ScheduleExceptionListEntity(
-                hash: $row['hash'],
-                scheduleClass: $row['schedule_class'],
-                scheduleName: $row['schedule_name'],
-                scheduleExpression: $row['schedule_expression'],
-                code: (int) $row['code'],
-                message: $row['message'],
-                file: $row['file'],
-                line: (int) $row['line'],
-                traceString: $row['trace_string'],
-                time: new DateTimeImmutable($row['time']),
             );
         }
     }
@@ -590,6 +593,47 @@ abstract class Service implements StorageInterface
                 failed: $failed,
                 successRate: $total > 0 ? (int) round((($total - $failed) / $total) * 100) : null,
                 lastTime: $row['last_time'] ? new DateTimeImmutable($row['last_time']) : null,
+            );
+        }
+    }
+
+    /**
+     * @return ExceptionStatsEntity[]
+     */
+    public function findExceptionStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
+    {
+        [$where, $params] = $this->buildDateFilter($from, $to, 'time');
+
+        $flowCounts = [];
+        $stmt = $this->client->prepare(
+            'SELECT DATE(time) AS date, COUNT(*) AS count FROM flow_exception_list' . $where .
+            ' GROUP BY DATE(time) ORDER BY date ASC'
+        );
+        $stmt->execute($params);
+        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
+            /** @var array{date: string, count: int|string} $row */
+            $flowCounts[$row['date']] = (int) $row['count'];
+        }
+
+        $scheduleCounts = [];
+        $stmt = $this->client->prepare(
+            'SELECT DATE(time) AS date, COUNT(*) AS count FROM schedule_exception_list' . $where .
+            ' GROUP BY DATE(time) ORDER BY date ASC'
+        );
+        $stmt->execute($params);
+        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
+            /** @var array{date: string, count: int|string} $row */
+            $scheduleCounts[$row['date']] = (int) $row['count'];
+        }
+
+        $dates = array_unique(array_merge(array_keys($flowCounts), array_keys($scheduleCounts)));
+        sort($dates);
+
+        foreach ($dates as $date) {
+            yield new ExceptionStatsEntity(
+                date: $date,
+                flow: $flowCounts[$date] ?? 0,
+                schedule: $scheduleCounts[$date] ?? 0,
             );
         }
     }

@@ -53,8 +53,8 @@ final class Routes
         $router->add('/api/schedule/run', MethodEnum::POST, $scheduleController->run(...));
         $router->add('/api/schedule/source', MethodEnum::GET, $scheduleController->source(...));
 
+        $router->add('/api/exceptions/stats', MethodEnum::GET, $exceptionController->stats(...));
         $router->add('/api/exceptions', MethodEnum::GET, $exceptionController->list(...));
-        $router->add('/api/schedule-exceptions', MethodEnum::GET, $exceptionController->listScheduleExceptions(...));
 
         $router->add('/api/queues', MethodEnum::GET, $queueController->list(...));
         $router->add('/api/queue/count', MethodEnum::GET, $queueController->count(...));

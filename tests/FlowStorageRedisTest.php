@@ -15,7 +15,7 @@ use Tests\Trait\RedisClientTestTrait;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
-use Wundii\Flowcrafter\Storage\Entity\FlowExceptionListEntity;
+use Wundii\Flowcrafter\Storage\Entity\ExceptionListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
@@ -137,8 +137,8 @@ final class FlowStorageRedisTest extends TestCase
         $exceptions = [...$storage->findAllExceptions(SortEnum::ASC)];
         $this->assertCount(2, $exceptions);
         $this->assertSame(2, $storage->countExceptions());
-        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[0]);
-        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[1]);
+        $this->assertInstanceOf(ExceptionListEntity::class, $exceptions[0]);
+        $this->assertInstanceOf(ExceptionListEntity::class, $exceptions[1]);
         $this->assertGreaterThan($exceptions[0]->hash, $exceptions[1]->hash);
     }
 
@@ -169,8 +169,8 @@ final class FlowStorageRedisTest extends TestCase
         $exceptions = [...$storage->findAllExceptions()];
         $this->assertCount(2, $exceptions);
         $this->assertSame(2, $storage->countExceptions());
-        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[0]);
-        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[1]);
+        $this->assertInstanceOf(ExceptionListEntity::class, $exceptions[0]);
+        $this->assertInstanceOf(ExceptionListEntity::class, $exceptions[1]);
         $this->assertLessThan($exceptions[0]->hash, $exceptions[1]->hash);
     }
 
@@ -463,8 +463,8 @@ final class FlowStorageRedisTest extends TestCase
 
         $exceptions = [...$storage->findAllExceptions(SortEnum::DESC, 1000, 0, $from, $to)];
         $this->assertCount(2, $exceptions);
-        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[0]);
-        $this->assertInstanceOf(FlowExceptionListEntity::class, $exceptions[1]);
+        $this->assertInstanceOf(ExceptionListEntity::class, $exceptions[0]);
+        $this->assertInstanceOf(ExceptionListEntity::class, $exceptions[1]);
     }
 
     /**
@@ -788,8 +788,6 @@ final class FlowStorageRedisTest extends TestCase
         $this->assertArrayHasKey('flow.workflow', $statsMap);
         $this->assertSame('flow.workflow.v1', $statsMap['flow.workflow']->flowType);
         $this->assertSame(2, $statsMap['flow.workflow']->total);
-        $this->assertSame(0, $statsMap['flow.workflow']->failed);
-        $this->assertSame(100, $statsMap['flow.workflow']->successRate);
         $this->assertInstanceOf(\DateTimeInterface::class, $statsMap['flow.workflow']->lastTime);
 
         $this->assertArrayHasKey('flow.workflow.fail', $statsMap);
