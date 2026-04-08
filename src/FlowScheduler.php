@@ -8,8 +8,6 @@ use Closure;
 use Cron\CronExpression;
 use DateTimeImmutable;
 use RuntimeException;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
 use Throwable;
 use Wundii\Flowcrafter\Attribute\FlowSchedule;
 use Wundii\Flowcrafter\Console\Heartbeat;
@@ -72,7 +70,10 @@ final class FlowScheduler
             $name = $attribute->name ?? $scheduleClass;
 
             try {
-                $schedule = $this->buildContainer($scheduleClass)->get($scheduleClass);
+                $schedule = FlowContainerFactory::build(
+                    autowireClasses: [$scheduleClass],
+                    dependencies: $this->dependenciesInjection,
+                )->get($scheduleClass);
 
                 if (!$schedule instanceof AbstractSchedule) {
                     throw new RuntimeException(sprintf(
@@ -123,42 +124,5 @@ final class FlowScheduler
         if ($secondsUntilNextMinute > 0) {
             sleep($secondsUntilNextMinute);
         }
-    }
-
-    /**
-     * @param class-string<ScheduleInterface> $scheduleClass
-     */
-    private function buildContainer(string $scheduleClass): ContainerBuilder
-    {
-        $containerBuilder = new ContainerBuilder();
-        $containerBuilder->setResourceTracking(false);
-
-        $containerBuilder->autowire($scheduleClass)
-            ->setPublic(true)
-            ->setShared(false);
-
-        foreach ($this->dependenciesInjection as $dependencyInjection) {
-            $className = is_object($dependencyInjection)
-                ? get_class($dependencyInjection)
-                : $dependencyInjection;
-
-            $definition = new Definition($className);
-            $definition->setSynthetic(is_object($dependencyInjection));
-            $definition->setPublic(true);
-
-            $containerBuilder->setDefinition($className, $definition);
-        }
-
-        $containerBuilder->compile();
-
-        foreach ($this->dependenciesInjection as $dependencyInjection) {
-            if (!is_object($dependencyInjection)) {
-                continue;
-            }
-
-            $containerBuilder->set(get_class($dependencyInjection), $dependencyInjection);
-        }
-
-        return $containerBuilder;
     }
 }

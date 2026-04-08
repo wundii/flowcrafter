@@ -6,10 +6,9 @@ namespace Wundii\Flowcrafter\Testing;
 
 use PHPUnit\Framework\Assert;
 use RuntimeException;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowContainerFactory;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -94,39 +93,11 @@ trait FlowAssertTrait
         array $messages,
         array $dependencies = [],
     ): bool|MessageInterface {
-        $containerBuilder = new ContainerBuilder();
-        $containerBuilder->setResourceTracking(false);
-
-        foreach ($messages as $message) {
-            $definition = new Definition($message::class);
-            $definition->setSynthetic(true);
-            $definition->setPublic(true);
-            $containerBuilder->setDefinition($message::class, $definition);
-        }
-
-        foreach ($dependencies as $dependency) {
-            $className = is_object($dependency) ? $dependency::class : $dependency;
-            $definition = new Definition($className);
-            $definition->setSynthetic(is_object($dependency));
-            $definition->setPublic(true);
-            $containerBuilder->setDefinition($className, $definition);
-        }
-
-        $containerBuilder->autowire($stubSource)
-            ->setPublic(true)
-            ->setShared(false);
-
-        $containerBuilder->compile();
-
-        foreach ($messages as $message) {
-            $containerBuilder->set($message::class, $message);
-        }
-
-        foreach ($dependencies as $dependency) {
-            if (is_object($dependency)) {
-                $containerBuilder->set($dependency::class, $dependency);
-            }
-        }
+        $containerBuilder = FlowContainerFactory::build(
+            autowireClasses: [$stubSource],
+            syntheticServices: $messages,
+            dependencies: $dependencies,
+        );
 
         $stubInstance = $containerBuilder->get($stubSource);
         if (!$stubInstance instanceof StubInterface) {

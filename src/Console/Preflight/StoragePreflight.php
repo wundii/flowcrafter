@@ -145,20 +145,30 @@ final readonly class StoragePreflight
             $storage->truncateFlowList();
 
             $flowHashes = iterator_to_array($storage->findAllFlowHashes());
+            $total = count($flowHashes);
             $count = 0;
+
+            $progressBar = $flowSymfonyStyle->createProgressBar($total);
+            $progressBar->start();
+
             foreach ($flowHashes as $flowHash) {
                 $flow = $storage->findFlowByHash($flowHash);
                 if ($flow instanceof Flow) {
                     $storage->saveFlow($flow);
                     ++$count;
                 }
+
+                $progressBar->advance();
             }
+
+            $progressBar->finish();
+            $flowSymfonyStyle->writeln('');
 
             $flowSymfonyStyle->writeln(sprintf(
                 '<fg=%s>Rebuilt %d of %d flow(s).</>',
                 OutputColorEnum::GREEN->value,
                 $count,
-                count($flowHashes),
+                $total,
             ));
         } catch (Throwable $throwable) {
             $flowSymfonyStyle->writeln(sprintf(

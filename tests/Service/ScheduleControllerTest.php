@@ -8,13 +8,15 @@ use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\HttpFoundation\Request;
 use Tests\MockClass\ScheduleMock;
+use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Service\Controller\ScheduleController;
 
 final class ScheduleControllerTest extends TestCase
 {
     public function testListReturnsJsonArray(): void
     {
-        $scheduleController = new ScheduleController();
+        $scheduleController = $this->createController();
         $jsonResponse = $scheduleController->list();
 
         $this->assertSame(200, $jsonResponse->getStatusCode());
@@ -25,7 +27,7 @@ final class ScheduleControllerTest extends TestCase
 
     public function testSourceReturnsPhpCode(): void
     {
-        $scheduleController = new ScheduleController();
+        $scheduleController = $this->createController();
         $request = Request::create('/api/schedule/source', 'GET', [
             'className' => ScheduleMock::class,
         ]);
@@ -43,7 +45,7 @@ final class ScheduleControllerTest extends TestCase
 
     public function testSourceReturns404ForUnknownClass(): void
     {
-        $scheduleController = new ScheduleController();
+        $scheduleController = $this->createController();
         $request = Request::create('/api/schedule/source', 'GET', [
             'className' => 'NonExistent\\ClassName',
         ]);
@@ -55,7 +57,7 @@ final class ScheduleControllerTest extends TestCase
 
     public function testSourceReturns400ForNonScheduleClass(): void
     {
-        $scheduleController = new ScheduleController();
+        $scheduleController = $this->createController();
         $request = Request::create('/api/schedule/source', 'GET', [
             'className' => stdClass::class,
         ]);
@@ -64,5 +66,10 @@ final class ScheduleControllerTest extends TestCase
 
         $this->assertSame(400, $jsonResponse->getStatusCode());
         $this->assertStringContainsString('AbstractSchedule', (string) $jsonResponse->getContent());
+    }
+
+    private function createController(): ScheduleController
+    {
+        return new ScheduleController(new FlowcrafterConfig(), $this->createStub(StorageInterface::class));
     }
 }

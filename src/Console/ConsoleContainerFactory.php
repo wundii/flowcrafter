@@ -16,7 +16,7 @@ use Wundii\Flowcrafter\Bootstrap\BootstrapConfigResolver;
 use Wundii\Flowcrafter\Bootstrap\BootstrapInputResolver;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 
-final class FlowContainerFactory
+final class ConsoleContainerFactory
 {
     /**
      * @throws Exception

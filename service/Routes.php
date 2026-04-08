@@ -29,7 +29,7 @@ final class Routes
         $healthController = new HealthController();
         $infoController = new InfoController($flowcrafterConfig, $storage);
         $queueController = new QueueController($storage, $flowPreflight);
-        $scheduleController = new ScheduleController();
+        $scheduleController = new ScheduleController($flowcrafterConfig, $storage);
         $schemaController = new SchemaController($storage);
 
         $router->add('/', MethodEnum::GET, $healthController->index(...));
@@ -50,6 +50,7 @@ final class Routes
         $router->add('/api/schema/stub-sources', MethodEnum::GET, $schemaController->stubSources(...));
 
         $router->add('/api/schedules', MethodEnum::GET, $scheduleController->list(...));
+        $router->add('/api/schedule/run', MethodEnum::POST, $scheduleController->run(...));
         $router->add('/api/schedule/source', MethodEnum::GET, $scheduleController->source(...));
 
         $router->add('/api/exceptions', MethodEnum::GET, $exceptionController->list(...));

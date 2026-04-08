@@ -7,7 +7,6 @@ namespace Wundii\Flowcrafter;
 use Exception;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
 use Throwable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
@@ -137,55 +136,26 @@ class FlowRunner
 
     private function buildContainer(FlowSchema $flowSchema): ContainerBuilder
     {
-        $containerBuilder = new ContainerBuilder();
-        $containerBuilder->setResourceTracking(false);
+        $autowireClasses = [];
+        $syntheticClasses = [];
 
-        $messageClasses = [];
         foreach ($flowSchema->stubs() as $stub) {
+            $autowireClasses[] = $stub->getSource();
+
             foreach ($stub->getMessages() as $messageClass) {
-                $messageClasses[$messageClass] = true;
+                $syntheticClasses[$messageClass] = $messageClass;
             }
 
             foreach ($stub->getReturnTypes() as $returnType) {
-                $messageClasses[$returnType] = true;
+                $syntheticClasses[$returnType] = $returnType;
             }
-
-            $containerBuilder->autowire($stub->getSource())
-                ->setPublic(true)
-                ->setShared(false);
         }
 
-        foreach (array_keys($messageClasses) as $messageClass) {
-            $definition = new Definition($messageClass);
-            $definition->setSynthetic(true);
-            $definition->setPublic(true);
-
-            $containerBuilder->setDefinition($messageClass, $definition);
-        }
-
-        foreach ($this->dependenciesInjection as $dependencyInjection) {
-            $className = is_object($dependencyInjection)
-                ? get_class($dependencyInjection)
-                : $dependencyInjection;
-
-            $definition = new Definition($className);
-            $definition->setSynthetic(is_object($dependencyInjection));
-            $definition->setPublic(true);
-
-            $containerBuilder->setDefinition($className, $definition);
-        }
-
-        $containerBuilder->compile();
-
-        foreach ($this->dependenciesInjection as $dependencyInjection) {
-            if (!is_object($dependencyInjection)) {
-                continue;
-            }
-
-            $containerBuilder->set(get_class($dependencyInjection), $dependencyInjection);
-        }
-
-        return $containerBuilder;
+        return FlowContainerFactory::build(
+            autowireClasses: $autowireClasses,
+            syntheticServices: array_values($syntheticClasses),
+            dependencies: $this->dependenciesInjection,
+        );
     }
 
     /**
