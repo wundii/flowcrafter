@@ -23,6 +23,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Config\RedisConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
@@ -557,6 +558,21 @@ class Redis extends Service implements StorageInterface
         $data['time'] = $flowException->getTime()->getTimestamp();
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
+    }
+
+    public function appendScheduleException(ScheduleException $scheduleException): void
+    {
+        $key = 'schedule:exception:' . $scheduleException->getHash();
+        if ($this->client->exists($key)) {
+            return;
+        }
+
+        $data = $scheduleException->jsonSerialize();
+        $data['time'] = $scheduleException->getTime()->getTimestamp();
+
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
+
+        parent::appendScheduleException($scheduleException);
     }
 
     public function appendFlowResult(FlowResult $flowResult): void

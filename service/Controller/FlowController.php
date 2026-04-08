@@ -76,9 +76,9 @@ final class FlowController
         $groupMap = FlowDiscovery::discover();
 
         $result = [];
-        foreach ($stats as $entity) {
-            $item = $entity->jsonSerialize();
-            $item['group'] = $groupMap[$entity->flowType] ?? null;
+        foreach ($stats as $stat) {
+            $item = $stat->jsonSerialize();
+            $item['group'] = $groupMap[$stat->flowType] ?? null;
             $result[] = $item;
         }
 

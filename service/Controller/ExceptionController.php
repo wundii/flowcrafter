@@ -47,4 +47,33 @@ final class ExceptionController
             'hasMore' => $hasMore,
         ]);
     }
+
+    public function listScheduleExceptions(Request $request): JsonResponse
+    {
+        $sort = $request->query->get('sort', 'desc') === 'asc' ? SortEnum::ASC : SortEnum::DESC;
+        $top = max(1, min(10000, (int) $request->query->get('top', 1000)));
+        $skip = max(0, (int) $request->query->get('skip', 0));
+        $fromStr = $request->query->get('from');
+        $toStr = $request->query->get('to');
+        $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $fromStr) : null;
+        $to = is_string($toStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $toStr) : null;
+        $from = $from instanceof DateTimeImmutable ? $from : null;
+        $to = $to instanceof DateTimeImmutable ? $to : null;
+
+        $exceptions = $this->storage->findAllScheduleExceptions($sort, $top + 1, $skip, $from, $to);
+
+        $items = iterator_to_array($exceptions);
+        $hasMore = count($items) > $top;
+        if ($hasMore) {
+            array_pop($items);
+        }
+
+        $total = $this->storage->countScheduleExceptions($from, $to);
+
+        return new JsonResponse([
+            'items' => $items,
+            'total' => $total,
+            'hasMore' => $hasMore,
+        ]);
+    }
 }

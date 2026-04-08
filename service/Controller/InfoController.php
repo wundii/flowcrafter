@@ -43,6 +43,9 @@ final class InfoController
         $exceptions7d = $this->storage->countExceptions(
             from: new DateTimeImmutable('-7 days'),
         );
+        $scheduleExceptions7d = $this->storage->countScheduleExceptions(
+            from: new DateTimeImmutable('-7 days'),
+        );
 
         $description = $this->flowcrafterConfig->getServerDescription() ?? '';
         $safeDescription = str_replace(['"', "\n", "\r"], ['\"', ' ', ' '], $description);
@@ -66,6 +69,10 @@ final class InfoController
         $lines[] = '# TYPE flowcrafter_scheduler_up gauge';
         $lines[] = sprintf('flowcrafter_scheduler_up %d', $schedulerInstances !== [] ? 1 : 0);
 
+        $lines[] = '# HELP flowcrafter_scheduler_workers Number of active scheduler instances';
+        $lines[] = '# TYPE flowcrafter_scheduler_workers gauge';
+        $lines[] = sprintf('flowcrafter_scheduler_workers %d', count($schedulerInstances));
+
         $lines[] = '# HELP flowcrafter_queue_size Number of items currently pending in the queue';
         $lines[] = '# TYPE flowcrafter_queue_size gauge';
         $lines[] = sprintf('flowcrafter_queue_size %d', $queueSize);
@@ -74,9 +81,13 @@ final class InfoController
         $lines[] = '# TYPE flowcrafter_flows_total gauge';
         $lines[] = sprintf('flowcrafter_flows_total %d', $flowsTotal);
 
-        $lines[] = '# HELP flowcrafter_exceptions_7d Number of exceptions in the last 7 days';
+        $lines[] = '# HELP flowcrafter_exceptions_7d Number of flow exceptions in the last 7 days';
         $lines[] = '# TYPE flowcrafter_exceptions_7d gauge';
         $lines[] = sprintf('flowcrafter_exceptions_7d %d', $exceptions7d);
+
+        $lines[] = '# HELP flowcrafter_schedule_exceptions_7d Number of schedule exceptions in the last 7 days';
+        $lines[] = '# TYPE flowcrafter_schedule_exceptions_7d gauge';
+        $lines[] = sprintf('flowcrafter_schedule_exceptions_7d %d', $scheduleExceptions7d);
 
         $body = implode("\n", $lines) . "\n";
 

@@ -22,10 +22,12 @@ Ausführung mit vollständigem Audit-Log.
   `StorageInterface` frei erweiterbar
 - Synchrone Ausführung (`FlowRunner`) + asynchrone Queue-Verarbeitung
   (`FlowObserver`) + zeitgesteuerte Ausführung (`FlowScheduler`)
-- Automatischer Flow-Status, vollständiges Message- & Exception-Logging,
-  Schema-Versionierung via Hash
-- REST-API für Flows, Schemas, Queues & Exceptions inkl.
-  Prometheus/OpenMetrics-Endpunkt
+- Automatischer Flow-Status, vollständiges Message-, Exception- &
+  Schedule-Exception-Logging, Schema-Versionierung via Hash
+- `#[FlowGroup]`- und `#[FlowSchedule(group:)]`-Attribute für
+  UI-Gruppierung von Flow-Typen und Schedules
+- REST-API für Flows, Schemas, Queues, Exceptions & Schedule-Exceptions
+  inkl. Prometheus/OpenMetrics-Endpunkt
 - Symfony Console Commands für Config, Storage-Init/Rebuild, Dev-Server,
   Observer, Scheduler und Mermaid-Diagramme
 - Testing-Helper (`FlowTestCase`, `FlowAssertTrait`) für storageless
@@ -171,7 +173,16 @@ class AuditStub implements StubInterface
 ```
 
 ### Flow
-Schema via `FlowBuilder`, kein YAML. Zwei Stubs konsumieren `OrderValidated` parallel:
+Schema via `FlowBuilder`, kein YAML. Zwei Stubs konsumieren `OrderValidated` parallel.
+
+Optional kann ein Flow mit `#[FlowGroup]` einer UI-Gruppe zugeordnet werden — beeinflusst den Schema-Hash nicht:
+
+```php
+use Wundii\Flowcrafter\Attribute\FlowGroup;
+
+#[FlowGroup('Order Management')]
+class OrderFlow implements FlowInterface { ... }
+```
 
 ```php
 use Wundii\Flowcrafter\FlowBuilder;
@@ -246,7 +257,7 @@ Alternativ über die REST-API: `POST /api/flows/run` (synchron) bzw. `POST /api/
 use Wundii\Flowcrafter\Attribute\FlowSchedule;
 use Wundii\Flowcrafter\Schedule\AbstractSchedule;
 
-#[FlowSchedule('0 */6 * * *', name: 'order-cleanup')]
+#[FlowSchedule('0 */6 * * *', name: 'order-cleanup', group: 'Maintenance')]
 class OrderCleanupSchedule extends AbstractSchedule
 {
     public function process(): void

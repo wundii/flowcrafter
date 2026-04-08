@@ -24,6 +24,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
@@ -234,6 +235,24 @@ class MySql extends Service implements StorageInterface
 
         $this->client->exec(
             <<<'SQL'
+            CREATE TABLE IF NOT EXISTS schedule_exception (
+                hash VARCHAR(191) NOT NULL PRIMARY KEY,
+                schedule_class VARCHAR(255) NOT NULL,
+                schedule_name VARCHAR(255) NOT NULL,
+                schedule_expression VARCHAR(100) NOT NULL,
+                code INT(11) NOT NULL,
+                message VARCHAR(2000) NOT NULL,
+                file VARCHAR(2000) NOT NULL,
+                line INT(11) NOT NULL,
+                trace_string TEXT NOT NULL,
+                `time` DATETIME(3) NOT NULL,
+                INDEX idx_schedule_exception_time (time)
+            )
+            SQL
+        );
+
+        $this->client->exec(
+            <<<'SQL'
             CREATE TABLE IF NOT EXISTS flow_queue (
                 queue_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 `type` VARCHAR(191) NOT NULL,
@@ -400,6 +419,29 @@ class MySql extends Service implements StorageInterface
             ':trace_string' => $flowException->getTraceString(),
             ':time' => $flowException->getTime()->format('Y-m-d H:i:s.v'),
         ]);
+    }
+
+    public function appendScheduleException(ScheduleException $scheduleException): void
+    {
+        $stmt = $this->client->prepare(
+            'INSERT IGNORE INTO schedule_exception (hash, schedule_class, schedule_name, schedule_expression, code, message, file, line, trace_string, time) ' .
+            'VALUES (:hash, :schedule_class, :schedule_name, :schedule_expression, :code, :message, :file, :line, :trace_string, :time)'
+        );
+
+        $stmt->execute([
+            ':hash' => $scheduleException->getHash(),
+            ':schedule_class' => $scheduleException->getScheduleClass(),
+            ':schedule_name' => $scheduleException->getScheduleName(),
+            ':schedule_expression' => $scheduleException->getScheduleExpression(),
+            ':code' => $scheduleException->getCode(),
+            ':message' => $scheduleException->getMessage(),
+            ':file' => $scheduleException->getFile(),
+            ':line' => $scheduleException->getLine(),
+            ':trace_string' => $scheduleException->getTraceString(),
+            ':time' => $scheduleException->getTime()->format('Y-m-d H:i:s.v'),
+        ]);
+
+        parent::appendScheduleException($scheduleException);
     }
 
     public function appendFlowResult(FlowResult $flowResult): void

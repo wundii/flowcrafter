@@ -105,7 +105,7 @@ class FlowRunner
 
         $this->executeStubsRecursive($flow, $message);
 
-        $this->storage?->saveFlow($flow);
+        $this->storage?->appendFlow($flow);
 
         return $this->messageReturn ?: false;
     }
@@ -230,7 +230,7 @@ class FlowRunner
 
                 $flow->addException($flowException);
                 $this->storage?->appendFlowException($flowException);
-                $this->storage?->saveFlow($flow);
+                $this->storage?->appendFlow($flow);
 
                 throw $exception;
             }

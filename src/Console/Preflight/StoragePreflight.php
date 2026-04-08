@@ -154,7 +154,7 @@ final readonly class StoragePreflight
             foreach ($flowHashes as $flowHash) {
                 $flow = $storage->findFlowByHash($flowHash);
                 if ($flow instanceof Flow) {
-                    $storage->saveFlow($flow);
+                    $storage->appendFlow($flow);
                     ++$count;
                 }
 

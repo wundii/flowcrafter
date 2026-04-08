@@ -8,7 +8,7 @@ use RuntimeException;
 use Wundii\Flowcrafter\Attribute\FlowSchedule;
 use Wundii\Flowcrafter\Schedule\AbstractSchedule;
 
-#[FlowSchedule('* * * * *', name: 'fail-schedule')]
+#[FlowSchedule('*/15 * * * *', name: 'fail-schedule')]
 class ScheduleFailMock extends AbstractSchedule
 {
     public function process(): void

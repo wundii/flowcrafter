@@ -15,7 +15,9 @@ einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 | GET     | `/api/flows/detail`   | `hash` oder `runtimeHash`                        | Flow mit Messages, Exceptions & Runs  |
 | GET     | `/api/flows/stats`    | `from`, `to`, `type`                             | Tägliche Flow-Statistiken             |
 | GET     | `/api/flows/search`   | `subject`, `top`                                 | Flows nach `flowSubject` suchen       |
-| GET     | `/api/exceptions`     | `sort`, `top`, `skip`, `flowHash`, `from`, `to`  | Exceptions (paginiert, filterbar)     |
+| GET     | `/api/flows/types`    | `from`, `to`                                     | Flow-Typen mit Runs/Fehler/OK-Rate und optionalem `group` |
+| GET     | `/api/exceptions`     | `sort`, `top`, `skip`, `from`, `to`, `status`    | Flow-Exceptions (paginiert, filterbar) |
+| GET     | `/api/schedule-exceptions` | `sort`, `top`, `skip`, `from`, `to`         | Schedule-Exceptions (paginiert, filterbar) |
 
 ## Schemas & Stub-Source
 
@@ -29,8 +31,9 @@ einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 
 | Methode | Pfad                    | Parameter   | Beschreibung                                     |
 | ------- | ----------------------- | ----------- | ------------------------------------------------ |
-| GET     | `/api/schedules`        | —           | Alle entdeckten Schedules (Name, Cron, Klasse)   |
+| GET     | `/api/schedules`        | —           | Alle entdeckten Schedules (Name, Cron, Klasse, optionales `group`) |
 | GET     | `/api/schedule/source`  | `className` | Quellcode einer Schedule-Klasse                  |
+| POST    | `/api/schedule/run`     | `{ className }` | Schedule manuell ausführen                   |
 
 ## Ausführung & Queue
 
@@ -51,7 +54,7 @@ Details siehe [monitoring.md](monitoring.md).
 
 ## Pagination
 
-Die Endpunkte `/api/flows` und `/api/exceptions` unterstützen Paginierung:
+Die Endpunkte `/api/flows`, `/api/exceptions` und `/api/schedule-exceptions` unterstützen Paginierung:
 
 | Parameter | Default | Beschreibung                 |
 | --------- | ------- | ---------------------------- |

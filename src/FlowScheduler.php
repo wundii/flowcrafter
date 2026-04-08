@@ -15,6 +15,7 @@ use Wundii\Flowcrafter\Interface\ScheduleInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Schedule\AbstractSchedule;
 use Wundii\Flowcrafter\Schedule\ScheduleDiscovery;
+use Wundii\Flowcrafter\Schedule\ScheduleException;
 
 final class FlowScheduler
 {
@@ -105,6 +106,20 @@ final class FlowScheduler
                         $e->getMessage(),
                     ));
                 }
+
+                $this->storage->appendScheduleException(
+                    ScheduleException::create(
+                        scheduleClass: $scheduleClass,
+                        scheduleName: $name,
+                        scheduleExpression: $attribute->expression,
+                        code: $e->getCode(),
+                        message: $e->getMessage(),
+                        file: $e->getFile(),
+                        line: $e->getLine(),
+                        traceString: $e->getTraceAsString(),
+                        time: $now,
+                    )
+                );
             }
         }
     }

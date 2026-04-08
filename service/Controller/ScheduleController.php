@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Service\Controller;
 
+use DateTimeImmutable;
 use ReflectionClass;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,6 +15,7 @@ use Wundii\Flowcrafter\FlowContainerFactory;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Schedule\AbstractSchedule;
 use Wundii\Flowcrafter\Schedule\ScheduleDiscovery;
+use Wundii\Flowcrafter\Schedule\ScheduleException;
 
 final class ScheduleController
 {
@@ -119,6 +121,8 @@ final class ScheduleController
             ], 400);
         }
 
+        /** @var FlowSchedule $flowSchedule */
+        $flowSchedule = $attributes[0]->newInstance();
         $dependenciesInjection = $this->flowcrafterConfig->getDependencyInjections();
 
         try {
@@ -140,6 +144,20 @@ final class ScheduleController
             ob_start();
             $schedule->process();
         } catch (Throwable $throwable) {
+            $this->storage->appendScheduleException(
+                ScheduleException::create(
+                    scheduleClass: $resolvedClassName,
+                    scheduleName: $flowSchedule->name ?? '',
+                    scheduleExpression: $flowSchedule->expression,
+                    code: $throwable->getCode(),
+                    message: $throwable->getMessage(),
+                    file: $throwable->getFile(),
+                    line: $throwable->getLine(),
+                    traceString: $throwable->getTraceAsString(),
+                    time: new DateTimeImmutable(),
+                )
+            );
+
             return new JsonResponse([
                 'error' => $throwable->getMessage(),
             ], 500);

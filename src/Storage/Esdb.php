@@ -30,6 +30,7 @@ use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
@@ -687,6 +688,24 @@ class Esdb extends Service
                 new IsSubjectPopulated($subjectFlow),
             ],
         );
+    }
+
+    public function appendScheduleException(ScheduleException $scheduleException): void
+    {
+        $subject = '/schedule/exception/' . $scheduleException->getHash();
+        $eventCandidate = new EventCandidate(
+            source: self::SOURCE,
+            subject: $subject,
+            type: 'flowcrafter.schedule.exception.v1',
+            data: $scheduleException->jsonSerialize(),
+        );
+
+        $this->client->writeEvents(
+            [$eventCandidate],
+            [new IsSubjectPristine($subject)],
+        );
+
+        parent::appendScheduleException($scheduleException);
     }
 
     public function appendFlowResult(FlowResult $flowResult): void
