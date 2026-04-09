@@ -12,7 +12,7 @@
   ],
   "require": {
     "php": ">=8.2",
-    "ext-pdo": "*",
+    "ext-pdo_sqlite": "*",
     "dragonmantank/cron-expression": "^3.6",
     "ramsey/uuid": "^4.9.2",
     "symfony/config": "^6.4 | ^7.0 | ^8.0.8",
@@ -25,9 +25,11 @@
     "wundii/data-mapper": "^1.5.0"
   },
   "suggest": {
+    "ext-pdo_mysql": "Required for the MySQL storage backend",
     "ext-redis": "Required for the Redis storage backend"
   },
   "require-dev": {
+    "ext-pdo_mysql": "*",
     "ext-redis": "*",
     "phpstan/phpstan": "^2.1.46",
     "phpunit/phpunit": "^11.5.55",

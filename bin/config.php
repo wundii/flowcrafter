@@ -10,6 +10,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
+use Wundii\Flowcrafter\Console\ComposerExtensionResolver;
 
 return static function (ContainerConfigurator $container) {
     $services = $container->services();
@@ -24,6 +25,7 @@ return static function (ContainerConfigurator $container) {
         ->autowire();
 
     $services->set(ArgvInput::class);
+    $services->set(ComposerExtensionResolver::class);
     $services->set(ConsoleOutput::class);
     $services->set(Filesystem::class);
     $services->set(Finder::class);
