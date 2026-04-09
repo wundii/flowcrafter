@@ -13,6 +13,7 @@ final readonly class FlowSchedule
         public string $expression,
         public ?string $name = null,
         public ?string $group = null,
+        public bool $active = true,
     ) {
     }
 }

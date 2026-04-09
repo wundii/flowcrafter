@@ -68,6 +68,10 @@ final class FlowScheduler
                 continue;
             }
 
+            if ($attribute->active === false) {
+                continue;
+            }
+
             $name = $attribute->name ?? $scheduleClass;
 
             try {

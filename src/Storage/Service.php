@@ -241,32 +241,60 @@ abstract class Service implements StorageInterface
         return (int) $stmt->fetchColumn();
     }
 
-    public function countFlows(): int
+    public function countFlows(?string $status = null): int
     {
-        $stmt = $this->client->query('SELECT COUNT(*) FROM flow_list');
+        $where = '';
+        $params = [];
+
+        if ($status !== null) {
+            $where .= ' WHERE status in (:status)';
+            $params[':status'] = $status;
+        }
+
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list' . $where);
         if ($stmt === false) {
+            return 0;
+        }
+
+        if (!$stmt->execute($params)) {
             return 0;
         }
 
         return (int) $stmt->fetchColumn();
     }
 
-    public function countFlowsBySource(string $flowSource): int
+    public function countFlowsBySource(string $flowSource, ?string $status = null): int
     {
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list WHERE flow_source = :flow_source');
-        $stmt->execute([
+        $where = 'WHERE flow_source = :flow_source';
+        $params = [
             ':flow_source' => $flowSource,
-        ]);
+        ];
+
+        if ($status !== null) {
+            $where .= ' AND status in (:status)';
+            $params[':status'] = $status;
+        }
+
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list ' . $where);
+        $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
     }
 
-    public function countFlowsByType(string $flowType): int
+    public function countFlowsByType(string $flowType, ?string $status = null): int
     {
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list WHERE flow_type LIKE :flow_type');
-        $stmt->execute([
+        $where = 'WHERE flow_type LIKE :flow_type';
+        $params = [
             ':flow_type' => $flowType . '.v%',
-        ]);
+        ];
+
+        if ($status !== null) {
+            $where .= ' AND status in (:status)';
+            $params[':status'] = $status;
+        }
+
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list ' . $where);
+        $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
     }
@@ -364,9 +392,10 @@ abstract class Service implements StorageInterface
     /**
      * @return FlowListEntity[]
      */
-    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
+    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable
     {
         [$where, $params] = $this->buildDateFilter($from, $to);
+        [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
         $sql = 'SELECT * FROM flow_list' . $where .
             ' ORDER BY last_term ' . $sortEnum->name .
@@ -396,11 +425,14 @@ abstract class Service implements StorageInterface
     /**
      * @return FlowListEntity[]
      */
-    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
+    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable
     {
         [$where, $params] = $this->buildDateFilter($from, $to);
+        [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
-        $where = $where === '' ? ' WHERE flow_source = :flow_source' : $where . ' AND flow_source = :flow_source';
+        $where = $where === ''
+            ? ' WHERE flow_source = :flow_source'
+            : $where . ' AND flow_source = :flow_source';
         $params[':flow_source'] = $flowSource;
 
         $sql = 'SELECT * FROM flow_list' . $where .
@@ -431,11 +463,14 @@ abstract class Service implements StorageInterface
     /**
      * @return FlowListEntity[]
      */
-    public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
+    public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable
     {
         [$where, $params] = $this->buildDateFilter($from, $to);
+        [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
-        $where = $where === '' ? ' WHERE flow_type LIKE :flow_type' : $where . ' AND flow_type LIKE :flow_type';
+        $where = $where === ''
+            ? ' WHERE flow_type LIKE :flow_type'
+            : $where . ' AND flow_type LIKE :flow_type';
         $params[':flow_type'] = $flowType . '.v%';
 
         $sql = 'SELECT * FROM flow_list' . $where .
@@ -658,14 +693,18 @@ abstract class Service implements StorageInterface
             return [$where, $params];
         }
 
-        if ($status === 'IN_PROGRESS') {
-            $condition = 'fl.status IN (:status1, :status2)';
-            $params[':status1'] = 'IN_PROGRESS';
-            $params[':status2'] = 'IN_PROGRESS_EXCEEDED';
-        } else {
-            $condition = 'fl.status = :status';
-            $params[':status'] = $status;
+        $values = $status === 'IN_PROGRESS'
+            ? ['IN_PROGRESS', 'IN_PROGRESS_EXCEEDED']
+            : array_map('trim', explode(',', $status));
+
+        $placeholders = [];
+        foreach ($values as $i => $value) {
+            $key = ':status' . $i;
+            $placeholders[] = $key;
+            $params[$key] = $value;
         }
+
+        $condition = 'status IN (' . implode(', ', $placeholders) . ')';
 
         $where = $where === '' ? ' WHERE ' . $condition : $where . ' AND ' . $condition;
 

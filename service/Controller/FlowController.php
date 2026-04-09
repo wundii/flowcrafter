@@ -35,6 +35,7 @@ final class FlowController
         $top = max(1, min(10000, (int) $request->query->get('top', 1000)));
         $skip = max(0, (int) $request->query->get('skip', 0));
         $type = $request->query->get('type');
+        $status = $request->query->get('status');
         $fromStr = $request->query->get('from');
         $toStr = $request->query->get('to');
         $from = is_string($fromStr) ? DateTimeImmutable::createFromFormat(DateTimeInterface::RFC3339_EXTENDED, $fromStr) : null;
@@ -43,8 +44,8 @@ final class FlowController
         $to = $to instanceof DateTimeImmutable ? $to : null;
 
         $flows = $type !== null
-            ? $this->storage->findFlowsByType($type, $sort, $top + 1, $skip, $from, $to)
-            : $this->storage->findAllFlows($sort, $top + 1, $skip, $from, $to);
+            ? $this->storage->findFlowsByType($type, $sort, $top + 1, $skip, $from, $to, $status)
+            : $this->storage->findAllFlows($sort, $top + 1, $skip, $from, $to, $status);
 
         $items = iterator_to_array($flows);
         $hasMore = count($items) > $top;
@@ -53,8 +54,8 @@ final class FlowController
         }
 
         $total = $type !== null
-            ? $this->storage->countFlowsByType($type)
-            : $this->storage->countFlows();
+            ? $this->storage->countFlowsByType($type, $status)
+            : $this->storage->countFlows($status);
 
         return new JsonResponse([
             'items' => $items,

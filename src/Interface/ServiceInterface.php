@@ -22,11 +22,11 @@ interface ServiceInterface
 
     public function countScheduleExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
 
-    public function countFlows(): int;
+    public function countFlows(?string $status = null): int;
 
-    public function countFlowsBySource(string $flowSource): int;
+    public function countFlowsBySource(string $flowSource, ?string $status = null): int;
 
-    public function countFlowsByType(string $flowType): int;
+    public function countFlowsByType(string $flowType, ?string $status = null): int;
 
     public function countFlowsBySubject(string $flowSubject): int;
 
@@ -43,17 +43,17 @@ interface ServiceInterface
     /**
      * @return FlowListEntity[]
      */
-    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
+    public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable;
 
     /**
      * @return FlowListEntity[]
      */
-    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
+    public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable;
 
     /**
      * @return FlowListEntity[]
      */
-    public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
+    public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable;
 
     /**
      * @return FlowListEntity[]
