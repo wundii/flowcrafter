@@ -51,7 +51,7 @@ services:
   ui:
     image: wundii/flowcrafter-ui:latest
     ports:
-      - '3000:3000'
+      - '5173:5173'
     depends_on:
       - service
     volumes:

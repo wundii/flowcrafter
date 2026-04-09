@@ -77,7 +77,7 @@ Das optionale Web-Frontend
 Flows, Messages, Exceptions, Schedules und Queues in Echtzeit:
 
 ```bash
-docker run -p 3000:3000 -v ./data:/flowcrafter/data wundii/flowcrafter-ui:latest
+docker run -p 5173:5173 -v ./data:/flowcrafter/data wundii/flowcrafter-ui:latest
 ```
 <p align="center">
   <picture>
