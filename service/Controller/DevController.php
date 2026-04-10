@@ -104,7 +104,7 @@ final class DevController
             foreach ($this->storage->findAllSchemas() as $storedSchema) {
                 if ($storedSchema->type === $type) {
                     $storedHash = $storedSchema->schemaHash;
-                    $storedStubs = $storedSchema->stubs;
+                    $storedStubs = $storedSchema;
                     break;
                 }
             }
@@ -166,6 +166,7 @@ final class DevController
                 'hash' => null,
                 'storedHash' => null,
                 'hashDrift' => false,
+                'storedSchema' => null,
                 'changedMessages' => [],
             ]);
         }
