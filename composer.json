@@ -16,18 +16,19 @@
     "ext-pdo_sqlite": "*",
     "dragonmantank/cron-expression": "^3.6",
     "ramsey/uuid": "^4.9.2",
-    "symfony/config": "^6.4 | ^7.0 | ^8.0.8",
-    "symfony/console": "^6.4 | ^7.0 | ^8.0.8",
-    "symfony/dependency-injection": "^6.4 | ^7.0 | ^8.0.8",
-    "symfony/filesystem": "^6.4 | ^7.0 | ^8.0.8",
-    "symfony/http-foundation": "^6.4 | ^7.0 | ^8.0.8",
-    "symfony/process": "^6.4 | ^7.0 | ^8.0.8",
-    "symfony/routing": "^6.4 | ^7.0 | ^8.0.8",
+    "symfony/config": "^7.4.8 | ^8.0.8",
+    "symfony/console": "^7.4.8 | ^8.0.8",
+    "symfony/dependency-injection": "^7.4.8 | ^8.0.8",
+    "symfony/filesystem": "^7.4.8 | ^8.0.8",
+    "symfony/http-foundation": "^7.4.8 | ^8.0.8",
+    "symfony/process": "^7.4.8 | ^8.0.8",
+    "symfony/routing": "^7.4.8 | ^8.0.8",
     "wundii/data-mapper": "^1.5.0"
   },
   "suggest": {
     "ext-pdo_mysql": "Required for the MySQL storage backend",
-    "ext-redis": "Required for the Redis storage backend"
+    "ext-redis": "Required for the Redis storage backend",
+    "thenativeweb/eventsourcingdb": "Required for the ESDB storage backend"
   },
   "require-dev": {
     "ext-pdo_mysql": "*",
@@ -35,7 +36,7 @@
     "phpstan/phpstan": "^2.1.46",
     "phpunit/phpunit": "^11.5.55",
     "rector/rector": "^2.4.1",
-    "symfony/var-dumper": "^6.4 | ^7.0 | ^8.0.8",
+    "symfony/var-dumper": "^7.4.8 | ^8.0.8",
     "symplify/easy-coding-standard": "^12.6.2",
     "testcontainers/testcontainers": "^1.0.4",
     "thenativeweb/eventsourcingdb": "^1.4.1",
