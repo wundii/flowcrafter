@@ -7,7 +7,7 @@ namespace Tests\MockClass;
 use Wundii\Flowcrafter\Attribute\FlowSchedule;
 use Wundii\Flowcrafter\Schedule\AbstractSchedule;
 
-#[FlowSchedule('*/5 * * * *', name: 'test-schedule')]
+#[FlowSchedule('*/5 * * * *', name: 'test-schedule', active: false)]
 class ScheduleMock extends AbstractSchedule
 {
     public bool $executed = false;

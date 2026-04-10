@@ -36,6 +36,7 @@ final class ScheduleController
                 'name' => $attribute->name,
                 'expression' => $attribute->expression,
                 'group' => $attribute->group,
+                'active' => $attribute->active,
             ];
         }
 
@@ -121,8 +122,19 @@ final class ScheduleController
             ], 400);
         }
 
-        /** @var FlowSchedule $flowSchedule */
         $flowSchedule = $attributes[0]->newInstance();
+        if (!($flowSchedule instanceof FlowSchedule)) {
+            return new JsonResponse([
+                'error' => 'The class does not have a FlowSchedule attribute',
+            ], 400);
+        }
+
+        if ($flowSchedule->active === false) {
+            return new JsonResponse([
+                'error' => sprintf('The schedule "%s" is not active', $className),
+            ], 400);
+        }
+
         $dependenciesInjection = $this->flowcrafterConfig->getDependencyInjections();
 
         try {
