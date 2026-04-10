@@ -71,6 +71,9 @@ final class FlowDevCommand extends Command
         ));
 
         $env = $this->bootstrapConfig->getProcessEnv();
+        if (is_array($env)) {
+            $env['FLOWCRAFTER_DEV'] = '1';
+        }
 
         $serverProcess = new Process(
             [PHP_BINARY, '-S', sprintf('%s:%s', $host, $port), $serviceIndex],

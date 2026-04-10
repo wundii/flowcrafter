@@ -26,8 +26,9 @@ Ausführung mit vollständigem Audit-Log.
   Schedule-Exception-Logging, Schema-Versionierung via Hash
 - `#[FlowGroup]`- und `#[FlowSchedule(group:)]`-Attribute für
   UI-Gruppierung von Flow-Typen und Schedules
+- UI-DevTool wird automatisch aktiviert wenn der Server via `bin/flowcrafter dev` gestartet wird
 - REST-API für Flows, Schemas, Queues, Exceptions & Schedule-Exceptions
-  inkl. Prometheus/OpenMetrics-Endpunkt
+  inkl. Prometheus/OpenMetrics-Endpunkt;
 - Symfony Console Commands für Config, Storage-Init/Rebuild, Dev-Server,
   Observer, Scheduler und Mermaid-Diagramme
 - Testing-Helper (`FlowTestCase`, `FlowAssertTrait`) für storageless

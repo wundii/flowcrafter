@@ -4,3 +4,5 @@ parameters:
     paths:
         - service
         - src
+    scanFiles:
+        - vendor/thenativeweb/eventsourcingdb/src/ReadEventsOptions.php

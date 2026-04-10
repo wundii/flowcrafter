@@ -9,6 +9,7 @@ use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flower\Flower;
 use Wundii\Flower\MethodEnum;
+use Wundii\Service\Controller\DevController;
 use Wundii\Service\Controller\ExceptionController;
 use Wundii\Service\Controller\FlowController;
 use Wundii\Service\Controller\HealthController;
@@ -59,5 +60,11 @@ final class Routes
         $router->add('/api/queues', MethodEnum::GET, $queueController->list(...));
         $router->add('/api/queue/count', MethodEnum::GET, $queueController->count(...));
         $router->add('/api/queue', MethodEnum::POST, $queueController->enqueue(...));
+
+        if ($flowcrafterConfig->getServerDev()) {
+            $devController = new DevController($flowcrafterConfig, $storage);
+            $router->add('/api/dev/flows', MethodEnum::GET, $devController->flows(...));
+            $router->add('/api/dev/flow', MethodEnum::GET, $devController->flow(...));
+        }
     }
 }

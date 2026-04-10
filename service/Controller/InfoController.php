@@ -28,6 +28,7 @@ final class InfoController
             'php' => PHP_VERSION,
             'storage' => (new ReflectionClass($this->storage))->getShortName(),
             'description' => $this->flowcrafterConfig->getServerDescription(),
+            'dev' => $this->flowcrafterConfig->getServerDev(),
             'workers' => $this->getHeartbeats('observer'),
             'scheduler' => $this->getHeartbeats('scheduler'),
         ]);

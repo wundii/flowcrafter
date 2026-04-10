@@ -27,6 +27,7 @@ use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
@@ -550,7 +551,7 @@ class MySql extends Service implements StorageInterface
     }
 
     /**
-     * @return iterable<array<mixed>>
+     * @return iterable<FlowSchemaEntity>
      */
     public function findAllSchemas(): iterable
     {
@@ -565,14 +566,23 @@ class MySql extends Service implements StorageInterface
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $row) {
-            /** @var array{flow_schema: string} $row */
+            /** @var array{flow_schema: string, flow_schema_hash: string, flow_schema_type: string} $row */
             $flowSchema = $row['flow_schema'];
             $flowSchemaArray = json_decode($flowSchema, true);
             if (!is_array($flowSchemaArray)) {
                 throw new RuntimeException('Could not validate flow schema payload.');
             }
 
-            yield $flowSchemaArray;
+            $stubs = $flowSchemaArray['stubs'] ?? null;
+            if (!is_array($stubs)) {
+                throw new RuntimeException('Could not validate flow schema stubs.');
+            }
+
+            yield new FlowSchemaEntity(
+                $row['flow_schema_hash'],
+                $row['flow_schema_type'],
+                $stubs,
+            );
         }
     }
 
@@ -882,6 +892,36 @@ class MySql extends Service implements StorageInterface
                 stubSource: $stubSource['stub_source'],
                 sourceContent: $stubSource['source_content'],
                 time: new DateTimeImmutable($stubSource['time']),
+            );
+        }
+    }
+
+    /**
+     * @param class-string $messageSource
+     * @return iterable<MessageSourceEntity>
+     */
+    public function findMessageSourceByMessageSource(string $messageSource): iterable
+    {
+        $stmt = $this->client->prepare(
+            'SELECT message_hash, message_source, property_names, time FROM flow_source_message ' .
+            'WHERE message_source = :message_source ORDER BY time ASC'
+        );
+        $stmt->execute([
+            ':message_source' => $messageSource,
+        ]);
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
+
+        foreach ($stmt as $row) {
+            /** @var array{message_hash: string, message_source: string, property_names: string, time: string} $row */
+            /** @var array<string, list<string>> $propertyNames */
+            $propertyNames = json_decode($row['property_names'], true) ?? [];
+            /** @var class-string<MessageInterface> $messageSourceClass */
+            $messageSourceClass = $row['message_source'];
+            yield new MessageSourceEntity(
+                messageHash: $row['message_hash'],
+                messageSource: $messageSourceClass,
+                propertyNames: $propertyNames,
+                time: new DateTimeImmutable($row['time']),
             );
         }
     }

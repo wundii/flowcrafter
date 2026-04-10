@@ -33,6 +33,7 @@ use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
@@ -818,7 +819,7 @@ class Esdb extends Service
     }
 
     /**
-     * @return iterable<array<mixed>>
+     * @return iterable<FlowSchemaEntity>
      */
     public function findAllSchemas(): iterable
     {
@@ -828,7 +829,11 @@ class Esdb extends Service
         );
 
         foreach ($schemaEvents as $schemaEvent) {
-            yield $schemaEvent->data;
+            yield new FlowSchemaEntity(
+                basename($schemaEvent->subject),
+                $schemaEvent->data['type'],
+                $schemaEvent->data['stubs'],
+            );
         }
     }
 
@@ -1004,6 +1009,39 @@ class Esdb extends Service
                 stubSource: $stubSourceEvent['stubSource'],
                 sourceContent: $stubSourceEvent['sourceContent'],
                 time: new DateTimeImmutable($stubSourceEvent['time']),
+            );
+        }
+    }
+
+    /**
+     * @param class-string $messageSource
+     * @return iterable<MessageSourceEntity>
+     */
+    public function findMessageSourceByMessageSource(string $messageSource): iterable
+    {
+        $messageSourceEvents = $this->client->runEventQlQuery(
+            'FROM e IN events ' .
+            'WHERE e.type == "' . self::TYPE_SOURCE_MESSAGE . '" ' .
+            'AND e.data.messageSource == "' . $messageSource . '" ' .
+            'ORDER by e.id ASC ' .
+            'PROJECT INTO e.data'
+        );
+
+        foreach ($messageSourceEvents as $messageSourceEvent) {
+            $hash = $messageSourceEvent['messageHash'] ?? null;
+            if (!is_string($hash)) {
+                continue;
+            }
+
+            /** @var array<string, list<string>> $propertyNames */
+            $propertyNames = is_array($messageSourceEvent['propertyNames'] ?? null) ? $messageSourceEvent['propertyNames'] : [];
+            /** @var class-string<MessageInterface> $messageSourceClass */
+            $messageSourceClass = $messageSource;
+            yield new MessageSourceEntity(
+                messageHash: $hash,
+                messageSource: $messageSourceClass,
+                propertyNames: $propertyNames,
+                time: new DateTimeImmutable($messageSourceEvent['time'] ?? 'now'),
             );
         }
     }

@@ -26,6 +26,7 @@ use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Config\RedisConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 use Wundii\Flowcrafter\Uuid;
@@ -147,6 +148,10 @@ class Redis extends Service implements StorageInterface
             '1',
             self::PREFIX_TYPE_SCHEMA,
             'SCHEMA',
+            '$.schemaHash',
+            'AS',
+            'schemaHash',
+            'TAG',
             '$.type',
             'AS',
             'type',
@@ -472,6 +477,12 @@ class Redis extends Service implements StorageInterface
             throw new InvalidArgumentException('The flow type "' . $flowSchema->type() . '" already exists.');
         }
 
+        $flowSchema = array_merge(
+            [
+                'schemaHash' => $flowSchema->getHash(),
+            ],
+            $flowSchema->jsonSerialize(),
+        );
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($flowSchema));
     }
 
@@ -673,13 +684,18 @@ class Redis extends Service implements StorageInterface
     }
 
     /**
-     * @return iterable<array<mixed>>
+     * @return iterable<FlowSchemaEntity>
      */
     public function findAllSchemas(): iterable
     {
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SCHEMA, '*');
         foreach (self::fetchData($result) as $event) {
-            yield $event;
+            /** @var array{schemaHash: string, type: string, stubs: array<mixed>} $event */
+            yield new FlowSchemaEntity(
+                $event['schemaHash'],
+                $event['type'],
+                $event['stubs'],
+            );
         }
     }
 
@@ -856,6 +872,54 @@ class Redis extends Service implements StorageInterface
                 stubSource: $stubSourceEvent['stubSource'],
                 sourceContent: $stubSourceEvent['sourceContent'],
                 time: (new DateTimeImmutable())->setTimestamp($stubSourceEvent['time']),
+            );
+        }
+    }
+
+    /**
+     * @param class-string $messageSource
+     * @return iterable<MessageSourceEntity>
+     */
+    public function findMessageSourceByMessageSource(string $messageSource): iterable
+    {
+        $escaped = self::escapeValue($messageSource);
+        $result = $this->client->rawCommand(
+            'FT.SEARCH',
+            self::INDEX_SOURCE_MESSAGE,
+            '@messageSource:{' . $escaped . '}',
+            'RETURN',
+            '1',
+            '$'
+        );
+
+        foreach (self::fetchData($result) as $data) {
+            $hash = $data['messageHash'] ?? null;
+            $source = $data['messageSource'] ?? null;
+            $propertyNames = $data['propertyNames'] ?? [];
+            $time = $data['time'] ?? null;
+            if (!is_string($hash)) {
+                continue;
+            }
+
+            if (!is_string($source)) {
+                continue;
+            }
+
+            if (!is_array($propertyNames)) {
+                continue;
+            }
+
+            if (!is_int($time)) {
+                continue;
+            }
+
+            /** @var array<string, list<string>> $propertyNames */
+            /** @var class-string<MessageInterface> $source */
+            yield new MessageSourceEntity(
+                messageHash: $hash,
+                messageSource: $source,
+                propertyNames: $propertyNames,
+                time: (new DateTimeImmutable())->setTimestamp($time),
             );
         }
     }

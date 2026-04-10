@@ -26,6 +26,11 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::DEPENDENCIES_INJECTION, []);
     }
 
+    public function getServerDev(): bool
+    {
+        return getenv('FLOWCRAFTER_DEV') === '1';
+    }
+
     public function setStorageConfig(StorageConfigInterface $storageConfig): void
     {
         $this->setParameter(OptionEnum::STORAGE_CONFIG, $storageConfig);

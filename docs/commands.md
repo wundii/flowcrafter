@@ -9,6 +9,7 @@ vendor/bin/flowcrafter config:create
 vendor/bin/flowcrafter storage:init
 
 # Entwicklung: API-Server + Observer + Scheduler zusammen starten
+# Aktiviert automatisch den Dev-Modus inkl. /api/dev/*-Endpunkte
 vendor/bin/flowcrafter dev [--host=0.0.0.0] [--port=8000]
 
 # Produktion: API-Server (FrankenPHP Worker Mode)

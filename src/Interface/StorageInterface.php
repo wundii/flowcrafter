@@ -13,6 +13,7 @@ use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
+use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
@@ -66,7 +67,7 @@ interface StorageInterface extends ServiceInterface
     public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable;
 
     /**
-     * @return iterable<array<mixed>>
+     * @return iterable<FlowSchemaEntity>
      */
     public function findAllSchemas(): iterable;
 
@@ -83,4 +84,10 @@ interface StorageInterface extends ServiceInterface
      * @return iterable<StubSourceEntity>
      */
     public function findStubSourcesByStubSource(string $stubSource): iterable;
+
+    /**
+     * @param class-string $messageSource
+     * @return iterable<MessageSourceEntity>
+     */
+    public function findMessageSourceByMessageSource(string $messageSource): iterable;
 }

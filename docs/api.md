@@ -44,6 +44,15 @@ einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 | GET     | `/api/queues`      | `sort`                                                                                   | Alle Queue-Einträge mit Details |
 | GET     | `/api/queue/count` | —                                                                                        | Aktuelle Queue-Größe            |
 
+## Dev-Endpunkte
+
+Nur verfügbar wenn der Server via `vendor/bin/flowcrafter dev` gestartet wurde (Umgebungsvariable `FLOWCRAFTER_DEV=1`). Nicht für den Produktionseinsatz vorgesehen.
+
+| Methode | Pfad              | Parameter     | Beschreibung                                                   |
+| ------- | ----------------- | ------------- | -------------------------------------------------------------- |
+| GET     | `/api/dev/flows`  | —             | Alle entdeckten Flow-Klassen mit Typ, Gruppe und Dateipfad     |
+| GET     | `/api/dev/flow`   | `className`   | Schema-Details eines Flows inkl. Hash-Vergleich (live vs. gespeichert) und Message-Property-Änderungen |
+
 ## Monitoring
 
 | Methode | Pfad       | Auth  | Beschreibung                        |
