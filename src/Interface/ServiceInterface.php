@@ -22,13 +22,13 @@ interface ServiceInterface
 
     public function countScheduleExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
 
-    public function countFlows(?string $status = null): int;
+    public function countFlows(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int;
 
-    public function countFlowsBySource(string $flowSource, ?string $status = null): int;
+    public function countFlowsBySource(string $flowSource, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int;
 
-    public function countFlowsByType(string $flowType, ?string $status = null): int;
+    public function countFlowsByType(string $flowType, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int;
 
-    public function countFlowsBySubject(string $flowSubject): int;
+    public function countFlowsBySubject(string $flowSubject, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
 
     /**
      * @return ExceptionListEntity[]

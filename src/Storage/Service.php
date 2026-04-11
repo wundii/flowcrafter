@@ -241,71 +241,60 @@ abstract class Service implements StorageInterface
         return (int) $stmt->fetchColumn();
     }
 
-    public function countFlows(?string $status = null): int
+    public function countFlows(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int
     {
-        $where = '';
-        $params = [];
-
-        if ($status !== null) {
-            $where .= ' WHERE status in (:status)';
-            $params[':status'] = $status;
-        }
+        [$where, $params] = $this->buildDateFilter($from, $to);
+        [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
         $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list' . $where);
-        if ($stmt === false) {
-            return 0;
-        }
-
-        if (!$stmt->execute($params)) {
-            return 0;
-        }
-
-        return (int) $stmt->fetchColumn();
-    }
-
-    public function countFlowsBySource(string $flowSource, ?string $status = null): int
-    {
-        $where = 'WHERE flow_source = :flow_source';
-        $params = [
-            ':flow_source' => $flowSource,
-        ];
-
-        if ($status !== null) {
-            $where .= ' AND status in (:status)';
-            $params[':status'] = $status;
-        }
-
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list ' . $where);
         $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
     }
 
-    public function countFlowsByType(string $flowType, ?string $status = null): int
+    public function countFlowsBySource(string $flowSource, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int
     {
-        $where = 'WHERE flow_type LIKE :flow_type';
-        $params = [
-            ':flow_type' => $flowType . '.v%',
-        ];
+        [$where, $params] = $this->buildDateFilter($from, $to);
+        [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
-        if ($status !== null) {
-            $where .= ' AND status in (:status)';
-            $params[':status'] = $status;
-        }
+        $where = $where === ''
+            ? ' WHERE flow_source = :flow_source'
+            : $where . ' AND flow_source = :flow_source';
+        $params[':flow_source'] = $flowSource;
 
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list ' . $where);
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list' . $where);
         $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
     }
 
-    public function countFlowsBySubject(string $flowSubject): int
+    public function countFlowsByType(string $flowType, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int
     {
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list WHERE flow_subject LIKE :flow_subject');
+        [$where, $params] = $this->buildDateFilter($from, $to);
+        [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
-        $stmt->execute([
-            ':flow_subject' => '%' . $flowSubject . '%',
-        ]);
+        $where = $where === ''
+            ? ' WHERE flow_type LIKE :flow_type'
+            : $where . ' AND flow_type LIKE :flow_type';
+        $params[':flow_type'] = $flowType . '.v%';
+
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list' . $where);
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countFlowsBySubject(string $flowSubject, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
+    {
+        [$where, $params] = $this->buildDateFilter($from, $to);
+
+        $where = $where === ''
+            ? ' WHERE flow_subject LIKE :flow_subject'
+            : $where . ' AND flow_subject LIKE :flow_subject';
+        $params[':flow_subject'] = '%' . $flowSubject . '%';
+
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_list' . $where);
+        $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
     }

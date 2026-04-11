@@ -16,7 +16,7 @@ final class ComposerExtensionResolver
         $extensions = [];
 
         $composerJsonPath = $projectDir . '/composer.json';
-        $extensions = array_merge($extensions, $this->extractExtensions($composerJsonPath));
+        $extensions = array_merge($extensions, $this->extractExtensions($composerJsonPath, true));
 
         $flowcrafterComposerJson = $projectDir . '/vendor/wundii/flowcrafter/composer.json';
         $extensions = array_merge($extensions, $this->extractExtensions($flowcrafterComposerJson));
@@ -30,7 +30,7 @@ final class ComposerExtensionResolver
     /**
      * @return string[]
      */
-    private function extractExtensions(string $composerJsonPath): array
+    private function extractExtensions(string $composerJsonPath, bool $projectComposer = false): array
     {
         if (!is_file($composerJsonPath)) {
             return [];
@@ -53,7 +53,7 @@ final class ComposerExtensionResolver
             }
         }
 
-        if (array_key_exists('name', $data) && $data['name'] === 'wundii/flowcrafter') {
+        if ($projectComposer && array_key_exists('name', $data) && $data['name'] === 'wundii/flowcrafter') {
             $pdoDevDriver = array_filter(
                 FlowDockerInitCommand::PDO_DRIVER_CHOICES,
                 static fn (?string $v): bool => $v !== null,

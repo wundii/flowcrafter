@@ -32,68 +32,36 @@ final class DevController
             ], 403);
         }
 
-        try {
-            $result = [];
+        $result = [];
 
-            foreach (ClassResolver::resolve() as $className) {
-                if (!is_a($className, FlowInterface::class, true)) {
-                    continue;
-                }
-
-                $reflectionClass = new ReflectionClass($className);
-                $attributes = $reflectionClass->getAttributes(FlowGroup::class);
-                $group = $attributes !== [] ? $attributes[0]->newInstance()->name : null;
-
-                try {
-                    $type = $className::schema()->type();
-                } catch (Throwable) {
-                    $type = null;
-                }
-
-                $file = $reflectionClass->getFileName();
-
-                $result[] = [
-                    'className' => $className,
-                    'type' => $type,
-                    'group' => $group,
-                    'file' => $file !== false ? $file : null,
-                ];
+        foreach (ClassResolver::resolve() as $className) {
+            if (!is_a($className, FlowInterface::class, true)) {
+                continue;
             }
 
-            usort($result, static fn (array $a, array $b): int => strcasecmp($a['className'], $b['className']));
+            $reflectionClass = new ReflectionClass($className);
+            $attributes = $reflectionClass->getAttributes(FlowGroup::class);
+            $group = $attributes !== [] ? $attributes[0]->newInstance()->name : null;
 
-            return new JsonResponse($result);
-        } catch (Throwable $throwable) {
-            $file = $throwable->getFile();
-            $line = $throwable->getLine();
-
-            $fileContext = null;
-            if ($file !== '' && file_exists($file) && is_readable($file)) {
-                $lines = file($file, FILE_IGNORE_NEW_LINES);
-                if ($lines !== false) {
-                    $start = max(0, $line - 6);
-                    $end = min(count($lines) - 1, $line + 4);
-                    $contextLines = [];
-                    for ($i = $start; $i <= $end; ++$i) {
-                        $contextLines[] = [
-                            'number' => $i + 1,
-                            'content' => $lines[$i],
-                            'highlighted' => ($i + 1) === $line,
-                        ];
-                    }
-
-                    $fileContext = $contextLines;
-                }
+            try {
+                $type = $className::schema()->type();
+            } catch (Throwable) {
+                $type = null;
             }
 
-            return new JsonResponse([
-                'error' => $throwable->getMessage(),
-                'file' => $file,
-                'line' => $line,
-                'trace' => $throwable->getTraceAsString(),
-                'fileContext' => $fileContext,
-            ], 500);
+            $file = $reflectionClass->getFileName();
+
+            $result[] = [
+                'className' => $className,
+                'type' => $type,
+                'group' => $group,
+                'file' => $file !== false ? $file : null,
+            ];
         }
+
+        usort($result, static fn (array $a, array $b): int => strcasecmp($a['className'], $b['className']));
+
+        return new JsonResponse($result);
     }
 
     public function flow(Request $request): JsonResponse

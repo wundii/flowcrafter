@@ -54,8 +54,8 @@ final class FlowController
         }
 
         $total = $type !== null
-            ? $this->storage->countFlowsByType($type, $status)
-            : $this->storage->countFlows($status);
+            ? $this->storage->countFlowsByType($type, $from, $to, $status)
+            : $this->storage->countFlows($from, $to, $status);
 
         return new JsonResponse([
             'items' => $items,

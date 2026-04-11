@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flower\Flower;
+use Wundii\Service\ErrorHandler;
 
 try {
     /** @var FlowcrafterConfig $bootstrap */
@@ -33,6 +34,6 @@ while ($running) {
         }
 
         Flower::resetRequest();
-        Flower::run($secret);
+        Flower::run($secret, ErrorHandler::create());
     });
 }

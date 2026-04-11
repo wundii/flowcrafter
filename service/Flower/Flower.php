@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Symfony\Component\Routing\RequestContext;
+use Throwable;
 
 class Flower
 {
@@ -46,12 +47,18 @@ class Flower
         return $flower->router;
     }
 
-    public static function run(?string $secret = null): void
+    /**
+     * @param (Closure(Throwable): Response)|null $errorHandler
+     */
+    public static function run(?string $secret = null, ?Closure $errorHandler = null): void
     {
-        self::handle($secret)->send();
+        self::handle($secret, errorHandler: $errorHandler)->send();
     }
 
-    public static function handle(?string $secret = null, ?Request $request = null): Response
+    /**
+     * @param (Closure(Throwable): Response)|null $errorHandler
+     */
+    public static function handle(?string $secret = null, ?Request $request = null, ?Closure $errorHandler = null): Response
     {
         $flower = self::getInstance();
         $request = $request ?? $flower->request;
@@ -87,8 +94,10 @@ class Flower
             }
         } catch (ResourceNotFoundException) {
             $response = new Response('Not Found', 404);
-        } catch (ReflectionException $e) {
-            $response = new Response('Internal Server Error: ' . $e->getMessage(), 500);
+        } catch (Throwable $throwable) {
+            $response = $errorHandler instanceof \Closure
+                ? $errorHandler($throwable)
+                : new Response('Internal Server Error: ' . $throwable->getMessage(), 500);
         }
 
         return $response;
