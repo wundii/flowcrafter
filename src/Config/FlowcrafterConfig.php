@@ -6,6 +6,7 @@ namespace Wundii\Flowcrafter\Config;
 
 use ReflectionClass;
 use RuntimeException;
+use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\Interface\StorageConfigInterface;
@@ -119,8 +120,8 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
      */
     public function getDependencyInjections(): array
     {
-        /** @var class-string[] $dependencies */
-        $dependencies = $this->getArrayWithStrings(OptionEnum::DEPENDENCIES_INJECTION);
+        /** @var array<class-string|object> $dependencies */
+        $dependencies = Assert::array($this->getParameter(OptionEnum::DEPENDENCIES_INJECTION, []));
 
         return $dependencies;
     }
