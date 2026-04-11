@@ -65,6 +65,7 @@ final class Routes
             $devController = new DevController($flowcrafterConfig, $storage);
             $router->add('/api/dev/flows', MethodEnum::GET, $devController->flows(...));
             $router->add('/api/dev/flow', MethodEnum::GET, $devController->flow(...));
+            $router->add('/api/dev/run', MethodEnum::POST, $devController->run(...));
         }
     }
 }

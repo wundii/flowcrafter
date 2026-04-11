@@ -4,14 +4,24 @@ declare(strict_types=1);
 
 namespace Wundii\Service\Controller;
 
+use InvalidArgumentException;
 use ReflectionClass;
+use ReflectionNamedType;
+use ReflectionUnionType;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Throwable;
+use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Attribute\FlowGroup;
 use Wundii\Flowcrafter\ClassResolver;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\Converter;
+use Wundii\Flowcrafter\Enum\MessageEnum;
+use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowPreflight;
+use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\FlowInterface;
+use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Source;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
@@ -148,6 +158,39 @@ final class DevController
                 }
             }
 
+            $initMessageSchema = null;
+            $initMessageTypes = null;
+            foreach ($schema->stubs() as $stub) {
+                if ($stub->getMessageEnum() !== MessageEnum::INIT) {
+                    continue;
+                }
+
+                $initMessageClass = $stub->getMessages()[0] ?? null;
+                if ($initMessageClass !== null && class_exists($initMessageClass)) {
+                    $built = $this->buildInitMessageSchema($initMessageClass);
+                    $initMessageSchema = $built['defaults'];
+                    $initMessageTypes = $built['types'];
+                }
+
+                break;
+            }
+
+            $messageSchemas = [];
+            foreach ($schema->stubs() as $stub) {
+                foreach ([...$stub->getMessages(), ...$stub->getReturnTypes()] as $messageClass) {
+                    if (array_key_exists($messageClass, $messageSchemas)) {
+                        continue;
+                    }
+
+                    if (!class_exists($messageClass)) {
+                        continue;
+                    }
+
+                    $built = $this->buildInitMessageSchema($messageClass);
+                    $messageSchemas[$messageClass] = $built['types'];
+                }
+            }
+
             return new JsonResponse([
                 'valid' => true,
                 'error' => null,
@@ -157,6 +200,9 @@ final class DevController
                 'hashDrift' => $hashDrift,
                 'storedSchema' => $hashDrift ? $storedStubs : null,
                 'changedMessages' => array_values($changedMessages),
+                'messageSchemas' => $messageSchemas,
+                'initMessageSchema' => $initMessageSchema,
+                'initMessageTypes' => $initMessageTypes,
             ]);
         } catch (Throwable $throwable) {
             return new JsonResponse([
@@ -170,5 +216,144 @@ final class DevController
                 'changedMessages' => [],
             ]);
         }
+    }
+
+    public function run(Request $request): JsonResponse
+    {
+        if (!$this->flowcrafterConfig->getServerDev()) {
+            return new JsonResponse([
+                'error' => 'Dev mode is not enabled',
+            ], 403);
+        }
+
+        $body = json_decode($request->getContent(), true);
+        if (!is_array($body)) {
+            return new JsonResponse([
+                'error' => 'Invalid JSON body',
+            ], 400);
+        }
+
+        $className = ltrim(Assert::string($body['className'] ?? ''), '\\');
+        $messageSource = Assert::string($body['messageSource'] ?? '');
+        $message = Assert::array($body['message'] ?? []);
+
+        if ($className === '' || $messageSource === '') {
+            return new JsonResponse([
+                'error' => 'className and messageSource required',
+            ], 400);
+        }
+
+        if (!class_exists($className)) {
+            return new JsonResponse([
+                'error' => 'Class not found',
+            ], 404);
+        }
+
+        if (!is_a($className, FlowInterface::class, true)) {
+            return new JsonResponse([
+                'error' => 'Class does not implement FlowInterface',
+            ], 400);
+        }
+
+        /** @var class-string<FlowInterface> $className */
+        $flowPreflight = new FlowPreflight();
+
+        try {
+            $flowSource = $flowPreflight->ensureFlowSource($className);
+            $validatedMessageSource = $flowPreflight->ensureMessageSource($flowSource, $messageSource);
+            $messageInstance = $flowPreflight->hydrateMessage($validatedMessageSource, $message);
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            return new JsonResponse([
+                'error' => $invalidArgumentException->getMessage(),
+            ], 400);
+        }
+
+        try {
+            $flowRunner = new FlowRunner(
+                type: $className::schema()->type(),
+                flowSource: $className,
+                storage: null,
+                dependenciesInjection: $this->flowcrafterConfig->getDependencyInjections(),
+            );
+        } catch (Throwable $throwable) {
+            return new JsonResponse([
+                'error' => $throwable->getMessage(),
+            ], 500);
+        }
+
+        $messageReturn = null;
+        $error = null;
+        try {
+            ob_start();
+            $messageReturn = $flowRunner->run(message: $messageInstance);
+        } catch (Throwable $throwable) {
+            $error = $throwable->getMessage();
+        } finally {
+            ob_end_clean();
+        }
+
+        $flowInstance = $flowRunner->getFlow();
+        $flowData = null;
+        if ($flowInstance instanceof Flow) {
+            $flowData = json_decode(Converter::flowToJson($flowInstance), true);
+        }
+
+        return new JsonResponse([
+            'success' => $error === null,
+            'error' => $error,
+            'messageReturn' => $messageReturn instanceof MessageReturnInterface ? $messageReturn : null,
+            'flow' => $flowData,
+        ]);
+    }
+
+    /**
+     * @param class-string $messageClass
+     * @return array{defaults: array<string, mixed>, types: array<string, string>}
+     */
+    private function buildInitMessageSchema(string $messageClass): array
+    {
+        $defaults = [];
+        $types = [];
+        $constructor = (new ReflectionClass($messageClass))->getConstructor();
+
+        foreach ($constructor?->getParameters() ?? [] as $param) {
+            $type = $param->getType();
+            $nullable = $type?->allowsNull() ?? false;
+
+            if ($type instanceof ReflectionUnionType) {
+                $parts = array_map(
+                    static fn (ReflectionNamedType $reflectionNamedType): string => $reflectionNamedType->getName(),
+                    array_filter($type->getTypes(), static fn (\ReflectionIntersectionType|\ReflectionNamedType $t): bool => $t instanceof ReflectionNamedType && $t->getName() !== 'null'),
+                );
+                $typeString = ($nullable ? '?' : '') . implode('|', $parts);
+                $firstTypeName = $parts[0] ?? 'string';
+            } elseif ($type instanceof ReflectionNamedType) {
+                $typeString = ($nullable ? '?' : '') . $type->getName();
+                $firstTypeName = $type->getName();
+            } else {
+                $typeString = 'mixed';
+                $firstTypeName = 'string';
+            }
+
+            $types[$param->getName()] = $typeString;
+
+            if ($param->isDefaultValueAvailable()) {
+                $defaults[$param->getName()] = $param->getDefaultValue();
+            } else {
+                $defaults[$param->getName()] = match (true) {
+                    $nullable => null,
+                    $firstTypeName === 'int' => 0,
+                    $firstTypeName === 'float' => 0.0,
+                    $firstTypeName === 'bool' => false,
+                    $firstTypeName === 'array' => [],
+                    default => '',
+                };
+            }
+        }
+
+        return [
+            'defaults' => $defaults,
+            'types' => $types,
+        ];
     }
 }

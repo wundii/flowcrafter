@@ -117,6 +117,29 @@ readonly class OrderCompleted extends AbstractMessage implements MessageReturnIn
 }
 ```
 
+Braucht der erste Stub keinen externen Input, kann statt einer eigenen Init-Klasse die mitgelieferte
+`Wundii\Flowcrafter\EmptyInitMessage` verwendet werden. Damit Rector den Konstruktor-Parameter nicht als
+ungenutzt entfernt, wird sie als `public readonly` promoted Property deklariert:
+
+```php
+use Wundii\Flowcrafter\EmptyInitMessage;
+
+class StartStub implements StubInterface
+{
+    public function __construct(
+        public readonly EmptyInitMessage $init,
+    ) {}
+
+    /** @return class-string[] */
+    public function returnTypes(): array { return [OrderValidated::class]; }
+
+    public function process(): MessageDataInterface
+    {
+        return new OrderValidated('SKU-1', quantity: 1);
+    }
+}
+```
+
 ### Stubs
 reine PHP-Klassen. Der Constructor-Typ entscheidet das Routing. Ein Stub kann `MessageData` (→ Flow läuft weiter), `MessageReturn`
 (→ Flow endet) oder `bool` (→ Leaf-Result) zurückgeben:
