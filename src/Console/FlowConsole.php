@@ -88,7 +88,7 @@ final class FlowConsole extends BaseApplication
     {
         if (InstalledVersions::isInstalled('wundii/flowcrafter')) {
             $version = InstalledVersions::getPrettyVersion('wundii/flowcrafter');
-            if ($version !== null) {
+            if ($version !== null && !str_contains($version, 'no-version-set')) {
                 return $version;
             }
         }
