@@ -40,6 +40,11 @@ class FlowRunner
     private bool|MessageReturnInterface $messageReturn = false;
 
     /**
+     * @var FlowOutput[]
+     */
+    private array $outputLog = [];
+
+    /**
      * @param class-string<FlowInterface> $flowSource
      * @param array<class-string|object> $dependenciesInjection
      */
@@ -60,6 +65,14 @@ class FlowRunner
     public function getFlow(): ?Flow
     {
         return $this->flow;
+    }
+
+    /**
+     * @return FlowOutput[]
+     */
+    public function getOutputLog(): array
+    {
+        return $this->outputLog;
     }
 
     /**
@@ -208,8 +221,17 @@ class FlowRunner
 
             try {
                 $stubInstance = $this->createInstance($stubSource->stubSource, $flowMessages);
+                ob_start();
                 $processResult = $stubInstance->process();
+                $stubOutput = ob_get_clean();
+                if ($stubOutput !== '' && $stubOutput !== false) {
+                    $this->outputLog[] = FlowOutput::create($stubSource->stubSource, $stubOutput);
+                }
             } catch (Throwable $exception) {
+                if (ob_get_level() > 0) {
+                    ob_end_clean();
+                }
+
                 foreach ($flowMessages as $flowMessage) {
                     $flowMessage->setFinish();
                     $this->storage?->appendFlowMessage($flowMessage);

@@ -16,7 +16,7 @@ use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 
-readonly class FlowObserver
+final readonly class FlowObserver
 {
     /**
      * @param array<class-string|object> $dependenciesInjection

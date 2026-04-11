@@ -284,12 +284,9 @@ final class DevController
         $messageReturn = null;
         $error = null;
         try {
-            ob_start();
             $messageReturn = $flowRunner->run(message: $messageInstance);
         } catch (Throwable $throwable) {
             $error = $throwable->getMessage();
-        } finally {
-            ob_end_clean();
         }
 
         $flowInstance = $flowRunner->getFlow();
@@ -298,9 +295,12 @@ final class DevController
             $flowData = json_decode(Converter::flowToJson($flowInstance), true);
         }
 
+        $outputLog = $flowRunner->getOutputLog();
+
         return new JsonResponse([
             'success' => $error === null,
             'error' => $error,
+            'output' => $outputLog !== [] ? $outputLog : null,
             'messageReturn' => $messageReturn instanceof MessageReturnInterface ? $messageReturn : null,
             'flow' => $flowData,
         ]);
