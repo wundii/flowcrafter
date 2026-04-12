@@ -30,7 +30,7 @@ final class FlowScheduler
     private array $lastExecutedMinute = [];
 
     /**
-     * @param array<class-string|object> $dependenciesInjection
+     * @param array<int|class-string, class-string|object> $dependenciesInjection
      * @param array<class-string<ScheduleInterface>, FlowSchedule>|null $scheduleAttributes
      */
     public function __construct(

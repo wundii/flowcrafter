@@ -318,6 +318,64 @@ class OrderCleanupSchedule extends AbstractSchedule
 
 Schedule-Klassen werden über das `#[FlowSchedule]`-Attribut automatisch aus dem Composer-Classmap entdeckt — keine manuelle Registrierung nötig. Der Scheduler läuft als eigenständiger Prozess (`vendor/bin/flowcrafter scheduler`) oder im Dev-Modus inline mit.
 
+### Dependency Injection
+
+Stubs können neben Messages auch externe Services per Constructor-Injection erhalten. Die Abhängigkeiten werden über `dependenciesInjection` in `FlowRunner`, `FlowScheduler` und `FlowAssertTrait` registriert — drei Modi stehen zur Verfügung:
+
+| Schlüssel | Wert | Verhalten |
+|---|---|---|
+| ohne Schlüssel | `class-string` | Klasse wird automatisch per Autowiring registriert |
+| ohne Schlüssel | `object` | Konkrete Instanz, gebunden an die eigene Klasse |
+| Interface-Klassenname | `object` | Instanz wird an Interface **und** Konkreten Klasse gebunden (Alias) |
+
+```php
+// Stub mit Interface-Abhängigkeit
+class FetchStub implements StubInterface
+{
+    public function __construct(
+        private readonly OrderInit $init,
+        private readonly HttpClientInterface $http,  // Interface, kein Concrete!
+    ) {}
+
+    public function returnTypes(): array { return [OrderValidated::class]; }
+
+    public function process(): MessageDataInterface
+    {
+        $data = $this->http->get('/api/order/' . $this->init->getSku());
+        return new OrderValidated($this->init->getSku(), $data['quantity']);
+    }
+}
+```
+
+```php
+// FlowRunner mit Interface-Binding
+$flowRunner = new FlowRunner(
+    type: 'flow.order.v1',
+    flowSource: OrderFlow::class,
+    storage: $storage,
+    dependenciesInjection: [
+        // Interface → konkrete Instanz
+        HttpClientInterface::class => new CurlHttpClient(),
+
+        // oder: direkte Instanz ohne Interface
+        new MyLogger(),
+
+        // oder: Klasse per Autowiring
+        SomeService::class,
+    ],
+);
+
+$result = $flowRunner->run(new OrderInit('sku-42'));
+```
+
+```php
+// Test mit Interface-Binding in FlowAssertTrait
+$this->setDependenciesInjection([
+    HttpClientInterface::class => new CurlHttpClientMock(),
+]);
+$this->runFlow('flow.order.v1', OrderFlow::class, new OrderInit('sku-42'));
+```
+
 ### Test
 storageless mit `FlowTestCase`, kein Docker nötig:
 

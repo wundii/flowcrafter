@@ -46,7 +46,7 @@ class FlowRunner
 
     /**
      * @param class-string<FlowInterface> $flowSource
-     * @param array<class-string|object> $dependenciesInjection
+     * @param array<int|class-string, class-string|object> $dependenciesInjection
      */
     public function __construct(
         private readonly string $type,

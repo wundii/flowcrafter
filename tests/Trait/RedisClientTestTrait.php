@@ -7,6 +7,7 @@ namespace Tests\Trait;
 use Redis;
 use Testcontainers\Container\GenericContainer;
 use Testcontainers\Container\StartedGenericContainer;
+use Testcontainers\Wait\WaitForHostPort;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Config\RedisConfig;
 use Wundii\Flowcrafter\Storage\Redis as RedisStorage;
@@ -25,7 +26,10 @@ trait RedisClientTestTrait
 
         self::$container = (new GenericContainer('redis:latest'))
             ->withExposedPorts(self::PORT)
+            ->withWait(new WaitForHostPort(self::PORT))
             ->start();
+
+        usleep(100000);
     }
 
     public static function tearDownAfterClass(): void

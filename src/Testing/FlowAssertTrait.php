@@ -86,7 +86,7 @@ trait FlowAssertTrait
      *
      * @param class-string<StubInterface> $stubSource
      * @param MessageInterface[] $messages
-     * @param array<class-string|object> $dependencies
+     * @param array<int|class-string, class-string|object> $dependencies
      */
     protected function runStub(
         string $stubSource,

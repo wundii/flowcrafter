@@ -34,6 +34,8 @@ trait MySqlClientTestTrait
             ->withMariaDBUser(self::USERNAME, self::PASSWORD)
             ->withExposedPorts(self::PORT)
             ->start();
+
+        usleep(100000);
     }
 
     public static function tearDownAfterClass(): void

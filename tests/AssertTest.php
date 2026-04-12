@@ -190,4 +190,51 @@ final class AssertTest extends TestCase
     {
         $this->assertFalse(Assert::isHash('not-a-valid-hash'));
     }
+
+    public function testNullOrIntPasses(): void
+    {
+        $this->assertSame(42, Assert::nullOrInt(42));
+        $this->assertNull(Assert::nullOrInt(null));
+    }
+
+    public function testNullOrIntFails(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Assert::nullOrInt('42');
+    }
+
+    public function testNullOrFloatPasses(): void
+    {
+        $this->assertEqualsWithDelta(1.5, Assert::nullOrFloat(1.5), PHP_FLOAT_EPSILON);
+        $this->assertNull(Assert::nullOrFloat(null));
+    }
+
+    public function testNullOrFloatFails(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Assert::nullOrFloat('1.5');
+    }
+
+    public function testNullOrStringPasses(): void
+    {
+        $this->assertSame('hello', Assert::nullOrString('hello'));
+        $this->assertNull(Assert::nullOrString(null));
+    }
+
+    public function testNullOrStringFails(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        Assert::nullOrString(123);
+    }
+
+    public function testIsValidClassStringTrue(): void
+    {
+        $this->assertTrue(Assert::isValidClassString(MessageInitInterface::class, MessageInitInterface::class));
+    }
+
+    public function testIsValidClassStringFalse(): void
+    {
+        $this->assertFalse(Assert::isValidClassString('not-a-class', MessageInitInterface::class));
+        $this->assertFalse(Assert::isValidClassString(42, MessageInitInterface::class));
+    }
 }

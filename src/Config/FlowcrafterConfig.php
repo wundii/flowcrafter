@@ -108,7 +108,9 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
     }
 
     /**
-     * @param array<class-string|object> $dependenciesInjection
+     * @param array<int|class-string, class-string|object> $dependenciesInjection
+     *        Numeric key: class-string (autowire) or object (synthetic)
+     *        String key:  interface class-string => object (interface binding)
      */
     public function setDependenciesInjection(array $dependenciesInjection = []): void
     {
@@ -116,11 +118,11 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
     }
 
     /**
-     * @return array<class-string|object>
+     * @return array<int|class-string, class-string|object>
      */
     public function getDependencyInjections(): array
     {
-        /** @var array<class-string|object> $dependencies */
+        /** @var array<int|class-string, class-string|object> $dependencies */
         $dependencies = Assert::array($this->getParameter(OptionEnum::DEPENDENCIES_INJECTION, []));
 
         return $dependencies;

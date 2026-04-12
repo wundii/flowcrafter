@@ -12,7 +12,9 @@ final class FlowContainerFactory
     /**
      * @param class-string[] $autowireClasses
      * @param array<class-string|object> $syntheticServices
-     * @param array<class-string|object> $dependencies
+     * @param array<int|class-string, class-string|object> $dependencies
+     *        Numeric key: class-string (autowire) or object (synthetic)
+     *        String key:  interface class-string => object (interface binding)
      */
     public static function build(
         array $autowireClasses,
@@ -40,16 +42,27 @@ final class FlowContainerFactory
             $containerBuilder->setDefinition($className, $definition);
         }
 
-        foreach ($dependencies as $dependency) {
-            $className = is_object($dependency)
-                ? get_class($dependency)
-                : $dependency;
+        foreach ($dependencies as $key => $dependency) {
+            if (is_string($key) && is_object($dependency)) {
+                // Interface binding: $key = interface, $dependency = concrete object
+                $className = get_class($dependency);
 
-            $definition = new Definition($className);
-            $definition->setSynthetic(is_object($dependency));
-            $definition->setPublic(true);
+                $definition = new Definition($className);
+                $definition->setSynthetic(true);
+                $definition->setPublic(true);
+                $containerBuilder->setDefinition($className, $definition);
+                $containerBuilder->setAlias($key, $className)->setPublic(true);
+            } else {
+                $className = is_object($dependency)
+                    ? get_class($dependency)
+                    : $dependency;
 
-            $containerBuilder->setDefinition($className, $definition);
+                $definition = new Definition($className);
+                $definition->setSynthetic(is_object($dependency));
+                $definition->setPublic(true);
+
+                $containerBuilder->setDefinition($className, $definition);
+            }
         }
 
         $containerBuilder->compile();
