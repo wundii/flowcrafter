@@ -82,7 +82,7 @@ final class AbstractMessageTest extends TestCase
         $messageSourceEntity = Source::message(MessageDataSecondMock::class);
 
         $this->assertSame([
-            'MessageDataSecondMock' => ['data', 'messageSubDataMock'],
+            'MessageDataSecondMock' => ['data', 'messageSubDataMock:MessageSubDataMock'],
             'MessageSubDataMock' => ['value'],
         ], $messageSourceEntity->propertyNames);
     }
