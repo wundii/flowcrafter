@@ -26,19 +26,9 @@ final class QueueController
     {
         $sort = $request->query->get('sort', 'desc') === 'asc' ? SortEnum::ASC : SortEnum::DESC;
 
-        $result = [];
-        foreach ($this->storage->findAllQueues($sort) as $item) {
-            $result[] = [
-                'queueId' => $item->getQueueId(),
-                'type' => $item->getType(),
-                'flowSource' => $item->getFlowSource(),
-                'flowHash' => $item->getFlowHash(),
-                'messageSource' => $item->getMessageSource(),
-                'message' => $item->getMessage(),
-            ];
-        }
+        $queueItems = $this->storage->findAllQueues($sort);
 
-        return new JsonResponse($result);
+        return new JsonResponse(iterator_to_array($queueItems));
     }
 
     public function count(): JsonResponse

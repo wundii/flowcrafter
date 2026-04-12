@@ -29,8 +29,9 @@ final class SchemaController
     public function stubSource(Request $request): JsonResponse
     {
         $className = $request->query->get('className', '');
-        $className = $className && !str_starts_with($className, '\\') ? '\\' . $className : $className;
+        $stubHash = $request->query->get('stubHash', '');
 
+        $className = $className && !str_starts_with($className, '\\') ? '\\' . $className : $className;
         if (class_exists($className)) {
             if (!is_subclass_of($className, StubInterface::class)) {
                 return new JsonResponse([
@@ -60,10 +61,7 @@ final class SchemaController
             ]);
         }
 
-        $stubHash = $request->query->get('stubHash', '');
-
         $stubSourceEntity = $this->storage->findStubSourceByHash($stubHash);
-
         if (!$stubSourceEntity instanceof StubSourceEntity) {
             return new JsonResponse([
                 'error' => 'Stub source not found',
@@ -87,6 +85,13 @@ final class SchemaController
             'current' => $current,
             'source' => $source,
         ]);
+    }
+
+    public function messageSources(): JsonResponse
+    {
+        $messageSources = $this->storage->findAllMessageSources();
+
+        return new JsonResponse(iterator_to_array($messageSources));
     }
 
     public function stubSources(Request $request): JsonResponse

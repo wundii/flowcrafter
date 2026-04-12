@@ -71,6 +71,11 @@ interface StorageInterface extends ServiceInterface
      */
     public function findAllSchemas(): iterable;
 
+    /**
+     * @return iterable<MessageSourceEntity>
+     */
+    public function findAllMessageSources(): iterable;
+
     public function findFlowInstanceByHash(string $flowHash): ?FlowInstanceEntity;
 
     public function findFlowByHash(string $flowHash): ?Flow;

@@ -838,6 +838,26 @@ class Esdb extends Service
     }
 
     /**
+     * @return iterable<MessageSourceEntity>
+     */
+    public function findAllMessageSources(): iterable
+    {
+        $messageSourceEvents = $this->client->readEvents(
+            subject: '/flow/source/message',
+            readEventsOptions: new ReadEventsOptions(true),
+        );
+
+        foreach ($messageSourceEvents as $messageSourceEvent) {
+            yield new MessageSourceEntity(
+                messageHash: $messageSourceEvent->data['messageHash'],
+                messageSource: $messageSourceEvent->data['messageSource'],
+                propertyNames: $messageSourceEvent->data['propertyNames'],
+                time: new DateTimeImmutable($messageSourceEvent->data['time'] ?? '' ? $messageSourceEvent->data['time'] : 'now'),
+            );
+        }
+    }
+
+    /**
      * @return iterable<ObserveItem >
      */
     public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable

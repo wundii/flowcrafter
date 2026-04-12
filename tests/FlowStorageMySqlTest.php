@@ -15,11 +15,13 @@ use Tests\Trait\MySqlClientTestTrait;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
+use Wundii\Flowcrafter\Source;
 use Wundii\Flowcrafter\Storage\Entity\ExceptionListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
+use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
 
 final class FlowStorageMySqlTest extends TestCase
@@ -794,5 +796,41 @@ final class FlowStorageMySqlTest extends TestCase
         $this->assertSame(1, $statsMap['flow.workflow.fail']->total);
         $this->assertSame(1, $statsMap['flow.workflow.fail']->failed);
         $this->assertSame(0, $statsMap['flow.workflow.fail']->successRate);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function testFindAllMessageSources(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            storage: $storage,
+        );
+
+        $flowRunner->run(new MessageInitMock('test data'));
+
+        $messageSources = iterator_to_array($storage->findAllMessageSources());
+        $this->assertCount(4, $messageSources);
+
+        foreach ($messageSources as $messageSource) {
+            $this->assertInstanceOf(MessageSourceEntity::class, $messageSource);
+            $this->assertNotEmpty($messageSource->messageHash);
+            $this->assertNotEmpty($messageSource->messageSource);
+            $this->assertNotEmpty($messageSource->propertyNames);
+            $this->assertInstanceOf(\DateTimeInterface::class, $messageSource->time);
+        }
+
+        $sourcesByClass = [];
+        foreach ($messageSources as $messageSource) {
+            $sourcesByClass[$messageSource->messageSource] = $messageSource;
+        }
+
+        $this->assertArrayHasKey(MessageInitMock::class, $sourcesByClass);
+        $messageSourceEntity = Source::message(MessageInitMock::class);
+        $this->assertSame($messageSourceEntity->messageHash, $sourcesByClass[MessageInitMock::class]->messageHash);
+        $this->assertSame($messageSourceEntity->propertyNames, $sourcesByClass[MessageInitMock::class]->propertyNames);
     }
 }

@@ -587,6 +587,36 @@ class MySql extends Service implements StorageInterface
     }
 
     /**
+     * @return iterable<MessageSourceEntity>
+     */
+    public function findAllMessageSources(): iterable
+    {
+        $stmt = $this->client->query(
+            'SELECT * FROM flow_source_message ORDER BY time ASC'
+        );
+
+        if ($stmt === false) {
+            return [];
+        }
+
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
+
+        foreach ($stmt as $row) {
+            /** @var array{message_hash: string, message_source: string, property_names: string, time: string} $row */
+            /** @var array<string, list<string>> $propertyNames */
+            $propertyNames = json_decode($row['property_names'], true) ?? [];
+            /** @var class-string<MessageInterface> $messageSourceClass */
+            $messageSourceClass = $row['message_source'];
+            yield new MessageSourceEntity(
+                messageHash: $row['message_hash'],
+                messageSource: $messageSourceClass,
+                propertyNames: $propertyNames,
+                time: new DateTimeImmutable($row['time']),
+            );
+        }
+    }
+
+    /**
      * @return iterable<ObserveItem>
      */
     public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable

@@ -700,6 +700,24 @@ class Redis extends Service implements StorageInterface
     }
 
     /**
+     * @return iterable<MessageSourceEntity>
+     */
+    public function findAllMessageSources(): iterable
+    {
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SOURCE_MESSAGE, '*', 'RETURN', '1', '$');
+
+        foreach (self::fetchData($result) as $event) {
+            /** @var array{messageHash: string, messageSource: class-string<MessageInterface>, propertyNames: array<string, list<string>>, time: int} $event */
+            yield new MessageSourceEntity(
+                messageHash: $event['messageHash'],
+                messageSource: $event['messageSource'],
+                propertyNames: $event['propertyNames'],
+                time: new DateTimeImmutable($this->timestampToRFC3339Extended($event['time'])),
+            );
+        }
+    }
+
+    /**
      * @return iterable<ObserveItem>
      */
     public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable

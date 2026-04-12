@@ -49,6 +49,7 @@ final class Routes
         $router->add('/api/schemas', MethodEnum::GET, $schemaController->list(...));
         $router->add('/api/schema/stub-source', MethodEnum::GET, $schemaController->stubSource(...));
         $router->add('/api/schema/stub-sources', MethodEnum::GET, $schemaController->stubSources(...));
+        $router->add('/api/schema/message-sources', MethodEnum::GET, $schemaController->messageSources(...));
 
         $router->add('/api/schedules', MethodEnum::GET, $scheduleController->list(...));
         $router->add('/api/schedule/run', MethodEnum::POST, $scheduleController->run(...));

@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter;
 
+use JsonSerializable;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 
-final readonly class ObserveItem
+final readonly class ObserveItem implements JsonSerializable
 {
     /**
      * @param class-string<FlowInterface> $flowSource
@@ -72,5 +73,19 @@ final readonly class ObserveItem
     public function getFlowSubject(): ?string
     {
         return $this->flowSubject;
+    }
+
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'queueId' => $this->queueId,
+            'type' => $this->type,
+            'flowSubject' => $this->flowSubject,
+            'flowSource' => $this->flowSource,
+            'flowHash' => $this->flowHash,
+            'messageSource' => $this->messageSource,
+            'message' => $this->message,
+            'includeStubs' => $this->includeStubs,
+        ];
     }
 }
