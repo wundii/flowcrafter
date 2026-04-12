@@ -72,7 +72,8 @@ final readonly class FlowPreflight
     {
         $messageSourceEntity = Source::message($messageSource);
         $shortName = (new ReflectionClass($messageSource))->getShortName();
-        $expectedKeys = $messageSourceEntity->propertyNames[$shortName] ?? [];
+        $rawKeys = $messageSourceEntity->propertyNames[$shortName] ?? [];
+        $expectedKeys = array_map(static fn (string $k): string => explode(':', $k)[0], $rawKeys);
 
         $missingKeys = array_diff($expectedKeys, array_keys($message));
         $unknownKeys = array_diff(array_keys($message), $expectedKeys);

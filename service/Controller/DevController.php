@@ -154,6 +154,8 @@ final class DevController
                         'storedHash' => $storedEntity->messageHash,
                         'liveProperties' => $liveSource->propertyNames[$shortName] ?? [],
                         'storedProperties' => $storedEntity->propertyNames[$shortName] ?? [],
+                        'livePropertyNames' => $liveSource->propertyNames,
+                        'storedPropertyNames' => $storedEntity->propertyNames,
                     ];
                 }
             }

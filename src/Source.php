@@ -92,9 +92,14 @@ class Source
                     continue;
                 }
 
-                $names[] = $reflectionParameter->getName();
-
+                $paramName = $reflectionParameter->getName();
                 $reflectionType = $reflectionParameter->getType();
+                if ($reflectionType instanceof ReflectionNamedType && class_exists($reflectionType->getName())) {
+                    $paramName .= ':' . (new ReflectionClass($reflectionType->getName()))->getShortName();
+                }
+
+                $names[] = $paramName;
+
                 if (!$reflectionType instanceof ReflectionNamedType) {
                     continue;
                 }
