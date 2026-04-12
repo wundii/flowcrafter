@@ -86,6 +86,30 @@ docker run -p 5173:5173 -v ./data:/flowcrafter/data wundii/flowcrafter-ui:latest
   </picture>
 </p>
 
+## Claude Code Plugin
+
+Das optionale Claude Code Plugin
+[flowcrafter-claude](https://github.com/wundii/flowcrafter-claude) erweitert
+[Claude Code](https://claude.ai/code) mit Flowcrafter-Wissen — Flows,
+Stubs, Messages und Schedules lassen sich per Slash-Command generieren und
+analysieren, ohne das Framework-Modell im Kopf behalten zu müssen.
+
+```
+/plugin marketplace add wundii/flowcrafter-claude
+/plugin install flowcrafter@flowcrafter-claude
+```
+
+| Command | Beschreibung |
+|---|---|
+| `/create-flow` | Flow-Klasse mit FlowBuilder-DSL generieren |
+| `/create-stub` | Stub-Klasse mit Message-Injection generieren |
+| `/create-message` | Message-Klasse (init / data / return) generieren |
+| `/create-schedule` | Schedule-Klasse mit Cron-Ausdruck generieren |
+| `/analyze-flow` | Flow auf Fehler und Verbesserungen prüfen |
+
+Der `flowcrafter`-Skill wird zusätzlich automatisch aktiviert, sobald
+Flowcrafter-Begriffe im Gespräch auftauchen — ohne manuellen Befehl.
+
 ## Minimalbeispiel
 
 ### Messages

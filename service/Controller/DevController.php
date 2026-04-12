@@ -280,10 +280,36 @@ final class DevController
 
         $messageReturn = null;
         $error = null;
+        $errorFile = null;
+        $errorLine = null;
+        $errorTrace = null;
+        $errorFileContext = null;
         try {
             $messageReturn = $flowRunner->run(message: $messageInstance);
         } catch (Throwable $throwable) {
+            $root = $throwable->getPrevious() ?? $throwable;
             $error = $throwable->getMessage();
+            $errorFile = $root->getFile();
+            $errorLine = $root->getLine();
+            $errorTrace = $throwable->getTraceAsString();
+
+            if ($errorFile !== '' && file_exists($errorFile) && is_readable($errorFile)) {
+                $fileLines = file($errorFile, FILE_IGNORE_NEW_LINES);
+                if ($fileLines !== false) {
+                    $start = max(0, $errorLine - 6);
+                    $end = min(count($fileLines) - 1, $errorLine + 4);
+                    $contextLines = [];
+                    for ($i = $start; $i <= $end; ++$i) {
+                        $contextLines[] = [
+                            'number' => $i + 1,
+                            'content' => $fileLines[$i],
+                            'highlighted' => ($i + 1) === $errorLine,
+                        ];
+                    }
+
+                    $errorFileContext = $contextLines;
+                }
+            }
         }
 
         $flowInstance = $flowRunner->getFlow();
@@ -297,6 +323,10 @@ final class DevController
         return new JsonResponse([
             'success' => $error === null,
             'error' => $error,
+            'file' => $errorFile,
+            'line' => $errorLine,
+            'trace' => $errorTrace,
+            'fileContext' => $errorFileContext,
             'output' => $outputLog !== [] ? $outputLog : null,
             'messageReturn' => $messageReturn instanceof MessageReturnInterface ? $messageReturn : null,
             'flow' => $flowData,
