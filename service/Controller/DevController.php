@@ -180,16 +180,11 @@ final class DevController
             $messageSchemas = [];
             foreach ($schema->stubs() as $stub) {
                 foreach ([...$stub->getMessages(), ...$stub->getReturnTypes()] as $messageClass) {
-                    if (array_key_exists($messageClass, $messageSchemas)) {
-                        continue;
-                    }
-
                     if (!class_exists($messageClass)) {
                         continue;
                     }
 
-                    $built = $this->buildInitMessageSchema($messageClass);
-                    $messageSchemas[$messageClass] = $built['types'];
+                    $this->buildMessageSchemasRecursively($messageClass, $messageSchemas);
                 }
             }
 
@@ -306,6 +301,32 @@ final class DevController
             'messageReturn' => $messageReturn instanceof MessageReturnInterface ? $messageReturn : null,
             'flow' => $flowData,
         ]);
+    }
+
+    /**
+     * @param class-string $messageClass
+     * @param class-string $messageClass
+     * @param array<string, array<string, string>> $schemas
+     */
+    private function buildMessageSchemasRecursively(string $messageClass, array &$schemas): void
+    {
+        if (array_key_exists($messageClass, $schemas)) {
+            return;
+        }
+
+        $built = $this->buildInitMessageSchema($messageClass);
+        $schemas[$messageClass] = $built['types'];
+
+        $primitives = ['string', 'int', 'float', 'bool', 'array', 'mixed', 'null', 'void', 'never', 'object'];
+        foreach ($built['types'] as $typeString) {
+            $typeName = ltrim($typeString, '?');
+            foreach (explode('|', $typeName) as $part) {
+                if (!in_array($part, $primitives, true) && class_exists($part)) {
+                    /** @var class-string $part */
+                    $this->buildMessageSchemasRecursively($part, $schemas);
+                }
+            }
+        }
     }
 
     /**
