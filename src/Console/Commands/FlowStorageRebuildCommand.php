@@ -45,7 +45,7 @@ final class FlowStorageRebuildCommand extends Command
         try {
             if ($clear) {
                 $storage->truncateFlowList();
-                $lists = ['flow_list', 'flow_run_list', 'flow_exception_list'];
+                $lists = ['flow_list', 'flow_run_list', 'flow_exception_list', 'schedule_exception_list'];
 
                 foreach ($lists as $list) {
                     $output->writeln(sprintf(

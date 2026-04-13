@@ -667,6 +667,7 @@ abstract class Service implements StorageInterface
         $this->client->exec('DELETE FROM flow_list');
         $this->client->exec('DELETE FROM flow_run_list');
         $this->client->exec('DELETE FROM flow_exception_list');
+        $this->client->exec('DELETE FROM schedule_exception_list');
     }
 
     /**
