@@ -321,7 +321,99 @@ class Flow implements JsonSerializable
     }
 
     /**
-     * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowResult|FlowRun|string>|FlowSchema>
+     * @return array<string, StubTiming[]>
+     */
+    public function getRunTimings(): array
+    {
+        $result = [];
+
+        foreach ($this->runs() as $flowRun) {
+            $runtimeHash = $flowRun->getFlowRuntimeHash();
+
+            $runMessages = array_values(array_filter(
+                $this->flowMessages,
+                fn (FlowMessage $flowMessage): bool => $flowMessage->getFlowRuntimeHash() === $runtimeHash,
+            ));
+            $runExceptions = array_values(array_filter(
+                $this->flowExceptions,
+                fn (FlowException $flowException): bool => $flowException->getFlowRuntimeHash() === $runtimeHash,
+            ));
+            $runResults = array_values(array_filter(
+                $this->flowResults,
+                fn (FlowResult $flowResult): bool => $flowResult->getFlowRuntimeHash() === $runtimeHash,
+            ));
+
+            // firstAppearance[$messageSource] = earliest ms timestamp for that messageSource
+            $firstAppearance = [];
+            foreach ($runMessages as $runMessage) {
+                $ms = $this->toMs($runMessage->getTime());
+                $src = $runMessage->getMessageSource();
+                if (!isset($firstAppearance[$src]) || $ms < $firstAppearance[$src]) {
+                    $firstAppearance[$src] = $ms;
+                }
+            }
+
+            $timings = [];
+            foreach ($this->flowSchema->stubs() as $stub) {
+                $stubSource = $stub->getSource();
+
+                $stubMsgs = array_values(array_filter($runMessages, fn (FlowMessage $flowMessage): bool => $flowMessage->getStubSource() === $stubSource));
+                $stubExcs = array_values(array_filter($runExceptions, fn (FlowException $flowException): bool => $flowException->getStubSource() === $stubSource));
+                $stubRess = array_values(array_filter($runResults, fn (FlowResult $flowResult): bool => $flowResult->getStubSource() === $stubSource));
+
+                if ($stubMsgs === [] && $stubExcs === [] && $stubRess === []) {
+                    continue;
+                }
+
+                // START = when the last required input arrived (stub can only run once all inputs are present)
+                $inputMsgs = array_values(array_filter(
+                    $stubMsgs,
+                    fn (FlowMessage $flowMessage): bool => in_array($flowMessage->getMessageSource(), $stub->getMessages(), true),
+                ));
+
+                if ($inputMsgs !== []) {
+                    $startMs = max(array_map(fn (FlowMessage $flowMessage): int => $this->toMs($flowMessage->getTime()), $inputMsgs));
+                } else {
+                    $allMs = array_merge(
+                        array_map(fn (FlowMessage $flowMessage): int => $this->toMs($flowMessage->getTime()), $stubMsgs),
+                        array_map(fn (FlowException $flowException): int => $this->toMs($flowException->getTime()), $stubExcs),
+                        array_map(fn (FlowResult $flowResult): int => $this->toMs($flowResult->getTime()), $stubRess),
+                    );
+                    if ($allMs === []) {
+                        continue;
+                    }
+
+                    $startMs = min($allMs);
+                }
+
+                // END = when the earliest output message first appeared at another stub (or result for bool stubs)
+                if ($stub->getReturnTypes() !== []) {
+                    $outputMs = array_values(array_filter(
+                        array_map(fn (string $rt): ?int => $firstAppearance[$rt] ?? null, $stub->getReturnTypes()),
+                        fn (?int $t): bool => $t !== null,
+                    ));
+                    $endMs = $outputMs !== [] ? min($outputMs) : $startMs;
+                } else {
+                    $endMs = $stubRess !== []
+                        ? max(array_map(fn (FlowResult $flowResult): int => $this->toMs($flowResult->getTime()), $stubRess))
+                        : $startMs;
+                }
+
+                $timings[] = new StubTiming(
+                    $stubSource,
+                    $this->fromMs($startMs),
+                    $this->fromMs($endMs),
+                );
+            }
+
+            $result[$runtimeHash] = $timings;
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowResult|FlowRun|StubTiming[]|string>|FlowSchema>
      */
     public function jsonSerialize(): array
     {
@@ -341,7 +433,21 @@ class Flow implements JsonSerializable
             'isExecutable' => $this->isExecutable(),
             'isReadOnly' => $this->flowReadOnly,
             'readOnlyReasons' => $this->flowReadOnlyReasons,
+            'runTimings' => $this->getRunTimings(),
         ];
+    }
+
+    private function toMs(DateTimeInterface $time): int
+    {
+        return $time->getTimestamp() * 1000 + (int) $time->format('v');
+    }
+
+    private function fromMs(int $ms): DateTimeImmutable
+    {
+        $seconds = intdiv($ms, 1000);
+        $millis = $ms % 1000;
+
+        return (new DateTimeImmutable('@' . $seconds))->modify(sprintf('+%d milliseconds', $millis));
     }
 
     /**

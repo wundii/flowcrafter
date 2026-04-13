@@ -596,6 +596,7 @@ class Esdb extends Service
         unset($data['isExecutable']);
         unset($data['isReadOnly']);
         unset($data['readOnlyReasons']);
+        unset($data['runTimings']);
 
         $subjectSchema = '/flow/schema/' . $flow->getSchema()->getHash();
         $eventCandidate = new EventCandidate(
