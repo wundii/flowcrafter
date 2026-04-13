@@ -323,7 +323,7 @@ class Flow implements JsonSerializable
     /**
      * @return array<string, StubTiming[]>
      */
-    public function getRunTimings(): array
+    public function runTimings(): array
     {
         $result = [];
 
@@ -424,16 +424,16 @@ class Flow implements JsonSerializable
             'flowSchema' => $this->flowSchema,
             'flowSchemaHash' => $this->flowSchemaHash,
             'flowHash' => $this->flowHash,
-            'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => $this->flowMessages,
             'flowExceptions' => $this->flowExceptions,
             'flowResults' => $this->flowResults,
             'flowRuns' => $this->runs(),
+            'flowRunTimings' => $this->runTimings(),
             'flowStatus' => $this->status()->name,
             'isExecutable' => $this->isExecutable(),
             'isReadOnly' => $this->flowReadOnly,
             'readOnlyReasons' => $this->flowReadOnlyReasons,
-            'runTimings' => $this->getRunTimings(),
+            'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
         ];
     }
 

@@ -24,22 +24,6 @@ use Wundii\Flowcrafter\FlowRun;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\StubTiming;
 
-/**
- * Tests for Flow::getRunTimings().
- *
- * The timing algorithm mirrors the UI estimation logic in fc-flow-graph.js:
- *   - START = when the last required input message arrived (stub cannot run before all inputs are present)
- *   - END   = when the earliest output message first appeared at any downstream stub
- *             (for bool stubs with no returnTypes: END = FlowResult timestamp)
- *
- * WorkflowMock graph:
- *   MessageInitMock → StubMock → MessageDataMock ─┬→ NextStubMock (bool, no output)
- *                                                  ├→ OtherStubMock → MessageDataSecondMock ─┐
- *                                                  └──────────────────────────────────────────┴→ PostStubMock → MessageReturnMock
- *
- * This covers both the linear chain and the collector pattern (PostStubMock = HomeEnergySystemFlow's
- * ResultProcessStub: must wait for ALL inputs before it can start).
- */
 final class FlowRunTimingsTest extends TestCase
 {
     private static DateTimeImmutable $base;
@@ -49,13 +33,11 @@ final class FlowRunTimingsTest extends TestCase
         self::$base = new DateTimeImmutable('2026-01-01T10:00:00.000+00:00');
     }
 
-    // ── tests ─────────────────────────────────────────────────────────────────
-
     public function testReturnsEmptyArrayWhenNoRuns(): void
     {
         $flow = $this->createFlow();
 
-        $this->assertSame([], $flow->getRunTimings());
+        $this->assertSame([], $flow->runTimings());
     }
 
     public function testReturnsOneKeyPerRunEvenWithNoMessages(): void
@@ -63,7 +45,7 @@ final class FlowRunTimingsTest extends TestCase
         $flow = $this->createFlow();
         $flow->addRun();
 
-        $timings = $flow->getRunTimings();
+        $timings = $flow->runTimings();
 
         $this->assertCount(1, $timings);
         $this->assertArrayHasKey($flow->getRuntimeHash(), $timings);
@@ -78,7 +60,7 @@ final class FlowRunTimingsTest extends TestCase
         // Only StubMock has events — NextStubMock, OtherStubMock, PostStubMock are silent
         $flow->addMessage($this->makeMessage($flow, StubMock::class, new MessageInitMock('test'), 0));
 
-        $timings = $this->indexByStub($timings = $flow->getRunTimings()[$flow->getRuntimeHash()]);
+        $timings = $this->indexByStub($timings = $flow->runTimings()[$flow->getRuntimeHash()]);
 
         $this->assertArrayHasKey(StubMock::class, $timings);
         $this->assertArrayNotHasKey(NextStubMock::class, $timings);
@@ -102,7 +84,7 @@ final class FlowRunTimingsTest extends TestCase
         $flow->addMessage($this->makeMessage($flow, StubMock::class, new MessageInitMock('test'), 0));
         $flow->addMessage($this->makeMessage($flow, NextStubMock::class, new MessageDataMock('out'), 100));
 
-        $timings = $this->indexByStub($flow->getRunTimings()[$flow->getRuntimeHash()]);
+        $timings = $this->indexByStub($flow->runTimings()[$flow->getRuntimeHash()]);
 
         $this->assertArrayHasKey(StubMock::class, $timings);
         $this->assertTiming($timings[StubMock::class], startOffset: 0, endOffset: 100);
@@ -125,7 +107,7 @@ final class FlowRunTimingsTest extends TestCase
         $flow->addMessage($this->makeMessage($flow, NextStubMock::class, new MessageDataMock('out'), 100));
         $flow->addResult($this->makeResult($flow, NextStubMock::class, 200));
 
-        $timings = $this->indexByStub($flow->getRunTimings()[$flow->getRuntimeHash()]);
+        $timings = $this->indexByStub($flow->runTimings()[$flow->getRuntimeHash()]);
 
         $this->assertArrayHasKey(NextStubMock::class, $timings);
         $this->assertTiming($timings[NextStubMock::class], startOffset: 100, endOffset: 200);
@@ -152,7 +134,7 @@ final class FlowRunTimingsTest extends TestCase
         $flow->addMessage($this->makeMessage($flow, PostStubMock::class, new MessageDataSecondMock('b', new MessageSubDataMock('sub')), 300));
         $flow->addMessage($this->makeMessage($flow, PostStubMock::class, new MessageReturnMock('result'), 400));
 
-        $timings = $this->indexByStub($flow->getRunTimings()[$flow->getRuntimeHash()]);
+        $timings = $this->indexByStub($flow->runTimings()[$flow->getRuntimeHash()]);
 
         $this->assertArrayHasKey(PostStubMock::class, $timings);
         $this->assertTiming($timings[PostStubMock::class], startOffset: 300, endOffset: 400);
@@ -188,7 +170,7 @@ final class FlowRunTimingsTest extends TestCase
         $flow->addMessage($this->makeMessage($flow, PostStubMock::class, new MessageDataSecondMock('b', new MessageSubDataMock('sub')), 300));
         $flow->addMessage($this->makeMessage($flow, PostStubMock::class, new MessageReturnMock('done'), 400));
 
-        $timings = $this->indexByStub($flow->getRunTimings()[$flow->getRuntimeHash()]);
+        $timings = $this->indexByStub($flow->runTimings()[$flow->getRuntimeHash()]);
 
         $this->assertCount(4, $timings);
         $this->assertTiming($timings[StubMock::class], startOffset: 0, endOffset: 100);
@@ -255,7 +237,7 @@ final class FlowRunTimingsTest extends TestCase
             ],
         );
 
-        $allTimings = $flow->getRunTimings();
+        $allTimings = $flow->runTimings();
 
         $this->assertCount(2, $allTimings);
 
@@ -276,7 +258,7 @@ final class FlowRunTimingsTest extends TestCase
         $flow->addMessage($this->makeMessage($flow, NextStubMock::class, new MessageDataMock('in'), 100));
         // intentionally no FlowResult added
 
-        $timings = $this->indexByStub($flow->getRunTimings()[$flow->getRuntimeHash()]);
+        $timings = $this->indexByStub($flow->runTimings()[$flow->getRuntimeHash()]);
 
         $this->assertArrayHasKey(NextStubMock::class, $timings);
         $this->assertSame(0, $timings[NextStubMock::class]->getDuration());
@@ -290,7 +272,7 @@ final class FlowRunTimingsTest extends TestCase
         // StubMock has its input but its output (MessageDataMock) has not yet appeared anywhere
         $flow->addMessage($this->makeMessage($flow, StubMock::class, new MessageInitMock('test'), 0));
 
-        $timings = $this->indexByStub($flow->getRunTimings()[$flow->getRuntimeHash()]);
+        $timings = $this->indexByStub($flow->runTimings()[$flow->getRuntimeHash()]);
 
         $this->assertArrayHasKey(StubMock::class, $timings);
         $this->assertSame(0, $timings[StubMock::class]->getDuration());
