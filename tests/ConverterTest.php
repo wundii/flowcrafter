@@ -67,7 +67,6 @@ final class ConverterTest extends TestCase
             ],
             'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
             'flowHash' => $flow->getHash(),
-            'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => [],
             'flowExceptions' => [],
             'flowResults' => [],
@@ -76,6 +75,7 @@ final class ConverterTest extends TestCase
             'isExecutable' => true,
             'isReadOnly' => false,
             'readOnlyReasons' => [],
+            'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
         ]);
 
         $this->assertSame($expectedJson, $json);
@@ -161,7 +161,6 @@ final class ConverterTest extends TestCase
             ],
             'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
             'flowHash' => $flow->getHash(),
-            'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => [
                 [
                     'flowHash' => $flow->getHash(),
@@ -211,6 +210,14 @@ final class ConverterTest extends TestCase
                     'flowHash' => $flow->getHash(),
                     'flowRuntimeHash' => $flow->getRuntimeHash(),
                     'flowType' => 'flow.workflow.v1',
+                    'flowStubTimings' => [
+                        [
+                            'stubSource' => StubMock::class,
+                            'started' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
+                            'ended' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
+                            'duration' => 0,
+                        ],
+                    ],
                     'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
                     'queueId' => null,
                 ],
@@ -219,6 +226,7 @@ final class ConverterTest extends TestCase
             'isExecutable' => true,
             'isReadOnly' => false,
             'readOnlyReasons' => [],
+            'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
         ]);
 
         $this->assertSame($expectedJson, $json);
@@ -287,10 +295,10 @@ final class ConverterTest extends TestCase
                 ],
             ],
             'flowHash' => $hash,
-            'time' => $datetime->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => [],
             'flowExceptions' => [],
             'flowRuns' => [],
+            'time' => $datetime->format(DateTimeInterface::RFC3339_EXTENDED),
         ]);
 
         $flow = Converter::jsonToFlow($json);
@@ -381,7 +389,6 @@ final class ConverterTest extends TestCase
                 ],
             ],
             'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
-            'time' => $datetime->format(DateTimeInterface::RFC3339_EXTENDED),
             'flowMessages' => [
                 [
                     'flowHash' => $hash,
@@ -399,6 +406,7 @@ final class ConverterTest extends TestCase
                     'predecessorHash' => null,
                 ],
             ],
+            'time' => $datetime->format(DateTimeInterface::RFC3339_EXTENDED),
         ]);
 
         $flow = Converter::jsonToFlow($json);

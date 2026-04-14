@@ -18,6 +18,10 @@ interface ServiceInterface
 {
     public function isServiceStorageInitialized(): bool;
 
+    public function appendFlow(Flow $flow): void;
+
+    public function appendScheduleException(ScheduleException $scheduleException): void;
+
     public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int;
 
     public function countScheduleExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
@@ -69,10 +73,6 @@ interface ServiceInterface
      * @return FlowTypeStatsEntity[]
      */
     public function findFlowTypeStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
-
-    public function appendFlow(Flow $flow): void;
-
-    public function appendScheduleException(ScheduleException $scheduleException): void;
 
     public function truncateFlowList(): void;
 }

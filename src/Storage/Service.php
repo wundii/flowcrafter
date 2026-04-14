@@ -12,6 +12,7 @@ use Throwable;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\FlowRun;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Entity\ExceptionListEntity;
@@ -145,7 +146,11 @@ abstract class Service implements StorageInterface
         );
 
         $runs = $flow->runs();
-        $lastRun = end($runs);
+        $lastRun = $runs[array_key_last($runs)] ?? null;
+
+        if (!$lastRun instanceof FlowRun) {
+            throw new \RuntimeException('No flow run found');
+        }
 
         $stmt->execute([
             ':flow_hash' => $flow->getHash(),
@@ -153,7 +158,7 @@ abstract class Service implements StorageInterface
             ':flow_source' => $flow->getSource(),
             ':flow_subject' => $flow->getSubject(),
             ':flow_time' => $flow->getTime()->format('Y-m-d H:i:s.u'),
-            ':last_term' => $lastRun !== false ? $lastRun->getTime()->format('Y-m-d H:i:s.u') : $flow->getTime()->format('Y-m-d H:i:s.u'),
+            ':last_term' => $lastRun->getTime()->format('Y-m-d H:i:s.u'),
             ':status' => $flow->status()->name,
         ]);
 
@@ -162,12 +167,12 @@ abstract class Service implements StorageInterface
             'VALUES (:flow_runtime_hash, :flow_hash, :flow_type, :flow_time)'
         );
 
-        foreach ($flow->runs() as $flowRun) {
+        foreach ($runs as $run) {
             $stmt->execute([
-                ':flow_runtime_hash' => $flowRun->getFlowRuntimeHash(),
-                ':flow_hash' => $flowRun->getFlowHash(),
-                ':flow_type' => $flowRun->getFlowType(),
-                ':flow_time' => $flowRun->getTime()->format('Y-m-d H:i:s.u'),
+                ':flow_runtime_hash' => $run->getFlowRuntimeHash(),
+                ':flow_hash' => $run->getFlowHash(),
+                ':flow_type' => $run->getFlowType(),
+                ':flow_time' => $run->getTime()->format('Y-m-d H:i:s.u'),
             ]);
         }
 

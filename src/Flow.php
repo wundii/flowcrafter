@@ -194,6 +194,8 @@ class Flow implements JsonSerializable
      */
     public function runs(): array
     {
+        $this->runStubTimings();
+
         return array_values($this->flowRuns);
     }
 
@@ -320,14 +322,9 @@ class Flow implements JsonSerializable
         return StatusEnum::OK;
     }
 
-    /**
-     * @return array<string, StubTiming[]>
-     */
-    public function runTimings(): array
+    public function runStubTimings(): void
     {
-        $result = [];
-
-        foreach ($this->runs() as $flowRun) {
+        foreach ($this->flowRuns as $flowRun) {
             $runtimeHash = $flowRun->getFlowRuntimeHash();
 
             $runMessages = array_values(array_filter(
@@ -406,10 +403,8 @@ class Flow implements JsonSerializable
                 );
             }
 
-            $result[$runtimeHash] = $timings;
+            $flowRun->setStubTimings($timings);
         }
-
-        return $result;
     }
 
     /**
@@ -428,7 +423,6 @@ class Flow implements JsonSerializable
             'flowExceptions' => $this->flowExceptions,
             'flowResults' => $this->flowResults,
             'flowRuns' => $this->runs(),
-            'flowRunTimings' => $this->runTimings(),
             'flowStatus' => $this->status()->name,
             'isExecutable' => $this->isExecutable(),
             'isReadOnly' => $this->flowReadOnly,

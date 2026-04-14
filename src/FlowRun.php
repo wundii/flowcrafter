@@ -10,6 +10,11 @@ use JsonSerializable;
 
 class FlowRun implements JsonSerializable
 {
+    /**
+     * @var StubTiming[]
+     */
+    private array $stubTimings = [];
+
     public function __construct(
         private readonly string $flowHash,
         private readonly string $flowRuntimeHash,
@@ -61,6 +66,22 @@ class FlowRun implements JsonSerializable
     }
 
     /**
+     * @param StubTiming[] $stubTimings
+     */
+    public function setStubTimings(array $stubTimings): void
+    {
+        $this->stubTimings = $stubTimings;
+    }
+
+    /**
+     * @return StubTiming[]
+     */
+    public function getStubTimings(): array
+    {
+        return $this->stubTimings;
+    }
+
+    /**
      * @return array<string, string|mixed>
      */
     public function jsonSerialize(): array
@@ -69,6 +90,7 @@ class FlowRun implements JsonSerializable
             'flowHash' => $this->flowHash,
             'flowRuntimeHash' => $this->flowRuntimeHash,
             'flowType' => $this->flowType,
+            'flowStubTimings' => $this->stubTimings,
             'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
             'queueId' => $this->queueId,
         ];
