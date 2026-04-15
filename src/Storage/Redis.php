@@ -83,6 +83,8 @@ class Redis extends Service implements StorageInterface
             '\\' => '\\\\',
             '-' => '\-',
             '.' => '\.',
+            '{' => '\{',
+            '}' => '\}',
         ]);
     }
 
@@ -870,7 +872,7 @@ class Redis extends Service implements StorageInterface
             stubHash: $stubSourceArray['stubHash'],
             stubSource: $stubSourceArray['stubSource'],
             sourceContent: $stubSourceArray['sourceContent'],
-            time: (new DateTimeImmutable())->setTimestamp($stubSourceArray['time']),
+            time: new DateTimeImmutable('@' . $stubSourceArray['time']),
         );
     }
 
@@ -889,7 +891,7 @@ class Redis extends Service implements StorageInterface
                 stubHash: $stubSourceEvent['stubHash'],
                 stubSource: $stubSourceEvent['stubSource'],
                 sourceContent: $stubSourceEvent['sourceContent'],
-                time: (new DateTimeImmutable())->setTimestamp($stubSourceEvent['time']),
+                time: new DateTimeImmutable('@' . $stubSourceEvent['time']),
             );
         }
     }
@@ -937,7 +939,7 @@ class Redis extends Service implements StorageInterface
                 messageHash: $hash,
                 messageSource: $source,
                 propertyNames: $propertyNames,
-                time: (new DateTimeImmutable())->setTimestamp($time),
+                time: new DateTimeImmutable('@' . $time),
             );
         }
     }
@@ -970,6 +972,6 @@ class Redis extends Service implements StorageInterface
 
     private function timestampToRFC3339Extended(mixed $timestamp): string
     {
-        return (new DateTimeImmutable())->setTimestamp((int) (is_numeric($timestamp) ? $timestamp : 0))->format(DateTimeInterface::RFC3339_EXTENDED);
+        return (new DateTimeImmutable('@' . (int) (is_numeric($timestamp) ? $timestamp : 0)))->format(DateTimeInterface::RFC3339_EXTENDED);
     }
 }

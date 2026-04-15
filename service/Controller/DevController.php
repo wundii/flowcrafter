@@ -284,6 +284,7 @@ final class DevController
         $errorLine = null;
         $errorTrace = null;
         $errorFileContext = null;
+        $memoryBefore = memory_get_usage();
         try {
             $messageReturn = $flowRunner->run(message: $messageInstance);
         } catch (Throwable $throwable) {
@@ -312,6 +313,9 @@ final class DevController
             }
         }
 
+        $memoryAfter = memory_get_usage();
+        $memoryPeak = memory_get_peak_usage();
+
         $flowInstance = $flowRunner->getFlow();
         $flowData = null;
         if ($flowInstance instanceof Flow) {
@@ -330,6 +334,10 @@ final class DevController
             'output' => $outputLog !== [] ? $outputLog : null,
             'messageReturn' => $messageReturn instanceof MessageReturnInterface ? $messageReturn : null,
             'flow' => $flowData,
+            'memory' => [
+                'used' => $memoryAfter - $memoryBefore,
+                'peak' => $memoryPeak,
+            ],
         ]);
     }
 

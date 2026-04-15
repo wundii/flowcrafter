@@ -560,7 +560,7 @@ class MySql extends Service implements StorageInterface
         );
 
         if ($stmt === false) {
-            return [];
+            return;
         }
 
         $stmt->setFetchMode(Client::FETCH_ASSOC);
@@ -596,7 +596,7 @@ class MySql extends Service implements StorageInterface
         );
 
         if ($stmt === false) {
-            return [];
+            return;
         }
 
         $stmt->setFetchMode(Client::FETCH_ASSOC);
@@ -627,7 +627,7 @@ class MySql extends Service implements StorageInterface
         );
 
         if ($stmt === false) {
-            return [];
+            return;
         }
 
         $stmt->setFetchMode(Client::FETCH_ASSOC);

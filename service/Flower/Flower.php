@@ -83,14 +83,16 @@ class Flower
             $handlers = $router->handlerCollection();
 
             $handler = $handlers[$parameters['_route']] ?? null;
-            if ($handler instanceof Closure) {
-                $response = self::acceptsRequestHandler($handler)
-                    ? $handler($request)
-                    : $handler();
+            if (!$handler instanceof Closure) {
+                return new Response('Internal Server Error', 500);
             }
 
+            $response = self::acceptsRequestHandler($handler)
+                ? $handler($request)
+                : $handler();
+
             if (!$response instanceof Response) {
-                $response = new Response('Not Found', 404);
+                return new Response('Not Found', 404);
             }
         } catch (ResourceNotFoundException) {
             $response = new Response('Not Found', 404);
