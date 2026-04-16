@@ -453,7 +453,7 @@ class Esdb extends Service
                         'type' => 'string',
                     ],
                     'message' => [
-                        'type' => ['array', 'object'],
+                        'type' => ['null', 'array', 'object'],
                     ],
                     'includeStubs' => [
                         'type' => ['array'],
@@ -784,7 +784,7 @@ class Esdb extends Service
                 flowSource: $event->data['flowSource'] ?? '',
                 flowHash: $event->data['flowHash'] ?? null,
                 messageSource: $event->data['messageSource'] ?? '',
-                message: $event->data['message'] ?? [],
+                message: $event->data['message'] ?? null,
                 includeStubs: $event->data['includeStubs'] ?? [],
             );
         }

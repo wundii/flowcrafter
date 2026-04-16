@@ -8,10 +8,10 @@ use Exception;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Tests\MockClass\EmptyWorkflowMock;
 use Tests\MockClass\FailStubMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageInitMock;
+use Tests\MockClass\WorkflowEmptyMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\EsdbClientTestTrait;
@@ -161,7 +161,7 @@ final class FlowRunnerEsdbTest extends TestCase
     {
         $flowRunner = new FlowRunner(
             type: 'flow.empty.v1',
-            flowSource: EmptyWorkflowMock::class,
+            flowSource: WorkflowEmptyMock::class,
             storage: $this->storage(),
         );
         $flowRunner->run(new EmptyInitMessage());

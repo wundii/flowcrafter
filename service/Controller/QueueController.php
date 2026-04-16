@@ -49,7 +49,7 @@ final class QueueController
 
         $flowHash = Assert::nullOrString($body['flowHash'] ?? null);
         $messageSource = Assert::string($body['messageSource'] ?? '');
-        $message = Assert::array($body['message'] ?? []);
+        $message = Assert::nullOrArray($body['message'] ?? null);
         /** @var class-string[] $includeStubs */
         $includeStubs = Assert::array($body['includeStubs'] ?? []);
         $flowType = Assert::string($body['type'] ?? '');
@@ -68,7 +68,7 @@ final class QueueController
             $flowSource = $flowInstance->flowSource;
         }
 
-        if ($flowType === '' || $flowSource === '' || $messageSource === '' || $message === []) {
+        if ($flowType === '' || $flowSource === '' || $messageSource === '' || $message === null || $message === []) {
             return new JsonResponse([
                 'error' => 'type, flowSource, messageSource and message required',
             ], 400);

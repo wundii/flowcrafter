@@ -297,7 +297,7 @@ $storage->appendObserveItem(
 );
 ```
 
-Alternativ über die REST-API: `POST /api/flows/run` (synchron) bzw. `POST /api/queue` (async) — siehe [docs/api.md](docs/api.md).
+Alternativ über die REST-API: `POST /api/flow/flow-run` (synchron) bzw. `POST /api/queue/enqueue` (async) — siehe [docs/api.md](docs/api.md).
 
 **Zeitgesteuert** — Schedule-Klasse mit Cron-Ausdruck, wird automatisch vom `FlowScheduler` entdeckt und ausgeführt:
 

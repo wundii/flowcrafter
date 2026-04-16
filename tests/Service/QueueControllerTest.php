@@ -125,6 +125,6 @@ final class QueueControllerTest extends TestCase
         $encoded = json_encode($body);
         $this->assertIsString($encoded);
 
-        return Request::create('/api/queue', 'POST', [], [], [], [], $encoded);
+        return Request::create('/api/queue/enqueue', 'POST', [], [], [], [], $encoded);
     }
 }

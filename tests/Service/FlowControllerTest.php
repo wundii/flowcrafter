@@ -25,7 +25,7 @@ final class FlowControllerTest extends TestCase
         $storage->method('findAllFlows')->willReturn(new ArrayIterator([$this->makeFlowListEntity()]));
         $storage->method('countFlows')->willReturn(1);
 
-        $jsonResponse = $this->makeController($storage)->list(Request::create('/api/flows'));
+        $jsonResponse = $this->makeController($storage)->list(Request::create('/api/flow/flow-list'));
 
         $this->assertSame(200, $jsonResponse->getStatusCode());
 
@@ -47,7 +47,7 @@ final class FlowControllerTest extends TestCase
         $storage->method('findAllFlows')->willReturn(new ArrayIterator($items));
         $storage->method('countFlows')->willReturn(11);
 
-        $request = Request::create('/api/flows', 'GET', [
+        $request = Request::create('/api/flow/flow-list', 'GET', [
             'top' => '10',
         ]);
         $jsonResponse = $this->makeController($storage)->list($request);
@@ -67,7 +67,7 @@ final class FlowControllerTest extends TestCase
             ->willReturn(new ArrayIterator([]));
         $storage->method('countFlowsByType')->willReturn(0);
 
-        $request = Request::create('/api/flows', 'GET', [
+        $request = Request::create('/api/flow/flow-list', 'GET', [
             'type' => 'flow.test.v1',
         ]);
         $jsonResponse = $this->makeController($storage)->list($request);
@@ -79,7 +79,7 @@ final class FlowControllerTest extends TestCase
     {
         $storage = $this->createStub(StorageInterface::class);
 
-        $request = Request::create('/api/flows/search', 'GET', [
+        $request = Request::create('/api/flow/flow-search', 'GET', [
             'subject' => '',
         ]);
         $jsonResponse = $this->makeController($storage)->search($request);
@@ -99,7 +99,7 @@ final class FlowControllerTest extends TestCase
         $storage->method('findFlowsBySubject')->willReturn(new ArrayIterator([$this->makeFlowListEntity()]));
         $storage->method('countFlowsBySubject')->willReturn(1);
 
-        $request = Request::create('/api/flows/search', 'GET', [
+        $request = Request::create('/api/flow/flow-search', 'GET', [
             'subject' => 'subject-1',
         ]);
         $jsonResponse = $this->makeController($storage)->search($request);
@@ -116,7 +116,7 @@ final class FlowControllerTest extends TestCase
     {
         $storage = $this->createStub(StorageInterface::class);
 
-        $jsonResponse = $this->makeController($storage)->detail(Request::create('/api/flows/detail'));
+        $jsonResponse = $this->makeController($storage)->detail(Request::create('/api/flow/flow-details'));
 
         $this->assertSame(400, $jsonResponse->getStatusCode());
 
@@ -130,7 +130,7 @@ final class FlowControllerTest extends TestCase
         $storage = $this->createMock(StorageInterface::class);
         $storage->method('findFlowByHash')->willReturn(null);
 
-        $request = Request::create('/api/flows/detail', 'GET', [
+        $request = Request::create('/api/flow/flow-details', 'GET', [
             'hash' => 'unknown',
         ]);
         $jsonResponse = $this->makeController($storage)->detail($request);
@@ -149,7 +149,7 @@ final class FlowControllerTest extends TestCase
         $storage = $this->createMock(StorageInterface::class);
         $storage->method('findFlowStats')->willReturn(new ArrayIterator([$flowStatsEntity]));
 
-        $jsonResponse = $this->makeController($storage)->stats(Request::create('/api/flows/stats'));
+        $jsonResponse = $this->makeController($storage)->stats(Request::create('/api/flow/flow-stats'));
 
         $this->assertSame(200, $jsonResponse->getStatusCode());
 
@@ -175,7 +175,7 @@ final class FlowControllerTest extends TestCase
         $storage = $this->createMock(StorageInterface::class);
         $storage->method('findFlowTypeStats')->willReturn(new ArrayIterator([$flowTypeStatsEntity]));
 
-        $jsonResponse = $this->makeController($storage)->types(Request::create('/api/flows/types'));
+        $jsonResponse = $this->makeController($storage)->types(Request::create('/api/flow/flow-type-stats'));
 
         $this->assertSame(200, $jsonResponse->getStatusCode());
 

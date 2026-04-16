@@ -7,51 +7,53 @@ einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 
 ## Flows & Exceptions
 
-| Methode | Pfad                  | Parameter                                        | Beschreibung                          |
-| ------- | --------------------- | ------------------------------------------------ | ------------------------------------- |
-| GET     | `/api/ping`           | —                                                | Verbindungstest (`pong`)              |
-| GET     | `/api/info`           | —                                                | Server-Beschreibung + Observer-Status |
-| GET     | `/api/flows`          | `sort`, `top`, `skip`, `type`, `from`, `to`      | Flow-Instanzen (paginiert, filterbar) |
-| GET     | `/api/flows/detail`   | `hash` oder `runtimeHash`                        | Flow mit Messages, Exceptions & Runs  |
-| GET     | `/api/flows/stats`    | `from`, `to`, `type`                             | Tägliche Flow-Statistiken             |
-| GET     | `/api/flows/search`   | `subject`, `top`                                 | Flows nach `flowSubject` suchen       |
-| GET     | `/api/flows/types`    | `from`, `to`                                     | Flow-Typen mit Runs/Fehler/OK-Rate und optionalem `group` |
-| GET     | `/api/exceptions`     | `sort`, `top`, `skip`, `from`, `to`, `status`    | Flow- und Schedule-Exceptions (paginiert, filterbar, klassifiziert via `type`) |
-| GET     | `/api/exceptions/stats` | `from`, `to`                                   | Tägliche Exception-Statistiken (`{ date, flow, schedule }`) |
+| Methode | Pfad                          | Parameter                                        | Beschreibung                          |
+| ------- | ----------------------------- | ------------------------------------------------ | ------------------------------------- |
+| GET     | `/api/ping`                   | —                                                | Verbindungstest (`pong`)              |
+| GET     | `/api/info`                   | —                                                | Server-Beschreibung + Observer-Status |
+| GET     | `/api/flow/flow-list`         | `sort`, `top`, `skip`, `type`, `from`, `to`      | Flow-Instanzen (paginiert, filterbar) |
+| GET     | `/api/flow/flow-details`      | `hash` oder `runtimeHash`                        | Flow mit Messages, Exceptions & Runs  |
+| GET     | `/api/flow/flow-stats`        | `from`, `to`, `type`                             | Tägliche Flow-Statistiken             |
+| GET     | `/api/flow/flow-search`       | `subject`, `top`                                 | Flows nach `flowSubject` suchen       |
+| GET     | `/api/flow/flow-type-stats`   | `from`, `to`                                     | Flow-Typen mit Runs/Fehler/OK-Rate und optionalem `group` |
+| GET     | `/api/flow/exception-list`    | `sort`, `top`, `skip`, `from`, `to`, `status`    | Flow- und Schedule-Exceptions (paginiert, filterbar, klassifiziert via `type`) |
+| GET     | `/api/flow/exceptions-stats`  | `from`, `to`                                     | Tägliche Exception-Statistiken (`{ date, flow, schedule }`) |
 
 ## Schemas & Stub-Source
 
-| Methode | Pfad                       | Parameter                   | Beschreibung                             |
-| ------- | -------------------------- | --------------------------- | ---------------------------------------- |
-| GET     | `/api/schemas`             | —                           | Alle registrierten Flow-Schemas          |
-| GET     | `/api/schema/stub-source`  | `className` oder `stubHash` | Stub-Quellcode (aktuell oder historisch) |
-| GET     | `/api/schema/stub-sources` | `stubSource`                | Alle historischen Snapshots eines Stubs  |
+| Methode | Pfad                          | Parameter                   | Beschreibung                             |
+| ------- | ----------------------------- | --------------------------- | ---------------------------------------- |
+| GET     | `/api/flow/schema-list`       | —                           | Alle registrierten Flow-Schemas          |
+| GET     | `/api/flow/stub-source`       | `className` oder `stubHash` | Stub-Quellcode (aktuell oder historisch) |
+| GET     | `/api/flow/stub-source-list`  | `stubSource`                | Alle historischen Snapshots eines Stubs  |
+| GET     | `/api/flow/message-source-list` | —                         | Alle Message-Source-Einträge             |
 
 ## Schedules
 
-| Methode | Pfad                    | Parameter   | Beschreibung                                     |
-| ------- | ----------------------- | ----------- | ------------------------------------------------ |
-| GET     | `/api/schedules`        | —           | Alle entdeckten Schedules (Name, Cron, Klasse, optionales `group`) |
-| GET     | `/api/schedule/source`  | `className` | Quellcode einer Schedule-Klasse                  |
-| POST    | `/api/schedule/run`     | `{ className }` | Schedule manuell ausführen                   |
+| Methode | Pfad                           | Parameter       | Beschreibung                                     |
+| ------- | ------------------------------ | --------------- | ------------------------------------------------ |
+| GET     | `/api/schedule/schedule-list`  | —               | Alle entdeckten Schedules (Name, Cron, Klasse, optionales `group`) |
+| GET     | `/api/schedule/schedule-source` | `className`    | Quellcode einer Schedule-Klasse                  |
+| POST    | `/api/schedule/flow-run`       | `{ className }` | Schedule manuell ausführen                       |
 
 ## Ausführung & Queue
 
-| Methode | Pfad               | Body / Parameter                                                                         | Beschreibung                    |
-| ------- | ------------------ | ---------------------------------------------------------------------------------------- | ------------------------------- |
-| POST    | `/api/flows/run`   | `{ flowHash, messageSource, message, includeStubs? }`                                    | Flow synchron ausführen         |
-| POST    | `/api/queue`       | `{ flowHash?, messageSource, message, includeStubs?, type?, flowSource?, flowSubject? }` | Message in die Queue stellen    |
-| GET     | `/api/queues`      | `sort`                                                                                   | Alle Queue-Einträge mit Details |
-| GET     | `/api/queue/count` | —                                                                                        | Aktuelle Queue-Größe            |
+| Methode | Pfad                    | Body / Parameter                                                                         | Beschreibung                    |
+| ------- | ----------------------- | ---------------------------------------------------------------------------------------- | ------------------------------- |
+| POST    | `/api/flow/flow-run`    | `{ flowHash, messageSource, message, includeStubs? }`                                    | Flow synchron ausführen         |
+| POST    | `/api/queue/enqueue`    | `{ flowHash?, messageSource, message, includeStubs?, type?, flowSource?, flowSubject? }` | Message in die Queue stellen    |
+| GET     | `/api/queue/queue-list` | `sort`                                                                                   | Alle Queue-Einträge mit Details |
+| GET     | `/api/queue/queue-count` | —                                                                                       | Aktuelle Queue-Größe            |
 
 ## Dev-Endpunkte
 
 Nur verfügbar wenn der Server via `vendor/bin/flowcrafter dev` gestartet wurde (Umgebungsvariable `FLOWCRAFTER_DEV=1`). Nicht für den Produktionseinsatz vorgesehen.
 
-| Methode | Pfad              | Parameter     | Beschreibung                                                   |
-| ------- | ----------------- | ------------- | -------------------------------------------------------------- |
-| GET     | `/api/dev/flows`  | —             | Alle entdeckten Flow-Klassen mit Typ, Gruppe und Dateipfad     |
-| GET     | `/api/dev/flow`   | `className`   | Schema-Details eines Flows inkl. Hash-Vergleich (live vs. gespeichert) und Message-Property-Änderungen |
+| Methode | Pfad                    | Parameter     | Beschreibung                                                   |
+| ------- | ----------------------- | ------------- | -------------------------------------------------------------- |
+| GET     | `/api/dev/flow-list`    | —             | Alle entdeckten Flow-Klassen mit Typ, Gruppe und Dateipfad     |
+| GET     | `/api/dev/flow-source`  | `className`   | Schema-Details eines Flows inkl. Hash-Vergleich (live vs. gespeichert) und Message-Property-Änderungen |
+| POST    | `/api/dev/flow-run`     | `{ className, messageSource, message }` | Flow direkt (ohne Storage) synchron ausführen |
 
 ## Monitoring
 
@@ -63,7 +65,7 @@ Details siehe [monitoring.md](monitoring.md).
 
 ## Pagination
 
-Die Endpunkte `/api/flows` und `/api/exceptions` unterstützen Paginierung:
+Die Endpunkte `/api/flow/flow-list` und `/api/flow/exception-list` unterstützen Paginierung:
 
 | Parameter | Default | Beschreibung                 |
 | --------- | ------- | ---------------------------- |

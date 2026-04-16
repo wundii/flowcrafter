@@ -9,7 +9,7 @@ use Wundii\Flowcrafter\FlowBuilder;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 
-class EmptyWorkflowMock implements FlowInterface
+class WorkflowEmptyMock implements FlowInterface
 {
     public static function schema(): FlowSchema
     {

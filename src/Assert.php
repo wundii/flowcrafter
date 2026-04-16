@@ -90,6 +90,20 @@ final class Assert
     }
 
     /**
+     * @return null|array<mixed>
+     */
+    public static function nullOrArray(
+        mixed $value,
+        string $expectedMessage = 'Expected a null or array value.',
+    ): ?array {
+        if (!is_array($value) && $value !== null) {
+            throw new InvalidArgumentException($expectedMessage);
+        }
+
+        return $value;
+    }
+
+    /**
      * @return array<mixed>
      */
     public static function array(

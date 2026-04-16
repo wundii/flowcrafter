@@ -9,9 +9,11 @@ use Exception;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tests\MockClass\MessageInitMock;
+use Tests\MockClass\WorkflowEmptyMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\MySqlClientTestTrait;
+use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
@@ -218,6 +220,27 @@ final class FlowStorageMySqlTest extends TestCase
 
         $this->assertInstanceOf(Flow::class, $flow);
         $this->assertCount(6, $flow->getFlowMessages());
+        $this->assertCount(0, $flow->getFlowExceptions());
+        $this->assertCount(1, $flow->getFlowResults());
+        $this->assertCount(1, $flow->runs());
+    }
+
+    public function testFindFlowByHashWithEmptyInitMessage(): void
+    {
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.empty.v1',
+            flowSource: WorkflowEmptyMock::class,
+            storage: $storage,
+        );
+        $flowRunner->run(new EmptyInitMessage());
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+        $flow = $storage->findFlowByHash($flow->getHash());
+
+        $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertCount(1, $flow->getFlowMessages());
         $this->assertCount(0, $flow->getFlowExceptions());
         $this->assertCount(1, $flow->getFlowResults());
         $this->assertCount(1, $flow->runs());

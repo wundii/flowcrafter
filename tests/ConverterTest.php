@@ -7,6 +7,7 @@ namespace Tests;
 use DateTimeImmutable;
 use DateTimeInterface;
 use PHPUnit\Framework\TestCase;
+use Tests\MockClass\EmptyBoolStubMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
@@ -15,8 +16,10 @@ use Tests\MockClass\NextStubMock;
 use Tests\MockClass\OtherStubMock;
 use Tests\MockClass\PostStubMock;
 use Tests\MockClass\StubMock;
+use Tests\MockClass\WorkflowEmptyMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Converter;
+use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
@@ -443,6 +446,71 @@ final class ConverterTest extends TestCase
         $this->assertEquals($expectedFlow->getTime(), $flow->getTime());
         $this->assertSame($expectedFlow->getHash(), $flow->getHash());
         $this->assertEquals($expectedFlow->getFlowMessages(), $flow->getFlowMessages());
+    }
+
+    public function testArrayToFlowWithEmptyInitMessage(): void
+    {
+        $datetime = new DateTimeImmutable();
+        $messageSourceEntity = Source::message(EmptyInitMessage::class);
+        $flowSchema = FlowSchema::create(WorkflowEmptyMock::class);
+
+        $flowHash = '0198ce36-3a94-7125-9ac7-88902e8ff000';
+        $runtimeHash = '0198ce36-3a94-7125-9ac7-88902e8ff001';
+        $messageHash = '0198ce36-3a94-7125-9ac7-88902e8ff002';
+
+        $array = [
+            'flowSource' => WorkflowEmptyMock::class,
+            'flowSubject' => null,
+            'flowType' => 'flow.empty.v1',
+            'flowHash' => $flowHash,
+            'flowSchema' => [
+                'type' => 'flow.empty.v1',
+                'stubs' => [
+                    [
+                        'source' => EmptyBoolStubMock::class,
+                        'messages' => [EmptyInitMessage::class],
+                        'returnTypes' => [],
+                        'messageEnum' => 'init',
+                    ],
+                ],
+            ],
+            'flowSchemaHash' => $flowSchema->getHash(),
+            'flowMessages' => [
+                [
+                    'flowHash' => $flowHash,
+                    'flowRuntimeHash' => $runtimeHash,
+                    'stubSource' => EmptyBoolStubMock::class,
+                    'stubHash' => '',
+                    'messageType' => 'finish',
+                    'messageSource' => EmptyInitMessage::class,
+                    'messageHash' => $messageSourceEntity->messageHash,
+                    'message' => null,
+                    'time' => $datetime->format(DateTimeInterface::RFC3339_EXTENDED),
+                    'hash' => $messageHash,
+                    'predecessorHash' => null,
+                ],
+            ],
+            'flowExceptions' => [],
+            'flowRuns' => [],
+            'flowResults' => [],
+            'time' => $datetime->format(DateTimeInterface::RFC3339_EXTENDED),
+        ];
+
+        $flow = Converter::arrayToFlow($array);
+
+        $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertSame(WorkflowEmptyMock::class, $flow->getSource());
+        $this->assertSame('flow.empty.v1', $flow->getType());
+        $this->assertSame($flowHash, $flow->getHash());
+        $this->assertNull($flow->getSubject());
+        $this->assertSame($flowSchema->getHash(), $flow->getSchemaHash());
+        $this->assertCount(1, $flow->getFlowMessages());
+
+        $flowMessage = $flow->getFlowMessages()[0];
+        $this->assertInstanceOf(FlowMessage::class, $flowMessage);
+        $this->assertInstanceOf(EmptyInitMessage::class, $flowMessage->getMessage());
+        $this->assertSame(EmptyInitMessage::class, $flowMessage->getMessageSource());
+        $this->assertSame($messageHash, $flowMessage->getHash());
     }
 
     public function testFlowToDiagram(): void

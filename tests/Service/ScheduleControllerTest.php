@@ -28,7 +28,7 @@ final class ScheduleControllerTest extends TestCase
     public function testSourceReturnsPhpCode(): void
     {
         $scheduleController = $this->createController();
-        $request = Request::create('/api/schedule/source', 'GET', [
+        $request = Request::create('/api/schedule/schedule-source', 'GET', [
             'className' => ScheduleMock::class,
         ]);
 
@@ -46,7 +46,7 @@ final class ScheduleControllerTest extends TestCase
     public function testSourceReturns404ForUnknownClass(): void
     {
         $scheduleController = $this->createController();
-        $request = Request::create('/api/schedule/source', 'GET', [
+        $request = Request::create('/api/schedule/schedule-source', 'GET', [
             'className' => 'NonExistent\\ClassName',
         ]);
 
@@ -58,7 +58,7 @@ final class ScheduleControllerTest extends TestCase
     public function testSourceReturns400ForNonScheduleClass(): void
     {
         $scheduleController = $this->createController();
-        $request = Request::create('/api/schedule/source', 'GET', [
+        $request = Request::create('/api/schedule/schedule-source', 'GET', [
             'className' => stdClass::class,
         ]);
 

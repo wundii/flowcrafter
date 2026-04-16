@@ -21,7 +21,7 @@ final readonly class ObserveItem implements JsonSerializable
         private string $flowSource,
         private ?string $flowHash,
         private string $messageSource,
-        private array $message,
+        private ?array $message,
         private array $includeStubs = [],
     ) {
     }
@@ -55,9 +55,9 @@ final readonly class ObserveItem implements JsonSerializable
     }
 
     /**
-     * @return array<mixed>
+     * @return null|array<mixed>
      */
-    public function getMessage(): array
+    public function getMessage(): ?array
     {
         return $this->message;
     }

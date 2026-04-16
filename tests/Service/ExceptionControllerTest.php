@@ -23,7 +23,7 @@ final class ExceptionControllerTest extends TestCase
         $storage->method('countScheduleExceptions')->willReturn(0);
 
         $exceptionController = new ExceptionController($storage);
-        $jsonResponse = $exceptionController->list(Request::create('/api/exceptions'));
+        $jsonResponse = $exceptionController->list(Request::create('/api/flow/exception-list'));
 
         $this->assertSame(200, $jsonResponse->getStatusCode());
 
@@ -62,7 +62,7 @@ final class ExceptionControllerTest extends TestCase
         $storage->method('countScheduleExceptions')->willReturn(0);
 
         $exceptionController = new ExceptionController($storage);
-        $jsonResponse = $exceptionController->list(Request::create('/api/exceptions'));
+        $jsonResponse = $exceptionController->list(Request::create('/api/flow/exception-list'));
 
         $this->assertSame(200, $jsonResponse->getStatusCode());
 
@@ -83,7 +83,7 @@ final class ExceptionControllerTest extends TestCase
         $storage->method('countScheduleExceptions')->willReturn(2);
 
         $exceptionController = new ExceptionController($storage);
-        $jsonResponse = $exceptionController->list(Request::create('/api/exceptions'));
+        $jsonResponse = $exceptionController->list(Request::create('/api/flow/exception-list'));
 
         $data = json_decode((string) $jsonResponse->getContent(), true);
         $this->assertIsArray($data);
@@ -98,7 +98,7 @@ final class ExceptionControllerTest extends TestCase
         $storage->method('findExceptionStats')->willReturn(new ArrayIterator([$exceptionStatsEntity]));
 
         $exceptionController = new ExceptionController($storage);
-        $jsonResponse = $exceptionController->stats(Request::create('/api/exceptions/stats'));
+        $jsonResponse = $exceptionController->stats(Request::create('/api/flow/exceptions-stats'));
 
         $this->assertSame(200, $jsonResponse->getStatusCode());
 

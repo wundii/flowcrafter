@@ -58,7 +58,7 @@ final readonly class FlowObserver
                 ));
             }
 
-            $message = $dataMapper->array($observeItem->getMessage(), $messageSource);
+            $message = $dataMapper->array($observeItem->getMessage() ?? [], $messageSource);
             if (!$message instanceof MessageInterface) {
                 throw new RuntimeException('Mapped message does not implement MessageInterface.');
             }

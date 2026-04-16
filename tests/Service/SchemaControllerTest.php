@@ -45,7 +45,7 @@ final class SchemaControllerTest extends TestCase
         $storage = $this->createStub(StorageInterface::class);
         $schemaController = new SchemaController($storage);
 
-        $request = Request::create('/api/schema/stub-source', 'GET', [
+        $request = Request::create('/api/flow/stub-source', 'GET', [
             'className' => StubMock::class,
         ]);
 
@@ -64,7 +64,7 @@ final class SchemaControllerTest extends TestCase
         $storage = $this->createStub(StorageInterface::class);
         $schemaController = new SchemaController($storage);
 
-        $request = Request::create('/api/schema/stub-source', 'GET', [
+        $request = Request::create('/api/flow/stub-source', 'GET', [
             'className' => stdClass::class,
         ]);
 
@@ -84,7 +84,7 @@ final class SchemaControllerTest extends TestCase
 
         $schemaController = new SchemaController($storage);
 
-        $request = Request::create('/api/schema/stub-source', 'GET', [
+        $request = Request::create('/api/flow/stub-source', 'GET', [
             'stubHash' => 'nonexistent-hash',
         ]);
 
@@ -107,7 +107,7 @@ final class SchemaControllerTest extends TestCase
 
         $schemaController = new SchemaController($storage);
 
-        $request = Request::create('/api/schema/stub-source', 'GET', [
+        $request = Request::create('/api/flow/stub-source', 'GET', [
             'stubHash' => 'hash-xyz',
         ]);
 
@@ -135,7 +135,7 @@ final class SchemaControllerTest extends TestCase
 
         $schemaController = new SchemaController($storage);
 
-        $request = Request::create('/api/schema/stub-sources', 'GET', [
+        $request = Request::create('/api/flow/stub-source-list', 'GET', [
             'stubSource' => StubMock::class,
         ]);
 

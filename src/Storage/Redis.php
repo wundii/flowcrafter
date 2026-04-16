@@ -743,7 +743,7 @@ class Redis extends Service implements StorageInterface
                 continue;
             }
 
-            /** @var array{queueId: string, type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeStubs?: class-string[], flowSubject?: ?string} $payload */
+            /** @var array{queueId: string, type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: null|array<mixed>, includeStubs?: class-string[], flowSubject?: ?string} $payload */
             yield new ObserveItem(
                 queueId: $payload['queueId'],
                 type: $payload['type'],

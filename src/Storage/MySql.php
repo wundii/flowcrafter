@@ -750,7 +750,7 @@ class MySql extends Service implements StorageInterface
             }
 
             $messageArray = json_decode($messageJson, true);
-            if (!is_array($messageArray)) {
+            if (!is_array($messageArray) && $messageArray !== null) {
                 throw new RuntimeException('Could not validate flow message payload.');
             }
 
@@ -985,7 +985,7 @@ class MySql extends Service implements StorageInterface
 
             $this->client->commit();
 
-            $messageJson = $row['message'] ?? '[]';
+            $messageJson = $row['message'] ?? 'null';
             if (!is_string($messageJson)) {
                 throw new RuntimeException('Could not validate flow message payload.');
             }
@@ -994,8 +994,8 @@ class MySql extends Service implements StorageInterface
                 throw new RuntimeException('Could not validate flow message payload.');
             }
 
-            $messageArray = json_decode($messageJson, true);
-            if (!is_array($messageArray)) {
+            $message = json_decode($messageJson, true);
+            if (!is_array($message) && $message !== null) {
                 throw new RuntimeException('Could not validate flow message payload.');
             }
 
@@ -1011,7 +1011,7 @@ class MySql extends Service implements StorageInterface
                 flowSource: $row['flow_source'],
                 flowHash: $row['flow_hash'],
                 messageSource: $row['message_source'],
-                message: $messageArray,
+                message: $message,
                 includeStubs: $includeStubsParsed,
             );
         } catch (PDOException $pdoException) {

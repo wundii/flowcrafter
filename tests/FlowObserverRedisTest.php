@@ -6,8 +6,10 @@ namespace Tests;
 
 use PHPUnit\Framework\TestCase;
 use Tests\MockClass\MessageInitMock;
+use Tests\MockClass\WorkflowEmptyMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\RedisClientTestTrait;
+use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\FlowObserver;
 
 final class FlowObserverRedisTest extends TestCase
@@ -67,5 +69,44 @@ final class FlowObserverRedisTest extends TestCase
 
         $flowMessageSourceEvents = $this->client->keys('flow:source:message:*');
         $this->assertCount(4, $flowMessageSourceEvents);
+    }
+
+    public function testRunObserverWithEmptyInitMessage(): void
+    {
+        $storage = $this->storage();
+        $storage->appendObserveItem(
+            type: 'flow.empty.v1',
+            flowSource: WorkflowEmptyMock::class,
+            flowHash: null,
+            messageSource: EmptyInitMessage::class,
+            message: null,
+        );
+
+        $flowObserver = new FlowObserver($storage, []);
+        $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
+
+        $flowSchemaEvents = $this->client->keys('flow:schema:*');
+        $this->assertCount(1, $flowSchemaEvents);
+
+        $flowInstanceEvents = $this->client->keys('flow:instance:*');
+        $this->assertCount(1, $flowInstanceEvents);
+
+        $flowRunEvents = $this->client->keys('flow:run:*');
+        $this->assertCount(1, $flowRunEvents);
+
+        $flowMessageEvents = $this->client->keys('flow:message:*');
+        $this->assertCount(1, $flowMessageEvents);
+
+        $flowResultEvents = $this->client->keys('flow:result:*');
+        $this->assertCount(1, $flowResultEvents);
+
+        $flowExceptionEvents = $this->client->keys('flow:exception:*');
+        $this->assertCount(0, $flowExceptionEvents);
+
+        $flowStubSourceEvents = $this->client->keys('flow:source:stub:*');
+        $this->assertCount(1, $flowStubSourceEvents);
+
+        $flowMessageSourceEvents = $this->client->keys('flow:source:message:*');
+        $this->assertCount(1, $flowMessageSourceEvents);
     }
 }

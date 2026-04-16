@@ -92,7 +92,7 @@ final class ApiRouteTest extends TestCase
         $this->storage->method('findAllFlows')->willReturn(new ArrayIterator([$flowListEntity]));
         $this->storage->method('countFlows')->willReturn(1);
 
-        $response = $this->apiRequest('GET', '/api/flows');
+        $response = $this->apiRequest('GET', '/api/flow/flow-list');
         $this->assertSame(200, $response->getStatusCode());
 
         $data = $this->jsonDecode($response);
@@ -108,7 +108,7 @@ final class ApiRouteTest extends TestCase
 
     public function testFlowsDetailReturns400WhenNoParam(): void
     {
-        $response = $this->apiRequest('GET', '/api/flows/detail');
+        $response = $this->apiRequest('GET', '/api/flow/flow-details');
         $this->assertSame(400, $response->getStatusCode());
 
         $data = $this->jsonDecode($response);
@@ -119,7 +119,7 @@ final class ApiRouteTest extends TestCase
     {
         $this->storage->method('findFlowByHash')->willReturn(null);
 
-        $response = $this->apiRequest('GET', '/api/flows/detail', query: [
+        $response = $this->apiRequest('GET', '/api/flow/flow-details', query: [
             'hash' => 'nonexistent',
         ]);
         $this->assertSame(404, $response->getStatusCode());
@@ -132,7 +132,7 @@ final class ApiRouteTest extends TestCase
     {
         $this->storage->method('openQueues')->willReturn(5);
 
-        $response = $this->apiRequest('GET', '/api/queue/count');
+        $response = $this->apiRequest('GET', '/api/queue/queue-count');
         $this->assertSame(200, $response->getStatusCode());
 
         $data = $this->jsonDecode($response);
@@ -141,7 +141,7 @@ final class ApiRouteTest extends TestCase
 
     public function testFlowsSearchEmptySubject(): void
     {
-        $response = $this->apiRequest('GET', '/api/flows/search', query: [
+        $response = $this->apiRequest('GET', '/api/flow/flow-search', query: [
             'subject' => '',
         ]);
         $this->assertSame(200, $response->getStatusCode());
@@ -157,7 +157,7 @@ final class ApiRouteTest extends TestCase
         $this->storage->method('findAllExceptions')->willReturn(new ArrayIterator([]));
         $this->storage->method('countExceptions')->willReturn(0);
 
-        $response = $this->apiRequest('GET', '/api/exceptions');
+        $response = $this->apiRequest('GET', '/api/flow/exception-list');
         $this->assertSame(200, $response->getStatusCode());
 
         $data = $this->jsonDecode($response);
@@ -168,7 +168,7 @@ final class ApiRouteTest extends TestCase
 
     public function testQueueEndpointRejectsInvalidJson(): void
     {
-        $response = $this->apiRequest('POST', '/api/queue', body: 'not-json');
+        $response = $this->apiRequest('POST', '/api/queue/enqueue', body: 'not-json');
         $this->assertSame(400, $response->getStatusCode());
 
         $data = $this->jsonDecode($response);
@@ -177,7 +177,7 @@ final class ApiRouteTest extends TestCase
 
     public function testFlowsRunEndpointRejectsMissingFields(): void
     {
-        $response = $this->apiRequest('POST', '/api/flows/run', body: json_encode([
+        $response = $this->apiRequest('POST', '/api/flow/flow-run', body: json_encode([
             'flowHash' => '',
             'messageSource' => '',
             'message' => [],
@@ -190,7 +190,7 @@ final class ApiRouteTest extends TestCase
 
     public function testFlowsRunEndpointRejectsInvalidJson(): void
     {
-        $response = $this->apiRequest('POST', '/api/flows/run', body: 'not-json');
+        $response = $this->apiRequest('POST', '/api/flow/flow-run', body: 'not-json');
         $this->assertSame(400, $response->getStatusCode());
 
         $data = $this->jsonDecode($response);
@@ -199,7 +199,7 @@ final class ApiRouteTest extends TestCase
 
     public function testQueueEndpointRejectsMissingFields(): void
     {
-        $response = $this->apiRequest('POST', '/api/queue', body: json_encode([
+        $response = $this->apiRequest('POST', '/api/queue/enqueue', body: json_encode([
             'type' => '',
             'flowSource' => '',
             'messageSource' => '',
