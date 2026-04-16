@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Throwable;
 use Wundii\Flowcrafter\Assert;
+use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\Interface\StorageInterface;
@@ -68,7 +69,8 @@ final class QueueController
             $flowSource = $flowInstance->flowSource;
         }
 
-        if ($flowType === '' || $flowSource === '' || $messageSource === '' || $message === null || $message === []) {
+        $isEmptyInitMessage = class_exists($messageSource) && is_a($messageSource, EmptyInitMessage::class, true);
+        if ($flowType === '' || $flowSource === '' || $messageSource === '' || $message === null || ($message === [] && !$isEmptyInitMessage)) {
             return new JsonResponse([
                 'error' => 'type, flowSource, messageSource and message required',
             ], 400);

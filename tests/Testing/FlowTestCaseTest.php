@@ -15,6 +15,7 @@ use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
 use Tests\MockClass\MessageSubDataMock;
+use Tests\MockClass\NextStubMock;
 use Tests\MockClass\PostStubMock;
 use Tests\MockClass\StubMock;
 use Tests\MockClass\WorkflowBoolMock;
@@ -114,14 +115,16 @@ final class FlowTestCaseTest extends FlowTestCase
 
     public function testRunFlowWithIncludeStubs(): void
     {
+        // NextStubMock has no return types (leaf), so expansion adds nothing downstream.
+        // OtherStubMock and PostStubMock are not reachable from NextStubMock.
         $this->runFlow(
             flowType: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            initMessage: new MessageInitMock('partial'),
-            includeStubs: [StubMock::class],
+            initMessage: new MessageDataMock('partial'),
+            includeStubs: [NextStubMock::class],
         );
 
-        $this->assertStubExecuted(StubMock::class);
+        $this->assertStubExecuted(NextStubMock::class);
         $this->assertStubNotExecuted(PostStubMock::class);
     }
 

@@ -113,8 +113,8 @@ class FlowRunner
         $this->storage?->appendFlowRun($flow, $queueId); #start to run the flow
         $this->container = $this->buildContainer($flowSchema);
         $this->executedStubKey = [];
-        $this->includeStubs = $includeStubs;
         $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
+        $this->includeStubs = $this->expandIncludeStubs($includeStubs, $flowSchema);
 
         $this->executeStubsRecursive($flow, $message);
 
@@ -145,6 +145,40 @@ class FlowRunner
         }
 
         return $stubInstance;
+    }
+
+    /**
+     * @param class-string[] $includeStubs
+     * @return class-string[]
+     */
+    private function expandIncludeStubs(array $includeStubs, FlowSchema $flowSchema): array
+    {
+        if ($includeStubs === []) {
+            return [];
+        }
+
+        $stubReturnMap = [];
+        foreach ($flowSchema->stubs() as $stub) {
+            $stubReturnMap[$stub->getSource()] = $stub->getReturnTypes();
+        }
+
+        $expanded = $includeStubs;
+        $queue = $includeStubs;
+
+        while ($queue !== []) {
+            $stubSource = array_shift($queue);
+            foreach ($stubReturnMap[$stubSource] ?? [] as $returnType) {
+                foreach ($this->messageToStubsMap[$returnType] ?? [] as $downstreamStub) {
+                    $downstreamSource = $downstreamStub->getSource();
+                    if (!in_array($downstreamSource, $expanded, true)) {
+                        $expanded[] = $downstreamSource;
+                        $queue[] = $downstreamSource;
+                    }
+                }
+            }
+        }
+
+        return $expanded;
     }
 
     private function buildContainer(FlowSchema $flowSchema): ContainerBuilder

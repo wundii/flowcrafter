@@ -8,7 +8,9 @@ use ArrayIterator;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Tests\MockClass\MessageInitMock;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\Interface\StorageInterface;
@@ -140,6 +142,43 @@ final class FlowControllerTest extends TestCase
         $data = json_decode((string) $jsonResponse->getContent(), true);
         $this->assertIsArray($data);
         $this->assertSame('Flow not found', $data['error']);
+    }
+
+    public function testRunRejects400WhenMessageIsEmptyAndNotEmptyInitMessage(): void
+    {
+        $storage = $this->createStub(StorageInterface::class);
+
+        $request = Request::create('/api/flow/flow-run', 'POST', [], [], [], [], json_encode([
+            'flowHash' => 'some-hash',
+            'messageSource' => MessageInitMock::class,
+            'message' => [],
+        ], JSON_THROW_ON_ERROR));
+
+        $jsonResponse = $this->makeController($storage)->run($request);
+
+        $this->assertSame(400, $jsonResponse->getStatusCode());
+
+        $data = json_decode((string) $jsonResponse->getContent(), true);
+        $this->assertIsArray($data);
+        $this->assertSame('flowHash, messageSource and message required', $data['error']);
+    }
+
+    public function testRunAcceptsEmptyMessageForEmptyInitMessage(): void
+    {
+        $storage = $this->createStub(StorageInterface::class);
+
+        $request = Request::create('/api/flow/flow-run', 'POST', [], [], [], [], json_encode([
+            'flowHash' => 'some-hash',
+            'messageSource' => EmptyInitMessage::class,
+            'message' => [],
+        ], JSON_THROW_ON_ERROR));
+
+        $jsonResponse = $this->makeController($storage)->run($request);
+
+        // 400 "flowHash, messageSource and message required" must NOT be returned
+        $data = json_decode((string) $jsonResponse->getContent(), true);
+        $this->assertIsArray($data);
+        $this->assertNotSame('flowHash, messageSource and message required', $data['error'] ?? null);
     }
 
     public function testStatsReturnsArray(): void

@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Throwable;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowDiscovery;
@@ -171,7 +172,8 @@ final class FlowController
         $includeStubs = Assert::array($body['includeStubs'] ?? []);
         $messageReturn = null;
 
-        if ($flowHash === '' || $messageSource === '' || $message === []) {
+        $isEmptyInitMessage = is_a($messageSource, EmptyInitMessage::class, true);
+        if ($flowHash === '' || $messageSource === '' || ($message === [] && !$isEmptyInitMessage)) {
             return new JsonResponse([
                 'error' => 'flowHash, messageSource and message required',
             ], 400);

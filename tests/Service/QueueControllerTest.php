@@ -10,12 +10,29 @@ use Symfony\Component\HttpFoundation\Request;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageSubDataMock;
 use Tests\MockClass\WorkflowMock;
+use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Service\Controller\QueueController;
 
 final class QueueControllerTest extends TestCase
 {
+    public function testEnqueueAcceptsEmptyMessageForEmptyInitMessage(): void
+    {
+        $queueController = $this->makeController();
+        $jsonResponse = $queueController->enqueue($this->makeRequest([
+            'type' => 'flow.workflow.v1',
+            'flowSource' => WorkflowMock::class,
+            'messageSource' => EmptyInitMessage::class,
+            'message' => [],
+        ]));
+
+        // must NOT return "type, flowSource, messageSource and message required"
+        $data = json_decode((string) $jsonResponse->getContent(), true);
+        $this->assertIsArray($data);
+        $this->assertNotSame('type, flowSource, messageSource and message required', $data['error'] ?? null);
+    }
+
     public function testEnqueueReturns400ForNonFlowSource(): void
     {
         $queueController = $this->makeController();
