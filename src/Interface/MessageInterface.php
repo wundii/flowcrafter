@@ -11,5 +11,5 @@ interface MessageInterface extends JsonSerializable
     /**
      * @return array<string, mixed>
      */
-    public function jsonSerialize(): array;
+    public function jsonSerialize(): ?array;
 }

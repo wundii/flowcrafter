@@ -10,9 +10,9 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 abstract readonly class AbstractMessage implements MessageInterface
 {
     /**
-     * @return array<string, mixed>
+     * @return null|array<string, mixed>
      */
-    public function jsonSerialize(): array
+    public function jsonSerialize(): ?array
     {
         $data = [];
         $reflectionObject = new ReflectionObject($this);
@@ -22,6 +22,10 @@ abstract readonly class AbstractMessage implements MessageInterface
             }
 
             $data[$reflectionProperty->getName()] = $reflectionProperty->getValue($this);
+        }
+
+        if ($data === []) {
+            return null;
         }
 
         return $data;

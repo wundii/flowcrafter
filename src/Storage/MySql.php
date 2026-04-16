@@ -468,7 +468,7 @@ class MySql extends Service implements StorageInterface
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, array $message, array $includeStubs = [], ?string $flowSubject = null): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeStubs = [], ?string $flowSubject = null): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);

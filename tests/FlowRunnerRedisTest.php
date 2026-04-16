@@ -8,11 +8,15 @@ use Exception;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Tests\MockClass\EmptyWorkflowMock;
 use Tests\MockClass\FailStubMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\RedisClientTestTrait;
+use Wundii\Flowcrafter\EmptyInitMessage;
+use Wundii\Flowcrafter\Enum\StatusEnum;
+use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
 
@@ -97,5 +101,24 @@ final class FlowRunnerRedisTest extends TestCase
         $this->assertSame($flow->getRuntimeHash(), $exception->getFlowRuntimeHash());
         $this->assertSame(FailStubMock::class, $exception->getStubSource());
         $this->assertStringStartsWith('Test Exception', $exception->getMessage());
+    }
+
+    public function testRunWithEmptyInitMessage(): void
+    {
+        $flowRunner = new FlowRunner(
+            type: 'flow.empty.v1',
+            flowSource: EmptyWorkflowMock::class,
+            storage: $this->storage(),
+        );
+        $flowRunner->run(new EmptyInitMessage());
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+
+        $this->assertCount(1, $flow->getFlowMessages());
+        $this->assertSame(StatusEnum::OK, $flow->status());
+
+        $flowMessageEvents = $this->client->keys('flow:message:*');
+        $this->assertCount(1, $flowMessageEvents);
     }
 }
