@@ -116,6 +116,8 @@ class FlowRunner
         $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
         $this->includeStubs = $this->expandIncludeStubs($includeStubs, $flowSchema);
 
+        $this->injectHistoricalMessages($flow, $message, $flowHash);
+
         $this->executeStubsRecursive($flow, $message);
 
         $this->storage?->appendFlow($flow);
@@ -145,6 +147,119 @@ class FlowRunner
         }
 
         return $stubInstance;
+    }
+
+    private function injectHistoricalMessages(Flow $flow, MessageInterface $entryMessage, ?string $flowHash): void
+    {
+        if (!$this->storage instanceof StorageInterface || $flowHash === null) {
+            return;
+        }
+
+        $flowSchema = $flow->getSchema();
+        $entryMessageClass = get_class($entryMessage);
+
+        // Erreichbarkeits-BFS: welche Nachrichten werden in diesem Run tatsächlich produziert?
+        // Fixpoint-Iteration bis keine neuen Nachrichten mehr hinzukommen.
+        /** @var array<class-string<MessageInterface>, bool> $reachable */
+        $reachable = [
+            $entryMessageClass => true,
+        ];
+        $changed = true;
+        while ($changed) {
+            $changed = false;
+            foreach ($flowSchema->stubs() as $stub) {
+                if ($this->includeStubs !== [] && !in_array($stub->getSource(), $this->includeStubs, true)) {
+                    continue;
+                }
+
+                $allReachable = true;
+                foreach ($stub->getMessages() as $msgClass) {
+                    if (!isset($reachable[$msgClass])) {
+                        $allReachable = false;
+                        break;
+                    }
+                }
+
+                if (!$allReachable) {
+                    continue;
+                }
+
+                foreach ($stub->getReturnTypes() as $returnType) {
+                    if (!isset($reachable[$returnType])) {
+                        $reachable[$returnType] = true;
+                        $changed = true;
+                    }
+                }
+            }
+        }
+
+        /** @var array<class-string<StubInterface>, array<class-string<MessageInterface>, bool>> $missingPairs */
+        $missingPairs = [];
+        foreach ($flowSchema->stubs() as $stub) {
+            if ($this->includeStubs !== [] && !in_array($stub->getSource(), $this->includeStubs, true)) {
+                continue;
+            }
+
+            foreach ($stub->getMessages() as $messageClass) {
+                if ($messageClass === $entryMessageClass) {
+                    continue;
+                }
+
+                if (isset($reachable[$messageClass])) {
+                    continue;
+                }
+
+                $missingPairs[$stub->getSource()][$messageClass] = true;
+            }
+        }
+
+        if ($missingPairs === []) {
+            return;
+        }
+
+        $historicalFlow = $this->storage->findFlowByHash($flowHash);
+        if (!$historicalFlow instanceof Flow) {
+            return;
+        }
+
+        /** @var array<class-string<StubInterface>, array<class-string<MessageInterface>, FlowMessage>> $latestByPair */
+        $latestByPair = [];
+        foreach ($historicalFlow->getFlowMessages() as $flowMessage) {
+            $hStub = $flowMessage->getStubSource();
+            $hMsg = $flowMessage->getMessageSource();
+            if (!isset($missingPairs[$hStub][$hMsg])) {
+                continue;
+            }
+
+            if ($flowMessage->getMessage() instanceof FlowMessageReadOnly) {
+                continue;
+            }
+
+            $latestByPair[$hStub][$hMsg] = $flowMessage;
+        }
+
+        foreach ($missingPairs as $stubSource => $messageClasses) {
+            foreach (array_keys($messageClasses) as $messageClass) {
+                $found = $latestByPair[$stubSource][$messageClass] ?? null;
+                if ($found === null) {
+                    continue;
+                }
+
+                $stubSourceObj = Source::stub($stubSource);
+                $messageSourceObj = Source::message($messageClass);
+
+                $flow->addMessage(FlowMessage::create(
+                    flowHash: $flow->getHash(),
+                    flowRuntimeHash: $flow->getRuntimeHash(),
+                    stubSource: $stubSource,
+                    stubHash: $stubSourceObj->stubHash,
+                    messageTypeEnum: MessageTypeEnum::WAIT,
+                    messageHash: $messageSourceObj->messageHash,
+                    message: $found->getMessage(),
+                    predecessorHash: null,
+                ));
+            }
+        }
     }
 
     /**
