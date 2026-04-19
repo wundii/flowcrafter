@@ -20,6 +20,7 @@ use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
 use Throwable;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
+use Wundii\Flowcrafter\ObserverException;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
@@ -54,6 +55,8 @@ class Esdb extends Service
     public const TYPE_QUEUE = 'flowcrafter.flow.queue.v1';
 
     public const TYPE_QUEUE_CLAIM = 'flowcrafter.flow.queue.claim.v1';
+
+    public const TYPE_OBSERVER_EXCEPTION = 'flowcrafter.observer.exception.v1';
 
     public const TYPE_RUN = 'flowcrafter.flow.run.v1';
 
@@ -707,6 +710,24 @@ class Esdb extends Service
         );
 
         parent::appendScheduleException($scheduleException);
+    }
+
+    public function appendObserverException(ObserverException $observerException): void
+    {
+        $subject = '/observer/exception/' . $observerException->getHash();
+        $eventCandidate = new EventCandidate(
+            source: self::SOURCE,
+            subject: $subject,
+            type: self::TYPE_OBSERVER_EXCEPTION,
+            data: $observerException->jsonSerialize(),
+        );
+
+        $this->client->writeEvents(
+            [$eventCandidate],
+            [new IsSubjectPristine($subject)],
+        );
+
+        parent::appendObserverException($observerException);
     }
 
     public function appendFlowResult(FlowResult $flowResult): void

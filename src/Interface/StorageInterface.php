@@ -11,6 +11,7 @@ use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\ObserverException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
@@ -38,6 +39,8 @@ interface StorageInterface extends ServiceInterface
     public function appendFlowException(FlowException $flowException): void;
 
     public function appendScheduleException(ScheduleException $scheduleException): void;
+
+    public function appendObserverException(ObserverException $observerException): void;
 
     public function appendFlowResult(FlowResult $flowResult): void;
 

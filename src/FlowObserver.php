@@ -8,6 +8,7 @@ use Closure;
 use DateTime;
 use DateTimeInterface;
 use RuntimeException;
+use Throwable;
 use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
 use Wundii\DataMapper\Enum\ApproachEnum;
@@ -46,37 +47,57 @@ final readonly class FlowObserver
         $dataMapper = new DataMapper($dataConfig);
 
         foreach ($this->storage->observeQueue($maxExecutionTimeInSeconds) as $observeItem) {
-            $flowSource = Assert::classString($observeItem->getFlowSource(), FlowInterface::class, 'Each Flow must have a string source.');
-            $messageSource = Assert::classString($observeItem->getMessageSource(), MessageInterface::class, 'Each Message must have a string source.');
+            $flowRunner = null;
 
-            if ($logger instanceof \Closure) {
-                $logger(sprintf(
-                    '%s - Flow: %s - Message: %s',
-                    date('Y-m-d H:i:s'),
-                    $flowSource,
-                    $messageSource,
-                ));
+            try {
+                $flowSource = Assert::classString($observeItem->getFlowSource(), FlowInterface::class, 'Each Flow must have a string source.');
+                $messageSource = Assert::classString($observeItem->getMessageSource(), MessageInterface::class, 'Each Message must have a string source.');
+
+                if ($logger instanceof \Closure) {
+                    $logger(sprintf(
+                        '%s - Flow: %s - Message: %s',
+                        date('Y-m-d H:i:s'),
+                        $flowSource,
+                        $messageSource,
+                    ));
+                }
+
+                $message = $dataMapper->array($observeItem->getMessage() ?? [], $messageSource);
+                if (!$message instanceof MessageInterface) {
+                    throw new RuntimeException('Mapped message does not implement MessageInterface.');
+                }
+
+                $flowRunner = new FlowRunner(
+                    type: $observeItem->getType(),
+                    flowSource: $observeItem->getFlowSource(),
+                    flowSubject: $observeItem->getFlowSubject(),
+                    storage: $this->storage,
+                    dependenciesInjection: $this->dependenciesInjection,
+                );
+
+                $flowRunner->run(
+                    message: $message,
+                    flowHash: $observeItem->getFlowHash(),
+                    queueId: $observeItem->getQueueId(),
+                    includeStubs: $observeItem->getIncludeStubs(),
+                );
+            } catch (Throwable $exception) {
+                if ($flowRunner === null || $flowRunner->getFlow() === null) {
+                    $observerException = ObserverException::create(
+                        flowSource: $observeItem->getFlowSource(),
+                        messageSource: $observeItem->getMessageSource(),
+                        queueId: $observeItem->getQueueId(),
+                        code: $exception->getCode(),
+                        message: $exception->getMessage(),
+                        file: $exception->getFile(),
+                        line: $exception->getLine(),
+                        traceString: $exception->getTraceAsString(),
+                    );
+                    $this->storage->appendObserverException($observerException);
+                }
+
+                throw $exception;
             }
-
-            $message = $dataMapper->array($observeItem->getMessage() ?? [], $messageSource);
-            if (!$message instanceof MessageInterface) {
-                throw new RuntimeException('Mapped message does not implement MessageInterface.');
-            }
-
-            $flowRunner = new FlowRunner(
-                type: $observeItem->getType(),
-                flowSource: $observeItem->getFlowSource(),
-                flowSubject: $observeItem->getFlowSubject(),
-                storage: $this->storage,
-                dependenciesInjection: $this->dependenciesInjection,
-            );
-
-            $flowRunner->run(
-                message: $message,
-                flowHash: $observeItem->getFlowHash(),
-                queueId: $observeItem->getQueueId(),
-                includeStubs: $observeItem->getIncludeStubs(),
-            );
 
             $heartbeat?->touchIfDue();
         }

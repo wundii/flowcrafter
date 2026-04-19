@@ -7,6 +7,7 @@ namespace Wundii\Flowcrafter\Interface;
 use DateTimeInterface;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
+use Wundii\Flowcrafter\ObserverException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Entity\ExceptionListEntity;
 use Wundii\Flowcrafter\Storage\Entity\ExceptionStatsEntity;
@@ -22,9 +23,13 @@ interface ServiceInterface
 
     public function appendScheduleException(ScheduleException $scheduleException): void;
 
+    public function appendObserverException(ObserverException $observerException): void;
+
     public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int;
 
     public function countScheduleExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
+
+    public function countObserverExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
 
     public function countFlows(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int;
 

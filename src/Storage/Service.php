@@ -14,6 +14,7 @@ use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRun;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\ObserverException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Entity\ExceptionListEntity;
 use Wundii\Flowcrafter\Storage\Entity\ExceptionStatsEntity;
@@ -114,6 +115,21 @@ abstract class Service implements StorageInterface
             );
 
             CREATE INDEX IF NOT EXISTS schedule_exception_list_time ON schedule_exception_list(time);
+
+            CREATE TABLE IF NOT EXISTS observer_exception_list (
+                hash TEXT PRIMARY KEY,
+                flow_source TEXT NOT NULL,
+                message_source TEXT NOT NULL,
+                queue_id TEXT,
+                code INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                file TEXT NOT NULL,
+                line INTEGER NOT NULL,
+                trace_string TEXT NOT NULL,
+                time TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS observer_exception_list_time ON observer_exception_list(time);
             SQL
         );
     }
@@ -123,13 +139,13 @@ abstract class Service implements StorageInterface
         try {
             $stmt = $this->client->query(
                 "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' " .
-                "AND name IN ('flow_list', 'flow_run_list', 'flow_exception_list', 'schedule_exception_list')"
+                "AND name IN ('flow_list', 'flow_run_list', 'flow_exception_list', 'schedule_exception_list', 'observer_exception_list')"
             );
             if ($stmt === false) {
                 return false;
             }
 
-            return (int) $stmt->fetchColumn() === 4;
+            return (int) $stmt->fetchColumn() === 5;
         } catch (Throwable) {
             return false;
         }
@@ -221,6 +237,28 @@ abstract class Service implements StorageInterface
         ]);
     }
 
+    public function appendObserverException(ObserverException $observerException): void
+    {
+        $stmt = $this->client->prepare(
+            'INSERT OR IGNORE INTO observer_exception_list ' .
+            '(hash, flow_source, message_source, queue_id, code, message, file, line, trace_string, time) ' .
+            'VALUES (:hash, :flow_source, :message_source, :queue_id, :code, :message, :file, :line, :trace_string, :time)'
+        );
+
+        $stmt->execute([
+            ':hash' => $observerException->getHash(),
+            ':flow_source' => $observerException->getFlowSource(),
+            ':message_source' => $observerException->getMessageSource(),
+            ':queue_id' => $observerException->getQueueId(),
+            ':code' => $observerException->getCode(),
+            ':message' => $observerException->getMessage(),
+            ':file' => $observerException->getFile(),
+            ':line' => $observerException->getLine(),
+            ':trace_string' => $observerException->getTraceString(),
+            ':time' => $observerException->getTime()->format('Y-m-d H:i:s.u'),
+        ]);
+    }
+
     public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int
     {
         [$where, $params] = $this->buildDateFilter($from, $to, 'fel.time');
@@ -241,6 +279,16 @@ abstract class Service implements StorageInterface
         [$where, $params] = $this->buildDateFilter($from, $to, 'time');
 
         $stmt = $this->client->prepare('SELECT COUNT(*) FROM schedule_exception_list' . $where);
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countObserverExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
+    {
+        [$where, $params] = $this->buildDateFilter($from, $to, 'time');
+
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM observer_exception_list' . $where);
         $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
@@ -334,12 +382,26 @@ abstract class Service implements StorageInterface
 
         [$flowWhere, $params] = $this->applyStatusFilter($flowWhere, $params, $status);
 
+        $observerWhere = '';
+        if ($from instanceof DateTimeInterface && $to instanceof DateTimeInterface) {
+            $observerWhere = ' WHERE time BETWEEN :from3 AND :to3';
+            $params[':from3'] = $from->format('Y-m-d H:i:s.u');
+            $params[':to3'] = $to->format('Y-m-d H:i:s.u');
+        } elseif ($from instanceof DateTimeInterface) {
+            $observerWhere = ' WHERE time >= :from3';
+            $params[':from3'] = $from->format('Y-m-d H:i:s.u');
+        } elseif ($to instanceof DateTimeInterface) {
+            $observerWhere = ' WHERE time <= :to3';
+            $params[':to3'] = $to->format('Y-m-d H:i:s.u');
+        }
+
         $sql =
             "SELECT 'flow' AS exception_type," .
             ' fel.hash, fel.code, fel.message, fel.file, fel.line, fel.trace_string, fel.time,' .
             ' fel.flow_hash, fel.flow_runtime_hash, fel.flow_type, fel.stub_source, fel.stub_hash,' .
             ' fl.status AS flow_status,' .
-            ' NULL AS schedule_class, NULL AS schedule_name, NULL AS schedule_expression' .
+            ' NULL AS schedule_class, NULL AS schedule_name, NULL AS schedule_expression,' .
+            ' NULL AS observer_flow_source, NULL AS observer_message_source, NULL AS observer_queue_id' .
             ' FROM flow_exception_list fel' .
             ' JOIN flow_list fl ON fel.flow_hash = fl.flow_hash' . $flowWhere .
             ' UNION ALL' .
@@ -347,8 +409,17 @@ abstract class Service implements StorageInterface
             ' hash, code, message, file, line, trace_string, time,' .
             ' NULL, NULL, NULL, NULL, NULL,' .
             ' NULL AS flow_status,' .
-            ' schedule_class, schedule_name, schedule_expression' .
+            ' schedule_class, schedule_name, schedule_expression,' .
+            ' NULL, NULL, NULL' .
             ' FROM schedule_exception_list' . $scheduleWhere .
+            ' UNION ALL' .
+            " SELECT 'observer' AS exception_type," .
+            ' hash, code, message, file, line, trace_string, time,' .
+            ' NULL, NULL, NULL, NULL, NULL,' .
+            ' NULL AS flow_status,' .
+            ' NULL, NULL, NULL,' .
+            ' flow_source, message_source, queue_id' .
+            ' FROM observer_exception_list' . $observerWhere .
             ' ORDER BY time ' . $sortEnum->name .
             ' LIMIT :top OFFSET :skip';
 
@@ -360,7 +431,7 @@ abstract class Service implements StorageInterface
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $row) {
-            /** @var array{exception_type: string, hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_hash: string|null, flow_runtime_hash: string|null, flow_type: string|null, stub_source: string|null, stub_hash: string|null, flow_status: string|null, schedule_class: string|null, schedule_name: string|null, schedule_expression: string|null} $row */
+            /** @var array{exception_type: string, hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_hash: string|null, flow_runtime_hash: string|null, flow_type: string|null, stub_source: string|null, stub_hash: string|null, flow_status: string|null, schedule_class: string|null, schedule_name: string|null, schedule_expression: string|null, observer_flow_source: string|null, observer_message_source: string|null, observer_queue_id: string|null} $row */
             yield new ExceptionListEntity(
                 type: $row['exception_type'],
                 hash: $row['hash'],
@@ -379,6 +450,9 @@ abstract class Service implements StorageInterface
                 scheduleClass: $row['schedule_class'],
                 scheduleName: $row['schedule_name'],
                 scheduleExpression: $row['schedule_expression'],
+                observerFlowSource: $row['observer_flow_source'],
+                observerMessageSource: $row['observer_message_source'],
+                observerQueueId: $row['observer_queue_id'],
             );
         }
     }
@@ -609,19 +683,44 @@ abstract class Service implements StorageInterface
         $stmt->execute($params);
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
+        $grouped = [];
         foreach ($stmt as $row) {
             /** @var array{flow_type: string, total: int|string, failed: int|string, last_time: string|null} $row */
             $total = (int) $row['total'];
             $failed = (int) $row['failed'];
+            $lastTime = $row['last_time'] ? new DateTimeImmutable($row['last_time']) : null;
             $prefix = (string) preg_replace('/\.v\d+$/', '', $row['flow_type']);
 
+            if (!isset($grouped[$prefix])) {
+                $grouped[$prefix] = [
+                    'prefix' => $prefix,
+                    'flowType' => $row['flow_type'],
+                    'total' => $total,
+                    'failed' => $failed,
+                    'lastTime' => $lastTime,
+                ];
+                continue;
+            }
+
+            $grouped[$prefix]['total'] += $total;
+            $grouped[$prefix]['failed'] += $failed;
+            if ($lastTime !== null && ($grouped[$prefix]['lastTime'] === null || $lastTime > $grouped[$prefix]['lastTime'])) {
+                $grouped[$prefix]['lastTime'] = $lastTime;
+                $grouped[$prefix]['flowType'] = $row['flow_type'];
+            }
+        }
+
+        foreach ($grouped as $entry) {
+            $total = $entry['total'];
+            $failed = $entry['failed'];
+
             yield new FlowTypeStatsEntity(
-                prefix: $prefix,
-                flowType: $row['flow_type'],
+                prefix: $entry['prefix'],
+                flowType: $entry['flowType'],
                 total: $total,
                 failed: $failed,
                 successRate: $total > 0 ? (int) round((($total - $failed) / $total) * 100) : null,
-                lastTime: $row['last_time'] ? new DateTimeImmutable($row['last_time']) : null,
+                lastTime: $entry['lastTime'],
             );
         }
     }
@@ -655,7 +754,18 @@ abstract class Service implements StorageInterface
             $scheduleCounts[$row['date']] = (int) $row['count'];
         }
 
-        $dates = array_unique(array_merge(array_keys($flowCounts), array_keys($scheduleCounts)));
+        $observerCounts = [];
+        $stmt = $this->client->prepare(
+            'SELECT DATE(time) AS date, COUNT(*) AS count FROM observer_exception_list' . $where .
+            ' GROUP BY DATE(time) ORDER BY date ASC'
+        );
+        $stmt->execute($params);
+        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
+            /** @var array{date: string, count: int|string} $row */
+            $observerCounts[$row['date']] = (int) $row['count'];
+        }
+
+        $dates = array_unique(array_merge(array_keys($flowCounts), array_keys($scheduleCounts), array_keys($observerCounts)));
         sort($dates);
 
         foreach ($dates as $date) {
@@ -663,6 +773,7 @@ abstract class Service implements StorageInterface
                 date: $date,
                 flow: $flowCounts[$date] ?? 0,
                 schedule: $scheduleCounts[$date] ?? 0,
+                observer: $observerCounts[$date] ?? 0,
             );
         }
     }
@@ -673,6 +784,7 @@ abstract class Service implements StorageInterface
         $this->client->exec('DELETE FROM flow_run_list');
         $this->client->exec('DELETE FROM flow_exception_list');
         $this->client->exec('DELETE FROM schedule_exception_list');
+        $this->client->exec('DELETE FROM observer_exception_list');
     }
 
     /**

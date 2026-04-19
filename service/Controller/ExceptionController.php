@@ -54,7 +54,8 @@ final class ExceptionController
         }
 
         $total = $this->storage->countExceptions($from, $to, $status)
-            + $this->storage->countScheduleExceptions($from, $to);
+            + $this->storage->countScheduleExceptions($from, $to)
+            + $this->storage->countObserverExceptions($from, $to);
 
         return new JsonResponse([
             'items' => $items,

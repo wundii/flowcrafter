@@ -28,6 +28,9 @@ class ExceptionListEntity implements JsonSerializable
         public ?string $scheduleClass,
         public ?string $scheduleName,
         public ?string $scheduleExpression,
+        public ?string $observerFlowSource = null,
+        public ?string $observerMessageSource = null,
+        public ?string $observerQueueId = null,
     ) {
     }
 
@@ -60,6 +63,12 @@ class ExceptionListEntity implements JsonSerializable
             $data['scheduleClass'] = $this->scheduleClass;
             $data['scheduleName'] = $this->scheduleName;
             $data['scheduleExpression'] = $this->scheduleExpression;
+        }
+
+        if ($this->type === 'observer') {
+            $data['observerFlowSource'] = $this->observerFlowSource;
+            $data['observerMessageSource'] = $this->observerMessageSource;
+            $data['observerQueueId'] = $this->observerQueueId;
         }
 
         return $data;

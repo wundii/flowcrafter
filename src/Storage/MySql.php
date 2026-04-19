@@ -24,6 +24,7 @@ use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
+use Wundii\Flowcrafter\ObserverException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
@@ -254,6 +255,24 @@ class MySql extends Service implements StorageInterface
 
         $this->client->exec(
             <<<'SQL'
+            CREATE TABLE IF NOT EXISTS observer_exception (
+                hash VARCHAR(191) NOT NULL PRIMARY KEY,
+                flow_source VARCHAR(255) NOT NULL,
+                message_source VARCHAR(255) NOT NULL,
+                queue_id VARCHAR(191) NULL,
+                code INT(11) NOT NULL,
+                message VARCHAR(2000) NOT NULL,
+                file VARCHAR(2000) NOT NULL,
+                line INT(11) NOT NULL,
+                trace_string TEXT NOT NULL,
+                `time` DATETIME(3) NOT NULL,
+                INDEX idx_observer_exception_time (time)
+            )
+            SQL
+        );
+
+        $this->client->exec(
+            <<<'SQL'
             CREATE TABLE IF NOT EXISTS flow_queue (
                 queue_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
                 `type` VARCHAR(191) NOT NULL,
@@ -443,6 +462,29 @@ class MySql extends Service implements StorageInterface
         ]);
 
         parent::appendScheduleException($scheduleException);
+    }
+
+    public function appendObserverException(ObserverException $observerException): void
+    {
+        $stmt = $this->client->prepare(
+            'INSERT IGNORE INTO observer_exception (hash, flow_source, message_source, queue_id, code, message, file, line, trace_string, time) ' .
+            'VALUES (:hash, :flow_source, :message_source, :queue_id, :code, :message, :file, :line, :trace_string, :time)'
+        );
+
+        $stmt->execute([
+            ':hash' => $observerException->getHash(),
+            ':flow_source' => $observerException->getFlowSource(),
+            ':message_source' => $observerException->getMessageSource(),
+            ':queue_id' => $observerException->getQueueId(),
+            ':code' => $observerException->getCode(),
+            ':message' => $observerException->getMessage(),
+            ':file' => $observerException->getFile(),
+            ':line' => $observerException->getLine(),
+            ':trace_string' => $observerException->getTraceString(),
+            ':time' => $observerException->getTime()->format('Y-m-d H:i:s.v'),
+        ]);
+
+        parent::appendObserverException($observerException);
     }
 
     public function appendFlowResult(FlowResult $flowResult): void

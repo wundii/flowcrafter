@@ -12,6 +12,7 @@ class ExceptionStatsEntity implements JsonSerializable
         public string $date,
         public int $flow,
         public int $schedule,
+        public int $observer = 0,
     ) {
     }
 
@@ -24,6 +25,7 @@ class ExceptionStatsEntity implements JsonSerializable
             'date' => $this->date,
             'flow' => $this->flow,
             'schedule' => $this->schedule,
+            'observer' => $this->observer,
         ];
     }
 }
