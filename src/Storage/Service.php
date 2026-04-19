@@ -704,7 +704,7 @@ abstract class Service implements StorageInterface
 
             $grouped[$prefix]['total'] += $total;
             $grouped[$prefix]['failed'] += $failed;
-            if ($lastTime !== null && ($grouped[$prefix]['lastTime'] === null || $lastTime > $grouped[$prefix]['lastTime'])) {
+            if ($lastTime instanceof \DateTimeImmutable && (!$grouped[$prefix]['lastTime'] instanceof \DateTimeImmutable || $lastTime > $grouped[$prefix]['lastTime'])) {
                 $grouped[$prefix]['lastTime'] = $lastTime;
                 $grouped[$prefix]['flowType'] = $row['flow_type'];
             }
@@ -785,6 +785,11 @@ abstract class Service implements StorageInterface
         $this->client->exec('DELETE FROM flow_exception_list');
         $this->client->exec('DELETE FROM schedule_exception_list');
         $this->client->exec('DELETE FROM observer_exception_list');
+    }
+
+    protected function getServiceClient(): Client
+    {
+        return $this->client;
     }
 
     /**

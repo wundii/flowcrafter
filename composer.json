@@ -71,7 +71,9 @@
       "@analyze",
       "@test"
     ],
-    "test": "vendor/bin/phpunit"
+    "test": "vendor/bin/phpunit",
+    "seed": "php bin/seed-ui-demo.php",
+    "seed:reset": "php bin/seed-ui-demo.php --reset"
   },
   "bin": [
     "bin/flowcrafter"

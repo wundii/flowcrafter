@@ -82,7 +82,7 @@ final readonly class FlowObserver
                     includeStubs: $observeItem->getIncludeStubs(),
                 );
             } catch (Throwable $exception) {
-                if ($flowRunner === null || $flowRunner->getFlow() === null) {
+                if (!$flowRunner instanceof FlowRunner || !$flowRunner->getFlow() instanceof Flow) {
                     $observerException = ObserverException::create(
                         flowSource: $observeItem->getFlowSource(),
                         messageSource: $observeItem->getMessageSource(),
