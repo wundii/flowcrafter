@@ -46,10 +46,11 @@ final readonly class FlowObserver
         );
         $dataMapper = new DataMapper($dataConfig);
 
-        foreach ($this->storage->observeQueue($maxExecutionTimeInSeconds) as $observeItem) {
-            $flowRunner = null;
+        $flowRunner = null;
+        $observeItem = null;
 
-            try {
+        try {
+            foreach ($this->storage->observeQueue($maxExecutionTimeInSeconds) as $observeItem) {
                 $flowSource = Assert::classString($observeItem->getFlowSource(), FlowInterface::class, 'Each Flow must have a string source.');
                 $messageSource = Assert::classString($observeItem->getMessageSource(), MessageInterface::class, 'Each Message must have a string source.');
 
@@ -81,25 +82,29 @@ final readonly class FlowObserver
                     queueId: $observeItem->getQueueId(),
                     includeStubs: $observeItem->getIncludeStubs(),
                 );
-            } catch (Throwable $exception) {
-                if (!$flowRunner instanceof FlowRunner || !$flowRunner->getFlow() instanceof Flow) {
-                    $observerException = ObserverException::create(
-                        flowSource: $observeItem->getFlowSource(),
-                        messageSource: $observeItem->getMessageSource(),
-                        queueId: $observeItem->getQueueId(),
-                        code: $exception->getCode(),
-                        message: $exception->getMessage(),
-                        file: $exception->getFile(),
-                        line: $exception->getLine(),
-                        traceString: $exception->getTraceAsString(),
-                    );
-                    $this->storage->appendObserverException($observerException);
-                }
 
-                throw $exception;
+                $heartbeat?->touchIfDue();
+
+                $flowRunner = null;
+                $observeItem = null;
+            }
+        } catch (Throwable $throwable) {
+            $flowExceptions = $flowRunner?->getFlow()?->getFlowExceptions() ?? [];
+
+            if ($flowExceptions === []) {
+                $this->storage->appendObserverException(ObserverException::create(
+                    flowSource: $observeItem?->getFlowSource() ?? '',
+                    messageSource: $observeItem?->getMessageSource() ?? '',
+                    queueId: $observeItem?->getQueueId(),
+                    code: $throwable->getCode(),
+                    message: $throwable->getMessage(),
+                    file: $throwable->getFile(),
+                    line: $throwable->getLine(),
+                    traceString: $throwable->getTraceAsString(),
+                ));
             }
 
-            $heartbeat?->touchIfDue();
+            throw $throwable;
         }
     }
 }
