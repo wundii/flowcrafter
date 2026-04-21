@@ -8,6 +8,7 @@ use DateTime;
 use DateTimeInterface;
 use InvalidArgumentException;
 use RuntimeException;
+use Throwable;
 use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
 use Wundii\DataMapper\Enum\ApproachEnum;
@@ -303,7 +304,29 @@ final class Converter
         $reasons = [];
 
         $flowSource = $flow['flowSource'] ?? null;
-        $reasons = [...$reasons, ...self::validateClassSource($flowSource, FlowInterface::class, 'flowSource')];
+        $flowSourceErrors = self::validateClassSource($flowSource, FlowInterface::class, 'flowSource');
+        $reasons = [...$reasons, ...$flowSourceErrors];
+
+        if ($flowSourceErrors === []) {
+            /** @var class-string<FlowInterface> $flowSource */
+            $storedFlowType = $flow['flowType'] ?? null;
+            try {
+                $liveFlowType = $flowSource::schema()->type();
+                if (is_string($storedFlowType) && $storedFlowType !== $liveFlowType) {
+                    $reasons[] = sprintf(
+                        "flowType '%s' does not match current flowSource type '%s'",
+                        $storedFlowType,
+                        $liveFlowType,
+                    );
+                }
+            } catch (Throwable $throwable) {
+                $reasons[] = sprintf(
+                    "flowSource '%s' schema could not be resolved: %s",
+                    $flowSource,
+                    $throwable->getMessage(),
+                );
+            }
+        }
 
         foreach (Assert::array($flowSchemaArray['stubs'] ?? [], 'Stubs must be an array.') as $stubData) {
             $stubArray = Assert::array($stubData, 'Each stub must be an array.');

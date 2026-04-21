@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter;
 
 use Exception;
+use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Throwable;
@@ -101,7 +102,7 @@ class FlowRunner
         $flow->setIncludeStubs($includeStubs);
 
         if (!$flow->isExecutable()) {
-            throw new RuntimeException('Flow is not executable, because the flowSchemaHash is different from the stored version');
+            throw new InvalidArgumentException('Flow is not executable, because the flowSchemaHash is different from the stored version');
         }
 
         $flow->addRun($queueId);

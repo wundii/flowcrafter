@@ -223,7 +223,11 @@ final class FlowController
                 flowHash: $flowHash,
                 includeStubs: $includeStubs,
             );
-        } catch (Throwable $throwable) {
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            return new JsonResponse([
+                'error' => $invalidArgumentException->getMessage(),
+            ], 400);
+        } catch (Throwable) {
             // the exception is recorded in storage
         } finally {
             ob_end_clean();

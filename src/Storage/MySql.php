@@ -422,14 +422,15 @@ class MySql extends Service implements StorageInterface
     public function appendFlowException(FlowException $flowException): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_exception (hash, flow_hash, flow_runtime_hash, stub_source, stub_hash, code, message, file, line, trace_string, time) ' .
-            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :stub_hash, :code, :message, :file, :line, :trace_string, :time)'
+            'INSERT IGNORE INTO flow_exception (hash, flow_hash, flow_runtime_hash, flow_type, stub_source, stub_hash, code, message, file, line, trace_string, time) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :flow_type, :stub_source, :stub_hash, :code, :message, :file, :line, :trace_string, :time)'
         );
 
         $stmt->execute([
             ':hash' => $flowException->getHash(),
             ':flow_hash' => $flowException->getFlowHash(),
             ':flow_runtime_hash' => $flowException->getFlowRuntimeHash(),
+            ':flow_type' => $flowException->getFlowType(),
             ':stub_source' => $flowException->getStubSource(),
             ':stub_hash' => $flowException->getStubHash(),
             ':code' => $flowException->getCode(),
