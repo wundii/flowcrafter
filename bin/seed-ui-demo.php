@@ -10,7 +10,7 @@ declare(strict_types=1);
  *   --reset  Clear all tables before seeding
  */
 
-require __DIR__ . '/../vendor/autoload.php';
+require getcwd() . '/vendor/autoload.php';
 
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfigRequirer;
