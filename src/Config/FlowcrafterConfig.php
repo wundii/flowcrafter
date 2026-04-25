@@ -20,6 +20,7 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::SERVER_HOST, null);
         $this->setParameter(OptionEnum::SERVER_PORT, null);
         $this->setParameter(OptionEnum::SERVER_WORKERS, null);
+        $this->setParameter(OptionEnum::SERVER_NUM_THREADS, null);
         $this->setParameter(OptionEnum::SERVER_HTTPS, false);
         $this->setParameter(OptionEnum::SERVER_SECRET, null);
         $this->setParameter(OptionEnum::SERVER_DESCRIPTION, null);
@@ -65,6 +66,16 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
     public function getServerWorkers(): ?int
     {
         return $this->getNullOrInt(OptionEnum::SERVER_WORKERS);
+    }
+
+    public function setServerNumThreads(?int $serverNumThreads = null): void
+    {
+        $this->setParameter(OptionEnum::SERVER_NUM_THREADS, $serverNumThreads);
+    }
+
+    public function getServerNumThreads(): ?int
+    {
+        return $this->getNullOrInt(OptionEnum::SERVER_NUM_THREADS);
     }
 
     public function setServerHttps(bool $serverHttps = true): void

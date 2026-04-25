@@ -29,6 +29,11 @@ enum OptionEnum: string
     /**
      * @internal
      */
+    case SERVER_NUM_THREADS = 'server_num_threads';
+
+    /**
+     * @internal
+     */
     case SERVER_HTTPS = 'server_https';
 
     /**

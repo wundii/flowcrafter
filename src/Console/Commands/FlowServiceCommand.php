@@ -16,6 +16,7 @@ use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
+use Wundii\Flowcrafter\Service\CaddyfileBuilder;
 
 final class FlowServiceCommand extends Command
 {
@@ -43,6 +44,7 @@ final class FlowServiceCommand extends Command
         $this->addOption('host', null, InputOption::VALUE_OPTIONAL, 'Server host');
         $this->addOption('port', null, InputOption::VALUE_OPTIONAL, 'Server port');
         $this->addOption('workers', null, InputOption::VALUE_OPTIONAL, 'Number of PHP workers');
+        $this->addOption('num-threads', null, InputOption::VALUE_OPTIONAL, 'Total PHP thread pool size (defaults to workers x 2)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -58,10 +60,18 @@ final class FlowServiceCommand extends Command
         $host = $this->resolveOption($input, 'host', $this->flowcrafterConfig->getServerHost(), self::DEFAULT_HOST);
         $port = $this->resolveOption($input, 'port', (string) ($this->flowcrafterConfig->getServerPort() ?? ''), (string) self::DEFAULT_PORT);
         $workers = $this->resolveOption($input, 'workers', (string) ($this->flowcrafterConfig->getServerWorkers() ?? ''), (string) self::DEFAULT_WORKERS);
+        $numThreads = $this->resolveNumThreads($input);
         $https = $this->flowcrafterConfig->getServerHttps();
         $serviceDir = dirname(__DIR__, 3) . '/service';
 
-        $caddyfile = $this->buildCaddyfile($host, $port, $serviceDir, $workers, $https);
+        $caddyfile = $this->writeCaddyfile(new CaddyfileBuilder(
+            host: $host,
+            port: (int) $port,
+            workers: (int) $workers,
+            numThreads: $numThreads,
+            https: $https,
+            serviceDir: $serviceDir,
+        ));
 
         $env = $this->bootstrapConfig->getProcessEnv();
 
@@ -116,36 +126,28 @@ final class FlowServiceCommand extends Command
         return Command::FAILURE;
     }
 
-    private function buildCaddyfile(string $host, string $port, string $serviceDir, string $workers, bool $https): string
+    private function writeCaddyfile(CaddyfileBuilder $caddyfileBuilder): string
     {
-        $autoHttps = $https ? '' : "\n\tauto_https off";
-        $scheme = $https ? 'https' : 'http';
-
-        $content = <<<CADDYFILE
-            {
-            	frankenphp
-            	order php_server before file_server{$autoHttps}
-            }
-
-            {$scheme}://:{$port} {
-            	bind {$host}
-            	root * {$serviceDir}
-
-            	php_server {
-            		worker {$serviceDir}/worker.php {$workers}
-            	}
-            }
-            CADDYFILE;
-
         $tempFile = tempnam(sys_get_temp_dir(), 'flowcrafter_caddyfile_');
         if ($tempFile === false) {
             throw new RuntimeException('Failed to create temporary Caddyfile');
         }
 
-        file_put_contents($tempFile, $content);
+        file_put_contents($tempFile, $caddyfileBuilder->build());
         $this->tempCaddyfile = $tempFile;
 
         return $tempFile;
+    }
+
+    private function resolveNumThreads(InputInterface $input): ?int
+    {
+        /** @var ?string $cliValue */
+        $cliValue = $input->getOption('num-threads');
+        if ($cliValue !== null && $cliValue !== '') {
+            return (int) $cliValue;
+        }
+
+        return $this->flowcrafterConfig->getServerNumThreads();
     }
 
     private function resolveOption(InputInterface $input, string $option, ?string $configValue, string $default): string
