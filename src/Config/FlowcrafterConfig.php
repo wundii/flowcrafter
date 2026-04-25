@@ -144,6 +144,11 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
 
     public function getStorage(): StorageInterface
     {
+        static $cachedStorage = null;
+        if ($cachedStorage instanceof StorageInterface) {
+            return $cachedStorage;
+        }
+
         $storageConfig = $this->getParameter(OptionEnum::STORAGE_CONFIG);
         if (!$storageConfig instanceof StorageConfigInterface) {
             throw new RuntimeException('Storage config is not set. Call setStorageConfig() first.');
@@ -159,6 +164,8 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         if (!$storage instanceof StorageInterface) {
             throw new RuntimeException('The storage class ' . $storageClass . ' does not implement StorageInterface.');
         }
+
+        $cachedStorage = $storage;
 
         return $storage;
     }
