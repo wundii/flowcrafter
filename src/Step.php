@@ -13,14 +13,14 @@ use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
-class Stub implements JsonSerializable
+class Step implements JsonSerializable
 {
     private MessageEnum $messageEnum;
 
     /**
-     * @param class-string<StubInterface> $source
+     * @param class-string<StepInterface> $source
      * @param class-string<MessageInterface>[] $messages
      * @param class-string<MessageDataInterface|MessageReturnInterface>[] $returnTypes
      */
@@ -34,7 +34,7 @@ class Stub implements JsonSerializable
         if (!$skipClassValidation) {
             Assert::classString(
                 $source,
-                StubInterface::class,
+                StepInterface::class,
                 'Source must be an instance of MessageInterface',
             );
         }
@@ -72,7 +72,7 @@ class Stub implements JsonSerializable
     }
 
     /**
-     * @param class-string<StubInterface> $source
+     * @param class-string<StepInterface> $source
      */
     public static function create(
         string $source,
@@ -118,7 +118,7 @@ class Stub implements JsonSerializable
     }
 
     /**
-     * @return class-string<StubInterface>
+     * @return class-string<StepInterface>
      */
     public function getSource(): string
     {

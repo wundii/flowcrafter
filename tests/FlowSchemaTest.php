@@ -11,10 +11,10 @@ use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
-use Tests\MockClass\NextStubMock;
-use Tests\MockClass\OtherStubMock;
-use Tests\MockClass\PostStubMock;
-use Tests\MockClass\StubMock;
+use Tests\MockClass\NextStepMock;
+use Tests\MockClass\OtherStepMock;
+use Tests\MockClass\PostStepMock;
+use Tests\MockClass\StepMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\FlowBuilder;
@@ -45,84 +45,84 @@ final class FlowSchemaTest extends TestCase
         $this->assertSame('flow.workflow.v1', $flowSchema->type());
     }
 
-    public function testInitStub(): void
+    public function testInitStep(): void
     {
         $flowSchema = $this->createSchema();
-        $initStub = $flowSchema->initStub();
+        $initStep = $flowSchema->initStep();
 
-        $this->assertSame(StubMock::class, $initStub->getSource());
-        $this->assertSame(MessageEnum::INIT, $initStub->getMessageEnum());
+        $this->assertSame(StepMock::class, $initStep->getSource());
+        $this->assertSame(MessageEnum::INIT, $initStep->getMessageEnum());
     }
 
-    public function testStubsCount(): void
-    {
-        $flowSchema = $this->createSchema();
-
-        $this->assertCount(4, $flowSchema->stubs());
-    }
-
-    public function testStubByMessageClassFindsStubs(): void
+    public function testStepsCount(): void
     {
         $flowSchema = $this->createSchema();
 
-        $stubs = $flowSchema->stubByMessageClass(MessageDataMock::class);
-
-        $this->assertCount(3, $stubs);
-
-        $sources = array_map(static fn (\Wundii\Flowcrafter\Stub $stub): string => $stub->getSource(), $stubs);
-        $this->assertContains(NextStubMock::class, $sources);
-        $this->assertContains(OtherStubMock::class, $sources);
-        $this->assertContains(PostStubMock::class, $sources);
+        $this->assertCount(4, $flowSchema->steps());
     }
 
-    public function testStubByMessageClassWithInitMessage(): void
+    public function testStepByMessageClassFindsSteps(): void
     {
         $flowSchema = $this->createSchema();
 
-        $stubs = $flowSchema->stubByMessageClass(MessageInitMock::class);
+        $steps = $flowSchema->stepByMessageClass(MessageDataMock::class);
 
-        $this->assertCount(1, $stubs);
-        $this->assertSame(StubMock::class, $stubs[0]->getSource());
+        $this->assertCount(3, $steps);
+
+        $sources = array_map(static fn (\Wundii\Flowcrafter\Step $step): string => $step->getSource(), $steps);
+        $this->assertContains(NextStepMock::class, $sources);
+        $this->assertContains(OtherStepMock::class, $sources);
+        $this->assertContains(PostStepMock::class, $sources);
     }
 
-    public function testStubByMessageClassReturnsEmptyForUnused(): void
+    public function testStepByMessageClassWithInitMessage(): void
     {
         $flowSchema = $this->createSchema();
 
-        $stubs = $flowSchema->stubByMessageClass(MessageReturnMock::class);
+        $steps = $flowSchema->stepByMessageClass(MessageInitMock::class);
 
-        $this->assertCount(0, $stubs);
+        $this->assertCount(1, $steps);
+        $this->assertSame(StepMock::class, $steps[0]->getSource());
     }
 
-    public function testStubByMessageClassWithInvalidClass(): void
+    public function testStepByMessageClassReturnsEmptyForUnused(): void
+    {
+        $flowSchema = $this->createSchema();
+
+        $steps = $flowSchema->stepByMessageClass(MessageReturnMock::class);
+
+        $this->assertCount(0, $steps);
+    }
+
+    public function testStepByMessageClassWithInvalidClass(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
         $flowSchema = $this->createSchema();
 
         /** @phpstan-ignore argument.type */
-        $flowSchema->stubByMessageClass(WorkflowMock::class);
+        $flowSchema->stepByMessageClass(WorkflowMock::class);
     }
 
-    public function testStubBySourceFindsStub(): void
+    public function testStepBySourceFindsStep(): void
     {
         $flowSchema = $this->createSchema();
 
-        $stub = $flowSchema->stubBySource(StubMock::class);
+        $step = $flowSchema->stepBySource(StepMock::class);
 
-        $this->assertSame(StubMock::class, $stub->getSource());
+        $this->assertSame(StepMock::class, $step->getSource());
     }
 
-    public function testStubBySourceFindsAllStubs(): void
+    public function testStepBySourceFindsAllSteps(): void
     {
         $flowSchema = $this->createSchema();
 
-        $this->assertSame(NextStubMock::class, $flowSchema->stubBySource(NextStubMock::class)->getSource());
-        $this->assertSame(OtherStubMock::class, $flowSchema->stubBySource(OtherStubMock::class)->getSource());
-        $this->assertSame(PostStubMock::class, $flowSchema->stubBySource(PostStubMock::class)->getSource());
+        $this->assertSame(NextStepMock::class, $flowSchema->stepBySource(NextStepMock::class)->getSource());
+        $this->assertSame(OtherStepMock::class, $flowSchema->stepBySource(OtherStepMock::class)->getSource());
+        $this->assertSame(PostStepMock::class, $flowSchema->stepBySource(PostStepMock::class)->getSource());
     }
 
-    public function testStubBySourceThrowsForUnknown(): void
+    public function testStepBySourceThrowsForUnknown(): void
     {
         $this->expectException(RuntimeException::class);
 
@@ -131,12 +131,12 @@ final class FlowSchemaTest extends TestCase
             MessageInitMock::class,
             MessageReturnMock::class,
         );
-        $flowBuilder->addStub(StubMock::class);
-        $flowBuilder->addStub(PostStubMock::class);
+        $flowBuilder->addStep(StepMock::class);
+        $flowBuilder->addStep(PostStepMock::class);
 
         $flowSchema = $flowBuilder->build();
 
-        $flowSchema->stubBySource(NextStubMock::class);
+        $flowSchema->stepBySource(NextStepMock::class);
     }
 
     public function testGetMessageToSubsMap(): void
@@ -171,25 +171,25 @@ final class FlowSchemaTest extends TestCase
             MessageInitMock::class,
             MessageReturnMock::class,
         );
-        $flowBuilder->addStub(StubMock::class);
-        $flowBuilder->addStub(PostStubMock::class);
+        $flowBuilder->addStep(StepMock::class);
+        $flowBuilder->addStep(PostStepMock::class);
 
         $schema2 = $flowBuilder->build();
 
         $this->assertNotSame($flowSchema->getHash(), $schema2->getHash());
     }
 
-    public function testGetLeafStubs(): void
+    public function testGetLeafSteps(): void
     {
         $flowSchema = $this->createSchema();
 
-        $leafStubs = $flowSchema->getLeafStubs();
-        $sources = array_map(static fn (\Wundii\Flowcrafter\Stub $stub): string => $stub->getSource(), $leafStubs);
+        $leafSteps = $flowSchema->getLeafSteps();
+        $sources = array_map(static fn (\Wundii\Flowcrafter\Step $step): string => $step->getSource(), $leafSteps);
 
-        $this->assertContains(NextStubMock::class, $sources);
-        $this->assertContains(PostStubMock::class, $sources);
-        $this->assertNotContains(StubMock::class, $sources);
-        $this->assertNotContains(OtherStubMock::class, $sources);
+        $this->assertContains(NextStepMock::class, $sources);
+        $this->assertContains(PostStepMock::class, $sources);
+        $this->assertNotContains(StepMock::class, $sources);
+        $this->assertNotContains(OtherStepMock::class, $sources);
     }
 
     public function testJsonSerialize(): void
@@ -199,9 +199,9 @@ final class FlowSchemaTest extends TestCase
         $data = $flowSchema->jsonSerialize();
 
         $this->assertArrayHasKey('type', $data);
-        $this->assertArrayHasKey('stubs', $data);
+        $this->assertArrayHasKey('steps', $data);
         $this->assertSame('flow.workflow.v1', $data['type']);
-        $this->assertCount(4, $data['stubs']);
+        $this->assertCount(4, $data['steps']);
     }
 
     private function createSchema(): FlowSchema

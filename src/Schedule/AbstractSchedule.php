@@ -32,14 +32,14 @@ abstract class AbstractSchedule implements ScheduleInterface
 
     /**
      * @param class-string<FlowInterface> $flowSource
-     * @param class-string[] $includeStubs
+     * @param class-string[] $includeSteps
      */
     protected function enqueue(
         string $flowSource,
         MessageInterface $message,
         ?string $flowHash = null,
         ?string $flowSubject = null,
-        array $includeStubs = [],
+        array $includeSteps = [],
     ): void {
         $storage = $this->requireStorage();
         $schema = $flowSource::schema();
@@ -50,7 +50,7 @@ abstract class AbstractSchedule implements ScheduleInterface
             flowHash: $flowHash,
             messageSource: get_class($message),
             message: $message->jsonSerialize(),
-            includeStubs: $includeStubs,
+            includeSteps: $includeSteps,
             flowSubject: $flowSubject,
         );
     }

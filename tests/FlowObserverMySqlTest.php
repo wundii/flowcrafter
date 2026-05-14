@@ -65,7 +65,7 @@ final class FlowObserverMySqlTest extends TestCase
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_EXCEPTION);
         $this->assertCount(0, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_STUB);
+        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_STEP);
         $this->assertCount(4, iterator_to_array($stmt->fetchAll()));
 
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_MESSAGE);
@@ -108,7 +108,7 @@ final class FlowObserverMySqlTest extends TestCase
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_EXCEPTION);
         $this->assertCount(0, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_STUB);
+        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_STEP);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
         $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_MESSAGE);

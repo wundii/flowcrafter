@@ -9,7 +9,7 @@ use RuntimeException;
 use Tests\MockClass\DependencyInterfaceImplMock;
 use Tests\MockClass\DependencyInterfaceMock;
 use Tests\MockClass\DependencyMock;
-use Tests\MockClass\InterfaceBindingStubMock;
+use Tests\MockClass\InterfaceBindingStepMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\WorkflowInterfaceBindingMock;
 use Wundii\Flowcrafter\FlowContainerFactory;
@@ -46,17 +46,17 @@ final class FlowContainerFactoryTest extends TestCase
     public function testBuildWithInterfaceBinding(): void
     {
         $containerBuilder = FlowContainerFactory::build(
-            autowireClasses: [InterfaceBindingStubMock::class],
+            autowireClasses: [InterfaceBindingStepMock::class],
             syntheticServices: [new MessageInitMock('hello')],
             dependencies: [
                 DependencyInterfaceMock::class => new DependencyInterfaceImplMock(),
             ],
         );
 
-        $stub = $containerBuilder->get(InterfaceBindingStubMock::class);
-        $this->assertInstanceOf(InterfaceBindingStubMock::class, $stub);
+        $step = $containerBuilder->get(InterfaceBindingStepMock::class);
+        $this->assertInstanceOf(InterfaceBindingStepMock::class, $step);
 
-        $messageReturn = $stub->process();
+        $messageReturn = $step->process();
         $this->assertSame('interface-binding-works:hello', $messageReturn->getData());
     }
 
@@ -65,7 +65,7 @@ final class FlowContainerFactoryTest extends TestCase
         $this->expectException(RuntimeException::class);
 
         FlowContainerFactory::build(
-            autowireClasses: [InterfaceBindingStubMock::class],
+            autowireClasses: [InterfaceBindingStepMock::class],
             syntheticServices: [new MessageInitMock('hello')],
             dependencies: [],
         );

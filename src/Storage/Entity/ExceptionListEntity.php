@@ -22,8 +22,8 @@ class ExceptionListEntity implements JsonSerializable
         public ?string $flowHash,
         public ?string $flowRuntimeHash,
         public ?string $flowType,
-        public ?string $stubSource,
-        public ?string $stubHash,
+        public ?string $stepSource,
+        public ?string $stepHash,
         public ?StatusEnum $flowStatus,
         public ?string $scheduleClass,
         public ?string $scheduleName,
@@ -54,8 +54,8 @@ class ExceptionListEntity implements JsonSerializable
             $data['flowHash'] = $this->flowHash;
             $data['flowRuntimeHash'] = $this->flowRuntimeHash;
             $data['flowType'] = $this->flowType;
-            $data['stubSource'] = $this->stubSource;
-            $data['stubHash'] = $this->stubHash;
+            $data['stepSource'] = $this->stepSource;
+            $data['stepHash'] = $this->stepHash;
             $data['flowStatus'] = $this->flowStatus?->name;
         }
 

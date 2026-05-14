@@ -13,8 +13,8 @@ use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 
 class FlowRunner
@@ -26,17 +26,17 @@ class FlowRunner
     /**
      * @var string[]
      */
-    private array $executedStubKey;
+    private array $executedStepKey;
 
     /**
-     * @var array<string, Stub[]>
+     * @var array<string, Step[]>
      */
-    private array $messageToStubsMap;
+    private array $messageToStepsMap;
 
     /**
      * @var class-string[]
      */
-    private array $includeStubs = [];
+    private array $includeSteps = [];
 
     private bool|MessageReturnInterface $messageReturn = false;
 
@@ -77,13 +77,13 @@ class FlowRunner
     }
 
     /**
-     * @param class-string[] $includeStubs
+     * @param class-string[] $includeSteps
      */
     public function run(
         MessageInterface $message,
         ?string $flowHash = null,
         ?string $queueId = null,
-        array $includeStubs = [],
+        array $includeSteps = [],
     ): bool|MessageReturnInterface {
         $flowInstance = $flowHash !== null ? $this->storage?->findFlowInstanceByHash($flowHash) : null;
 
@@ -99,7 +99,7 @@ class FlowRunner
         );
 
         $flow = $this->flow;
-        $flow->setIncludeStubs($includeStubs);
+        $flow->setIncludeSteps($includeSteps);
 
         if (!$flow->isExecutable()) {
             throw new InvalidArgumentException('Flow is not executable, because the flowSchemaHash is different from the stored version');
@@ -113,13 +113,13 @@ class FlowRunner
         $this->storage?->registerFlowInstance($flow);
         $this->storage?->appendFlowRun($flow, $queueId); #start to run the flow
         $this->container = $this->buildContainer($flowSchema);
-        $this->executedStubKey = [];
-        $this->messageToStubsMap = $flowSchema->getMessageToSubsMap();
-        $this->includeStubs = $this->expandIncludeStubs($includeStubs, $flowSchema);
+        $this->executedStepKey = [];
+        $this->messageToStepsMap = $flowSchema->getMessageToStepsMap();
+        $this->includeSteps = $this->expandIncludeSteps($includeSteps, $flowSchema);
 
         $this->injectHistoricalMessages($flow, $message, $flowHash);
 
-        $this->executeStubsRecursive($flow, $message);
+        $this->executeStepsRecursive($flow, $message);
 
         $this->storage?->appendFlow($flow);
 
@@ -127,11 +127,11 @@ class FlowRunner
     }
 
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      * @param FlowMessage[] $flowMessages
      * @throws Exception
      */
-    public function createInstance(string $stubSource, array $flowMessages): StubInterface
+    public function createInstance(string $stepSource, array $flowMessages): StepInterface
     {
         if (!$this->container instanceof ContainerBuilder) {
             throw new RuntimeException('Container is not initialized. Call run() first.');
@@ -142,12 +142,12 @@ class FlowRunner
             $this->container->set(get_class($message), $message);
         }
 
-        $stubInstance = $this->container->get($stubSource);
-        if (!$stubInstance instanceof StubInterface) {
-            throw new RuntimeException('Stub instance must implement StubInterface.');
+        $stepInstance = $this->container->get($stepSource);
+        if (!$stepInstance instanceof StepInterface) {
+            throw new RuntimeException('Step instance must implement StepInterface.');
         }
 
-        return $stubInstance;
+        return $stepInstance;
     }
 
     private function injectHistoricalMessages(Flow $flow, MessageInterface $entryMessage, ?string $flowHash): void
@@ -159,8 +159,6 @@ class FlowRunner
         $flowSchema = $flow->getSchema();
         $entryMessageClass = get_class($entryMessage);
 
-        // Erreichbarkeits-BFS: welche Nachrichten werden in diesem Run tatsächlich produziert?
-        // Fixpoint-Iteration bis keine neuen Nachrichten mehr hinzukommen.
         /** @var array<class-string<MessageInterface>, bool> $reachable */
         $reachable = [
             $entryMessageClass => true,
@@ -168,13 +166,13 @@ class FlowRunner
         $changed = true;
         while ($changed) {
             $changed = false;
-            foreach ($flowSchema->stubs() as $stub) {
-                if ($this->includeStubs !== [] && !in_array($stub->getSource(), $this->includeStubs, true)) {
+            foreach ($flowSchema->steps() as $step) {
+                if ($this->includeSteps !== [] && !in_array($step->getSource(), $this->includeSteps, true)) {
                     continue;
                 }
 
                 $allReachable = true;
-                foreach ($stub->getMessages() as $msgClass) {
+                foreach ($step->getMessages() as $msgClass) {
                     if (!isset($reachable[$msgClass])) {
                         $allReachable = false;
                         break;
@@ -185,7 +183,7 @@ class FlowRunner
                     continue;
                 }
 
-                foreach ($stub->getReturnTypes() as $returnType) {
+                foreach ($step->getReturnTypes() as $returnType) {
                     if (!isset($reachable[$returnType])) {
                         $reachable[$returnType] = true;
                         $changed = true;
@@ -194,14 +192,14 @@ class FlowRunner
             }
         }
 
-        /** @var array<class-string<StubInterface>, array<class-string<MessageInterface>, bool>> $missingPairs */
+        /** @var array<class-string<StepInterface>, array<class-string<MessageInterface>, bool>> $missingPairs */
         $missingPairs = [];
-        foreach ($flowSchema->stubs() as $stub) {
-            if ($this->includeStubs !== [] && !in_array($stub->getSource(), $this->includeStubs, true)) {
+        foreach ($flowSchema->steps() as $step) {
+            if ($this->includeSteps !== [] && !in_array($step->getSource(), $this->includeSteps, true)) {
                 continue;
             }
 
-            foreach ($stub->getMessages() as $messageClass) {
+            foreach ($step->getMessages() as $messageClass) {
                 if ($messageClass === $entryMessageClass) {
                     continue;
                 }
@@ -210,7 +208,7 @@ class FlowRunner
                     continue;
                 }
 
-                $missingPairs[$stub->getSource()][$messageClass] = true;
+                $missingPairs[$step->getSource()][$messageClass] = true;
             }
         }
 
@@ -223,12 +221,12 @@ class FlowRunner
             return;
         }
 
-        /** @var array<class-string<StubInterface>, array<class-string<MessageInterface>, FlowMessage>> $latestByPair */
+        /** @var array<class-string<StepInterface>, array<class-string<MessageInterface>, FlowMessage>> $latestByPair */
         $latestByPair = [];
         foreach ($historicalFlow->getFlowMessages() as $flowMessage) {
-            $hStub = $flowMessage->getStubSource();
+            $hStep = $flowMessage->getStepSource();
             $hMsg = $flowMessage->getMessageSource();
-            if (!isset($missingPairs[$hStub][$hMsg])) {
+            if (!isset($missingPairs[$hStep][$hMsg])) {
                 continue;
             }
 
@@ -236,24 +234,24 @@ class FlowRunner
                 continue;
             }
 
-            $latestByPair[$hStub][$hMsg] = $flowMessage;
+            $latestByPair[$hStep][$hMsg] = $flowMessage;
         }
 
-        foreach ($missingPairs as $stubSource => $messageClasses) {
+        foreach ($missingPairs as $stepSource => $messageClasses) {
             foreach (array_keys($messageClasses) as $messageClass) {
-                $found = $latestByPair[$stubSource][$messageClass] ?? null;
+                $found = $latestByPair[$stepSource][$messageClass] ?? null;
                 if ($found === null) {
                     continue;
                 }
 
-                $stubSourceObj = Source::stub($stubSource);
+                $stepSourceObj = Source::step($stepSource);
                 $messageSourceObj = Source::message($messageClass);
 
                 $flow->addMessage(FlowMessage::create(
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
-                    stubSource: $stubSource,
-                    stubHash: $stubSourceObj->stubHash,
+                    stepSource: $stepSource,
+                    stepHash: $stepSourceObj->stepHash,
                     messageTypeEnum: MessageTypeEnum::WAIT,
                     messageHash: $messageSourceObj->messageHash,
                     message: $found->getMessage(),
@@ -264,28 +262,28 @@ class FlowRunner
     }
 
     /**
-     * @param class-string[] $includeStubs
+     * @param class-string[] $includeSteps
      * @return class-string[]
      */
-    private function expandIncludeStubs(array $includeStubs, FlowSchema $flowSchema): array
+    private function expandIncludeSteps(array $includeSteps, FlowSchema $flowSchema): array
     {
-        if ($includeStubs === []) {
+        if ($includeSteps === []) {
             return [];
         }
 
-        $stubReturnMap = [];
-        foreach ($flowSchema->stubs() as $stub) {
-            $stubReturnMap[$stub->getSource()] = $stub->getReturnTypes();
+        $stepReturnMap = [];
+        foreach ($flowSchema->steps() as $step) {
+            $stepReturnMap[$step->getSource()] = $step->getReturnTypes();
         }
 
-        $expanded = $includeStubs;
-        $queue = $includeStubs;
+        $expanded = $includeSteps;
+        $queue = $includeSteps;
 
         while ($queue !== []) {
-            $stubSource = array_shift($queue);
-            foreach ($stubReturnMap[$stubSource] ?? [] as $returnType) {
-                foreach ($this->messageToStubsMap[$returnType] ?? [] as $downstreamStub) {
-                    $downstreamSource = $downstreamStub->getSource();
+            $stepSource = array_shift($queue);
+            foreach ($stepReturnMap[$stepSource] ?? [] as $returnType) {
+                foreach ($this->messageToStepsMap[$returnType] ?? [] as $downstreamStep) {
+                    $downstreamSource = $downstreamStep->getSource();
                     if (!in_array($downstreamSource, $expanded, true)) {
                         $expanded[] = $downstreamSource;
                         $queue[] = $downstreamSource;
@@ -302,14 +300,14 @@ class FlowRunner
         $autowireClasses = [];
         $syntheticClasses = [];
 
-        foreach ($flowSchema->stubs() as $stub) {
-            $autowireClasses[] = $stub->getSource();
+        foreach ($flowSchema->steps() as $step) {
+            $autowireClasses[] = $step->getSource();
 
-            foreach ($stub->getMessages() as $messageClass) {
+            foreach ($step->getMessages() as $messageClass) {
                 $syntheticClasses[$messageClass] = $messageClass;
             }
 
-            foreach ($stub->getReturnTypes() as $returnType) {
+            foreach ($step->getReturnTypes() as $returnType) {
                 $syntheticClasses[$returnType] = $returnType;
             }
         }
@@ -324,23 +322,23 @@ class FlowRunner
     /**
      * @throws Throwable
      */
-    private function executeStubsRecursive(Flow $flow, MessageInterface $message, ?string $flowMessageHash = null): void
+    private function executeStepsRecursive(Flow $flow, MessageInterface $message, ?string $flowMessageHash = null): void
     {
         $messageClass = get_class($message);
 
-        if (!array_key_exists($messageClass, $this->messageToStubsMap)) {
+        if (!array_key_exists($messageClass, $this->messageToStepsMap)) {
             return;
         }
 
-        foreach ($this->messageToStubsMap[$messageClass] as $stub) {
-            $stubSource = Source::stub($stub->getSource());
+        foreach ($this->messageToStepsMap[$messageClass] as $step) {
+            $stepSource = Source::step($step->getSource());
 
-            if ($this->includeStubs !== [] && !in_array($stubSource->stubSource, $this->includeStubs, true)) {
+            if ($this->includeSteps !== [] && !in_array($stepSource->stepSource, $this->includeSteps, true)) {
                 continue;
             }
 
-            $stubKey = $stubSource->stubSource . ':' . $messageClass;
-            if (in_array($stubKey, $this->executedStubKey, true)) {
+            $stepKey = $stepSource->stepSource . ':' . $messageClass;
+            if (in_array($stepKey, $this->executedStepKey, true)) {
                 continue;
             }
 
@@ -350,8 +348,8 @@ class FlowRunner
             $flowMessageWait = FlowMessage::create(
                 flowHash: $flow->getHash(),
                 flowRuntimeHash: $flow->getRuntimeHash(),
-                stubSource: $stubSource->stubSource,
-                stubHash: $stubSource->stubHash,
+                stepSource: $stepSource->stepSource,
+                stepHash: $stepSource->stepHash,
                 messageTypeEnum: MessageTypeEnum::WAIT,
                 messageHash: $messageSource->messageHash,
                 message: $message,
@@ -360,22 +358,22 @@ class FlowRunner
 
             $flow->addMessage($flowMessageWait);
 
-            $flowMessages = $flow->executableMessages($stubSource->stubSource);
+            $flowMessages = $flow->executableMessages($stepSource->stepSource);
             if ($flowMessages === []) {
                 continue;
             }
 
-            $this->executedStubKey[] = $stubKey;
+            $this->executedStepKey[] = $stepKey;
 
-            $this->storage?->registerStubSource($stubSource);
+            $this->storage?->registerStepSource($stepSource);
 
             try {
-                $stubInstance = $this->createInstance($stubSource->stubSource, $flowMessages);
+                $stepInstance = $this->createInstance($stepSource->stepSource, $flowMessages);
                 ob_start();
-                $processResult = $stubInstance->process();
-                $stubOutput = ob_get_clean();
-                if ($stubOutput !== '' && $stubOutput !== false) {
-                    $this->outputLog[] = FlowOutput::create($stubSource->stubSource, $stubOutput);
+                $processResult = $stepInstance->process();
+                $stepOutput = ob_get_clean();
+                if ($stepOutput !== '' && $stepOutput !== false) {
+                    $this->outputLog[] = FlowOutput::create($stepSource->stepSource, $stepOutput);
                 }
             } catch (Throwable $exception) {
                 if (ob_get_level() > 0) {
@@ -391,8 +389,8 @@ class FlowRunner
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
                     flowType: $flow->getType(),
-                    stubSource: $stubSource->stubSource,
-                    stubHash: $stubSource->stubHash,
+                    stepSource: $stepSource->stepSource,
+                    stepHash: $stepSource->stepHash,
                     code: $exception->getCode(),
                     message: $exception->getMessage(),
                     file: $exception->getFile(),
@@ -413,7 +411,7 @@ class FlowRunner
             }
 
             if ($processResult instanceof MessageInterface && !$processResult instanceof MessageReturnInterface) {
-                $this->executeStubsRecursive($flow, $processResult, $flowMessageWait->getHash());
+                $this->executeStepsRecursive($flow, $processResult, $flowMessageWait->getHash());
                 continue;
             }
 
@@ -427,8 +425,8 @@ class FlowRunner
                 $flowResult = FlowResult::create(
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
-                    stubSource: $stubSource->stubSource,
-                    stubHash: $stubSource->stubHash,
+                    stepSource: $stepSource->stepSource,
+                    stepHash: $stepSource->stepHash,
                     result: $processResult,
                 );
                 $flow->addResult($flowResult);
@@ -441,8 +439,8 @@ class FlowRunner
                 $returnFlowMessage = FlowMessage::create(
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
-                    stubSource: $stubSource->stubSource,
-                    stubHash: $stubSource->stubHash,
+                    stepSource: $stepSource->stepSource,
+                    stepHash: $stepSource->stepHash,
                     messageTypeEnum: MessageTypeEnum::FINISH,
                     messageHash: $messageSource->messageHash,
                     message: $processResult,

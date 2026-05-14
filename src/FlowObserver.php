@@ -80,7 +80,7 @@ final readonly class FlowObserver
                     message: $message,
                     flowHash: $observeItem->getFlowHash(),
                     queueId: $observeItem->getQueueId(),
-                    includeStubs: $observeItem->getIncludeStubs(),
+                    includeSteps: $observeItem->getIncludeSteps(),
                 );
 
                 $heartbeat?->touchIfDue();

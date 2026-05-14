@@ -19,13 +19,13 @@ einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 | GET     | `/api/flow/exception-list`    | `sort`, `top`, `skip`, `from`, `to`, `status`    | Flow- und Schedule-Exceptions (paginiert, filterbar, klassifiziert via `type`) |
 | GET     | `/api/flow/exceptions-stats`  | `from`, `to`                                     | Tägliche Exception-Statistiken (`{ date, flow, schedule }`) |
 
-## Schemas & Stub-Source
+## Schemas & Step-Source
 
 | Methode | Pfad                          | Parameter                   | Beschreibung                             |
 | ------- | ----------------------------- | --------------------------- | ---------------------------------------- |
 | GET     | `/api/flow/schema-list`       | —                           | Alle registrierten Flow-Schemas          |
-| GET     | `/api/flow/stub-source`       | `className` oder `stubHash` | Stub-Quellcode (aktuell oder historisch) |
-| GET     | `/api/flow/stub-source-list`  | `stubSource`                | Alle historischen Snapshots eines Stubs  |
+| GET     | `/api/flow/step-source`       | `className` oder `stepHash` | Step-Quellcode (aktuell oder historisch) |
+| GET     | `/api/flow/step-source-list`  | `stepSource`                | Alle historischen Snapshots eines Steps  |
 | GET     | `/api/flow/message-source-list` | —                         | Alle Message-Source-Einträge             |
 
 ## Schedules
@@ -40,8 +40,8 @@ einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 
 | Methode | Pfad                    | Body / Parameter                                                                         | Beschreibung                    |
 | ------- | ----------------------- | ---------------------------------------------------------------------------------------- | ------------------------------- |
-| POST    | `/api/flow/flow-run`    | `{ flowHash, messageSource, message, includeStubs? }`                                    | Flow synchron ausführen         |
-| POST    | `/api/queue/enqueue`    | `{ flowHash?, messageSource, message, includeStubs?, type?, flowSource?, flowSubject? }` | Message in die Queue stellen    |
+| POST    | `/api/flow/flow-run`    | `{ flowHash, messageSource, message, includeSteps? }`                                    | Flow synchron ausführen         |
+| POST    | `/api/queue/enqueue`    | `{ flowHash?, messageSource, message, includeSteps?, type?, flowSource?, flowSubject? }` | Message in die Queue stellen    |
 | GET     | `/api/queue/queue-list` | `sort`                                                                                   | Alle Queue-Einträge mit Details |
 | GET     | `/api/queue/queue-count` | —                                                                                       | Aktuelle Queue-Größe            |
 

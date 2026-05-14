@@ -16,7 +16,7 @@ use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
-use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
+use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
 
 interface StorageInterface extends ServiceInterface
 {
@@ -28,7 +28,7 @@ interface StorageInterface extends ServiceInterface
 
     public function registerMessageSource(MessageSourceEntity $messageSourceEntity): void;
 
-    public function registerStubSource(StubSourceEntity $stubSourceEntity): void;
+    public function registerStepSource(StepSourceEntity $stepSourceEntity): void;
 
     public function registerFlowInstance(Flow $flow): void;
 
@@ -48,9 +48,9 @@ interface StorageInterface extends ServiceInterface
      * @param class-string $flowSource
      * @param class-string $messageSource
      * @param array<mixed> $message
-     * @param class-string[] $includeStubs
+     * @param class-string[] $includeSteps
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeStubs = [], ?string $flowSubject = null): void;
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void;
 
     public function openQueues(): int;
 
@@ -85,13 +85,13 @@ interface StorageInterface extends ServiceInterface
 
     public function findFlowByRuntimeHash(string $flowRuntimeHash): ?Flow;
 
-    public function findStubSourceByHash(string $stubHash): ?StubSourceEntity;
+    public function findStepSourceByHash(string $stepHash): ?StepSourceEntity;
 
     /**
-     * @param class-string $stubSource
-     * @return iterable<StubSourceEntity>
+     * @param class-string $stepSource
+     * @return iterable<StepSourceEntity>
      */
-    public function findStubSourcesByStubSource(string $stubSource): iterable;
+    public function findStepSourcesByStepSource(string $stepSource): iterable;
 
     /**
      * @param class-string $messageSource

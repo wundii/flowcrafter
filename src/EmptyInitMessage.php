@@ -7,9 +7,9 @@ namespace Wundii\Flowcrafter;
 use Wundii\Flowcrafter\Interface\MessageInitInterface;
 
 /**
- * Generic init message for flows whose first stub needs no external input.
+ * Generic init message for flows whose first step needs no external input.
  *
- * Usage: declare it as a `public readonly` promoted property in the init stub
+ * Usage: declare it as a `public readonly` promoted property in the init step
  * so Rector's unused-constructor-param rule does not strip it. The property is
  * never read — it only carries the routing signal:
  *

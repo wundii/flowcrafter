@@ -20,8 +20,8 @@ class WorkflowFailMock implements FlowInterface
             MessageReturnMock::class,
         );
 
-        $flowBuilder->addStub(StubMock::class);
-        $flowBuilder->addStub(FailStubMock::class);
+        $flowBuilder->addStep(StepMock::class);
+        $flowBuilder->addStep(FailStepMock::class);
 
         return $flowBuilder->build();
     }

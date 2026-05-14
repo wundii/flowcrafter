@@ -70,6 +70,6 @@ final class ScheduleControllerTest extends TestCase
 
     private function createController(): ScheduleController
     {
-        return new ScheduleController(new FlowcrafterConfig(), $this->createStub(StorageInterface::class));
+        return new ScheduleController(new FlowcrafterConfig(), $this->createStep(StorageInterface::class));
     }
 }

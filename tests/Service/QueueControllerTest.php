@@ -78,7 +78,7 @@ final class QueueControllerTest extends TestCase
         ]));
 
         $this->assertSame(400, $jsonResponse->getStatusCode());
-        $this->assertStringContainsString('is not consumed by any stub', (string) $jsonResponse->getContent());
+        $this->assertStringContainsString('is not consumed by any step', (string) $jsonResponse->getContent());
     }
 
     public function testEnqueueReturns400ForIncompletePayload(): void
@@ -131,7 +131,7 @@ final class QueueControllerTest extends TestCase
 
     private function makeController(): QueueController
     {
-        return new QueueController($this->createStub(StorageInterface::class), new FlowPreflight());
+        return new QueueController($this->createStep(StorageInterface::class), new FlowPreflight());
     }
 
     /**

@@ -18,10 +18,10 @@ class WorkflowMock implements FlowInterface
             MessageReturnMock::class,
         );
 
-        $flowBuilder->addStub(StubMock::class);
-        $flowBuilder->addStub(NextStubMock::class);
-        $flowBuilder->addStub(OtherStubMock::class);
-        $flowBuilder->addStub(PostStubMock::class);
+        $flowBuilder->addStep(StepMock::class);
+        $flowBuilder->addStep(NextStepMock::class);
+        $flowBuilder->addStep(OtherStepMock::class);
+        $flowBuilder->addStep(PostStepMock::class);
 
         return $flowBuilder->build();
     }

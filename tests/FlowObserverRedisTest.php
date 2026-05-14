@@ -64,8 +64,8 @@ final class FlowObserverRedisTest extends TestCase
         $flowExceptionEvents = $this->client->keys('flow:exception:*');
         $this->assertCount(0, $flowExceptionEvents);
 
-        $flowStubSourceEvents = $this->client->keys('flow:source:stub:*');
-        $this->assertCount(4, $flowStubSourceEvents);
+        $flowStepSourceEvents = $this->client->keys('flow:source:step:*');
+        $this->assertCount(4, $flowStepSourceEvents);
 
         $flowMessageSourceEvents = $this->client->keys('flow:source:message:*');
         $this->assertCount(4, $flowMessageSourceEvents);
@@ -103,8 +103,8 @@ final class FlowObserverRedisTest extends TestCase
         $flowExceptionEvents = $this->client->keys('flow:exception:*');
         $this->assertCount(0, $flowExceptionEvents);
 
-        $flowStubSourceEvents = $this->client->keys('flow:source:stub:*');
-        $this->assertCount(1, $flowStubSourceEvents);
+        $flowStepSourceEvents = $this->client->keys('flow:source:step:*');
+        $this->assertCount(1, $flowStepSourceEvents);
 
         $flowMessageSourceEvents = $this->client->keys('flow:source:message:*');
         $this->assertCount(1, $flowMessageSourceEvents);

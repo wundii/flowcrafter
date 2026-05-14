@@ -9,14 +9,14 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tests\MockClass\DependencyConstructMock;
 use Tests\MockClass\DependencyMock;
-use Tests\MockClass\FailStubMock;
+use Tests\MockClass\FailStepMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
-use Tests\MockClass\NextStubMock;
-use Tests\MockClass\OtherStubMock;
-use Tests\MockClass\PostStubMock;
-use Tests\MockClass\StubMock;
+use Tests\MockClass\NextStepMock;
+use Tests\MockClass\OtherStepMock;
+use Tests\MockClass\PostStepMock;
+use Tests\MockClass\StepMock;
 use Tests\MockClass\WorkflowBoolMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
@@ -105,17 +105,17 @@ final class FlowRunnerTest extends TestCase
         $this->assertInstanceOf(FlowException::class, $exception);
         $this->assertSame($flow->getHash(), $exception->getFlowHash());
         $this->assertSame($flow->getRuntimeHash(), $exception->getFlowRuntimeHash());
-        $this->assertSame(FailStubMock::class, $exception->getStubSource());
+        $this->assertSame(FailStepMock::class, $exception->getStepSource());
         $this->assertStringStartsWith('Test Exception', $exception->getMessage());
     }
 
-    public function testRunWithEmptyIncludeStubsExecutesAll(): void
+    public function testRunWithEmptyIncludeStepsExecutesAll(): void
     {
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
         );
-        $result = $flowRunner->run(new MessageInitMock('test data'), includeStubs: []);
+        $result = $flowRunner->run(new MessageInitMock('test data'), includeSteps: []);
 
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
@@ -125,7 +125,7 @@ final class FlowRunnerTest extends TestCase
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
     }
 
-    public function testRunWithIncludeStubsOnlyNextStub(): void
+    public function testRunWithIncludeStepsOnlyNextStep(): void
     {
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
@@ -133,19 +133,19 @@ final class FlowRunnerTest extends TestCase
         );
         $result = $flowRunner->run(
             new MessageInitMock('test data'),
-            includeStubs: [StubMock::class, NextStubMock::class],
+            includeSteps: [StepMock::class, NextStepMock::class],
         );
 
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
         $this->assertCount(0, $flow->getFlowExceptions());
-        // StubMock is filtered in at the top level; all downstream stubs run unconditionally
+        // StepMock is filtered in at the top level; all downstream steps run unconditionally
         $this->assertCount(6, $flow->getFlowMessages());
         $this->assertCount(1, $flow->getFlowResults());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
     }
 
-    public function testRunWithIncludeStubsSkipNextStub(): void
+    public function testRunWithIncludeStepsSkipNextStep(): void
     {
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
@@ -153,19 +153,19 @@ final class FlowRunnerTest extends TestCase
         );
         $result = $flowRunner->run(
             new MessageInitMock('test data'),
-            includeStubs: [StubMock::class, OtherStubMock::class, PostStubMock::class],
+            includeSteps: [StepMock::class, OtherStepMock::class, PostStepMock::class],
         );
 
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
         $this->assertCount(0, $flow->getFlowExceptions());
-        // StubMock is filtered in at the top level; all downstream stubs run unconditionally
+        // StepMock is filtered in at the top level; all downstream steps run unconditionally
         $this->assertCount(6, $flow->getFlowMessages());
         $this->assertCount(1, $flow->getFlowResults());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
     }
 
-    public function testRunWithIncludeStubsSkipPostStub(): void
+    public function testRunWithIncludeStepsSkipPostStep(): void
     {
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
@@ -173,19 +173,19 @@ final class FlowRunnerTest extends TestCase
         );
         $result = $flowRunner->run(
             new MessageInitMock('test data'),
-            includeStubs: [StubMock::class, NextStubMock::class, OtherStubMock::class],
+            includeSteps: [StepMock::class, NextStepMock::class, OtherStepMock::class],
         );
 
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
         $this->assertCount(0, $flow->getFlowExceptions());
-        // StubMock is filtered in at the top level; all downstream stubs run unconditionally
+        // StepMock is filtered in at the top level; all downstream steps run unconditionally
         $this->assertCount(6, $flow->getFlowMessages());
         $this->assertCount(1, $flow->getFlowResults());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
     }
 
-    public function testRunWithIncludeStubsExcludingEntryStubRunsNothing(): void
+    public function testRunWithIncludeStepsExcludingEntryStepRunsNothing(): void
     {
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
@@ -193,19 +193,19 @@ final class FlowRunnerTest extends TestCase
         );
         $result = $flowRunner->run(
             new MessageInitMock('test data'),
-            includeStubs: [NextStubMock::class, OtherStubMock::class, PostStubMock::class],
+            includeSteps: [NextStepMock::class, OtherStepMock::class, PostStepMock::class],
         );
 
         $flow = $flowRunner->getFlow();
         $this->assertInstanceOf(Flow::class, $flow);
         $this->assertCount(0, $flow->getFlowExceptions());
-        // StubMock (the only consumer of MessageInitMock) is not in includeStubs → nothing runs
+        // StepMock (the only consumer of MessageInitMock) is not in includeSteps → nothing runs
         $this->assertCount(0, $flow->getFlowMessages());
         $this->assertCount(0, $flow->getFlowResults());
         $this->assertFalse($result);
     }
 
-    public function testRunWithIncludeStubsExcludingEntryStubRuns(): void
+    public function testRunWithIncludeStepsExcludingEntryStepRuns(): void
     {
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
@@ -213,7 +213,7 @@ final class FlowRunnerTest extends TestCase
         );
         $result = $flowRunner->run(
             new MessageDataMock('test data'),
-            includeStubs: [NextStubMock::class, OtherStubMock::class, PostStubMock::class],
+            includeSteps: [NextStepMock::class, OtherStepMock::class, PostStepMock::class],
         );
 
         $flow = $flowRunner->getFlow();
@@ -224,7 +224,7 @@ final class FlowRunnerTest extends TestCase
         $this->assertInstanceOf(MessageReturnMock::class, $result);
     }
 
-    public function testRunWithIncludeNextStubs(): void
+    public function testRunWithIncludeNextSteps(): void
     {
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
@@ -232,7 +232,7 @@ final class FlowRunnerTest extends TestCase
         );
         $flowRunner->run(
             new MessageDataMock('test data'),
-            includeStubs: [NextStubMock::class],
+            includeSteps: [NextStepMock::class],
         );
 
         $flow = $flowRunner->getFlow();
@@ -242,7 +242,7 @@ final class FlowRunnerTest extends TestCase
         $this->assertCount(1, $flow->getFlowResults());
     }
 
-    public function testRunWithIncludeOtherStubs(): void
+    public function testRunWithIncludeOtherSteps(): void
     {
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
@@ -250,7 +250,7 @@ final class FlowRunnerTest extends TestCase
         );
         $result = $flowRunner->run(
             new MessageDataMock('test data'),
-            includeStubs: [OtherStubMock::class],
+            includeSteps: [OtherStepMock::class],
         );
 
         $flow = $flowRunner->getFlow();
@@ -297,7 +297,7 @@ final class FlowRunnerTest extends TestCase
             flowSource: WorkflowMock::class,
         );
 
-        $flowRunner->createInstance(StubMock::class, []);
+        $flowRunner->createInstance(StepMock::class, []);
     }
 
     public function testRunWithoutMessageReturnInterface(): void

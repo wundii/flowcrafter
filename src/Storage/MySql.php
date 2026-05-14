@@ -21,8 +21,8 @@ use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\ObserverException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
@@ -30,7 +30,7 @@ use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
-use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
+use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
 
 class MySql extends Service implements StorageInterface
 {
@@ -50,7 +50,7 @@ class MySql extends Service implements StorageInterface
 
     public const TYPE_SOURCE_MESSAGE = 'flow_source_message';
 
-    public const TYPE_SOURCE_STUB = 'flow_source_stub';
+    public const TYPE_SOURCE_STEP = 'flow_source_step';
 
     protected Client $client;
 
@@ -124,12 +124,12 @@ class MySql extends Service implements StorageInterface
 
         $this->client->exec(
             <<<'SQL'
-            CREATE TABLE IF NOT EXISTS flow_source_stub (
-                stub_hash VARCHAR(191) NOT NULL PRIMARY KEY,
-                stub_source VARCHAR(191) NOT NULL,
+            CREATE TABLE IF NOT EXISTS flow_source_step (
+                step_hash VARCHAR(191) NOT NULL PRIMARY KEY,
+                step_source VARCHAR(191) NOT NULL,
                 source_content TEXT NOT NULL,
                 time DATETIME(3) NOT NULL,
-                INDEX flow_source_stub_hash (stub_hash)
+                INDEX flow_source_step_hash (step_hash)
             )
             SQL
         );
@@ -173,8 +173,8 @@ class MySql extends Service implements StorageInterface
                 hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 flow_hash VARCHAR(191) NOT NULL,
                 flow_runtime_hash VARCHAR(191) NOT NULL,
-                stub_source VARCHAR(255) NOT NULL,
-                stub_hash VARCHAR(191) NOT NULL,
+                step_source VARCHAR(255) NOT NULL,
+                step_hash VARCHAR(191) NOT NULL,
                 message_type VARCHAR(64) NOT NULL,
                 message_source VARCHAR(255) NOT NULL,
                 message_hash VARCHAR(32) NOT NULL,
@@ -187,7 +187,7 @@ class MySql extends Service implements StorageInterface
                 INDEX idx_flow_message_message_type (message_type),
                 FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
                 FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash),
-                FOREIGN KEY (stub_hash) REFERENCES flow_source_stub(stub_hash)
+                FOREIGN KEY (step_hash) REFERENCES flow_source_step(step_hash)
             )
             SQL
         );
@@ -199,8 +199,8 @@ class MySql extends Service implements StorageInterface
                 flow_hash VARCHAR(191) NOT NULL,
                 flow_runtime_hash VARCHAR(191) NOT NULL,
                 flow_type VARCHAR(191) NOT NULL,
-                stub_source VARCHAR(255) NOT NULL,
-                stub_hash VARCHAR(191) NOT NULL,
+                step_source VARCHAR(255) NOT NULL,
+                step_hash VARCHAR(191) NOT NULL,
                 code INT(11) NOT NULL,
                 message VARCHAR(2000) NOT NULL,
                 file VARCHAR(2000) NOT NULL,
@@ -209,10 +209,10 @@ class MySql extends Service implements StorageInterface
                 `time` DATETIME(3) NOT NULL,
                 INDEX idx_flow_exception_flow_hash (flow_hash),
                 INDEX idx_flow_exception_flow_runtime_hash (flow_runtime_hash),
-                INDEX idx_flow_exception_stub_source (stub_source),
+                INDEX idx_flow_exception_step_source (step_source),
                 FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
                 FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash),
-                FOREIGN KEY (stub_hash) REFERENCES flow_source_stub(stub_hash)
+                FOREIGN KEY (step_hash) REFERENCES flow_source_step(step_hash)
             )
             SQL
         );
@@ -223,8 +223,8 @@ class MySql extends Service implements StorageInterface
                 hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 flow_hash VARCHAR(191) NOT NULL,
                 flow_runtime_hash VARCHAR(191) NOT NULL,
-                stub_source VARCHAR(255) NOT NULL,
-                stub_hash VARCHAR(191) NULL,
+                step_source VARCHAR(255) NOT NULL,
+                step_hash VARCHAR(191) NULL,
                 result TINYINT(1) NOT NULL,
                 `time` DATETIME(3) NOT NULL,
                 INDEX idx_flow_result_flow_hash (flow_hash),
@@ -281,7 +281,7 @@ class MySql extends Service implements StorageInterface
                 flow_subject VARCHAR(255) NULL,
                 message_source VARCHAR(255) NOT NULL,
                 message JSON NOT NULL,
-                include_stubs JSON NOT NULL,
+                include_steps JSON NOT NULL,
                 created_at DATETIME(3) NOT NULL,
                 INDEX idx_flow_queue_created_at (created_at)
             )
@@ -345,17 +345,17 @@ class MySql extends Service implements StorageInterface
         ]);
     }
 
-    public function registerStubSource(StubSourceEntity $stubSourceEntity): void
+    public function registerStepSource(StepSourceEntity $stepSourceEntity): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_source_stub (stub_hash, stub_source, source_content, time) ' .
-            'VALUES (:stub_hash, :stub_source, :source_content, :time)'
+            'INSERT IGNORE INTO flow_source_step (step_hash, step_source, source_content, time) ' .
+            'VALUES (:step_hash, :step_source, :source_content, :time)'
         );
         $stmt->execute([
-            ':stub_hash' => $stubSourceEntity->stubHash,
-            ':stub_source' => $stubSourceEntity->stubSource,
-            ':source_content' => $stubSourceEntity->sourceContent,
-            ':time' => $stubSourceEntity->time->format('Y-m-d H:i:s.v'),
+            ':step_hash' => $stepSourceEntity->stepHash,
+            ':step_source' => $stepSourceEntity->stepSource,
+            ':source_content' => $stepSourceEntity->sourceContent,
+            ':time' => $stepSourceEntity->time->format('Y-m-d H:i:s.v'),
         ]);
     }
 
@@ -400,16 +400,16 @@ class MySql extends Service implements StorageInterface
         }
 
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, stub_source, stub_hash, message_hash, message_type, message_source, predecessor_hash, time, message) ' .
-            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :stub_hash, :message_hash, :message_type, :message_source, :predecessor_hash, :time, :message)'
+            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, step_source, step_hash, message_hash, message_type, message_source, predecessor_hash, time, message) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :step_source, :step_hash, :message_hash, :message_type, :message_source, :predecessor_hash, :time, :message)'
         );
 
         $stmt->execute([
             ':hash' => $flowMessage->getHash(),
             ':flow_hash' => $flowMessage->getFlowHash(),
             ':flow_runtime_hash' => $flowMessage->getFlowRuntimeHash(),
-            ':stub_source' => $flowMessage->getStubSource(),
-            ':stub_hash' => $flowMessage->getStubHash(),
+            ':step_source' => $flowMessage->getStepSource(),
+            ':step_hash' => $flowMessage->getStepHash(),
             ':message_type' => $flowMessage->getMessageType()->value,
             ':message_source' => $flowMessage->getMessageSource(),
             ':message_hash' => $flowMessage->getMessageHash(),
@@ -422,8 +422,8 @@ class MySql extends Service implements StorageInterface
     public function appendFlowException(FlowException $flowException): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_exception (hash, flow_hash, flow_runtime_hash, flow_type, stub_source, stub_hash, code, message, file, line, trace_string, time) ' .
-            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :flow_type, :stub_source, :stub_hash, :code, :message, :file, :line, :trace_string, :time)'
+            'INSERT IGNORE INTO flow_exception (hash, flow_hash, flow_runtime_hash, flow_type, step_source, step_hash, code, message, file, line, trace_string, time) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :flow_type, :step_source, :step_hash, :code, :message, :file, :line, :trace_string, :time)'
         );
 
         $stmt->execute([
@@ -431,8 +431,8 @@ class MySql extends Service implements StorageInterface
             ':flow_hash' => $flowException->getFlowHash(),
             ':flow_runtime_hash' => $flowException->getFlowRuntimeHash(),
             ':flow_type' => $flowException->getFlowType(),
-            ':stub_source' => $flowException->getStubSource(),
-            ':stub_hash' => $flowException->getStubHash(),
+            ':step_source' => $flowException->getStepSource(),
+            ':step_hash' => $flowException->getStepHash(),
             ':code' => $flowException->getCode(),
             ':message' => $flowException->getMessage(),
             ':file' => $flowException->getFile(),
@@ -491,16 +491,16 @@ class MySql extends Service implements StorageInterface
     public function appendFlowResult(FlowResult $flowResult): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_result (hash, flow_hash, flow_runtime_hash, stub_source, stub_hash, result, time) ' .
-            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :stub_source, :stub_hash, :result, :time)'
+            'INSERT IGNORE INTO flow_result (hash, flow_hash, flow_runtime_hash, step_source, step_hash, result, time) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :step_source, :step_hash, :result, :time)'
         );
 
         $stmt->execute([
             ':hash' => $flowResult->getHash(),
             ':flow_hash' => $flowResult->getFlowHash(),
             ':flow_runtime_hash' => $flowResult->getFlowRuntimeHash(),
-            ':stub_source' => $flowResult->getStubSource(),
-            ':stub_hash' => $flowResult->getStubHash(),
+            ':step_source' => $flowResult->getStepSource(),
+            ':step_hash' => $flowResult->getStepHash(),
             ':result' => $flowResult->getResult() ? 1 : 0,
             ':time' => $flowResult->getTime()->format('Y-m-d H:i:s.v'),
         ]);
@@ -511,7 +511,7 @@ class MySql extends Service implements StorageInterface
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeStubs = [], ?string $flowSubject = null): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);
@@ -521,14 +521,14 @@ class MySql extends Service implements StorageInterface
             throw new RuntimeException('Could not serialize observe message payload.');
         }
 
-        $includeStubsJson = json_encode($includeStubs);
-        if (!is_string($includeStubsJson)) {
-            throw new RuntimeException('Could not serialize includeStubs payload.');
+        $includeStepsJson = json_encode($includeSteps);
+        if (!is_string($includeStepsJson)) {
+            throw new RuntimeException('Could not serialize includeSteps payload.');
         }
 
         $stmt = $this->client->prepare(
-            'INSERT INTO flow_queue (type, flow_source, flow_hash, flow_subject, message_source, message, include_stubs, created_at)' .
-            ' VALUES (:type, :flow_source, :flow_hash, :flow_subject, :message_source, :message, :include_stubs, :created_at)'
+            'INSERT INTO flow_queue (type, flow_source, flow_hash, flow_subject, message_source, message, include_steps, created_at)' .
+            ' VALUES (:type, :flow_source, :flow_hash, :flow_subject, :message_source, :message, :include_steps, :created_at)'
         );
 
         $stmt->execute([
@@ -538,7 +538,7 @@ class MySql extends Service implements StorageInterface
             ':flow_subject' => $flowSubject,
             ':message_source' => $messageSource,
             ':message' => $messageJson,
-            ':include_stubs' => $includeStubsJson,
+            ':include_steps' => $includeStepsJson,
             ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.v'),
         ]);
     }
@@ -616,15 +616,15 @@ class MySql extends Service implements StorageInterface
                 throw new RuntimeException('Could not validate flow schema payload.');
             }
 
-            $stubs = $flowSchemaArray['stubs'] ?? null;
-            if (!is_array($stubs)) {
-                throw new RuntimeException('Could not validate flow schema stubs.');
+            $steps = $flowSchemaArray['steps'] ?? null;
+            if (!is_array($steps)) {
+                throw new RuntimeException('Could not validate flow schema steps.');
             }
 
             yield new FlowSchemaEntity(
                 $row['flow_schema_hash'],
                 $row['flow_schema_type'],
-                $stubs,
+                $steps,
             );
         }
     }
@@ -676,9 +676,9 @@ class MySql extends Service implements StorageInterface
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $row) {
-            /** @var array{queue_id: string, type: string, flow_subject: string|null, flow_source: class-string<\Wundii\Flowcrafter\Interface\FlowInterface>, flow_hash: string|null, message_source: string, message: string, include_stubs: string|null} $row */
-            /** @var class-string[] $includeStubsParsed */
-            $includeStubsParsed = json_decode($row['include_stubs'] ?? '[]', true) ?? [];
+            /** @var array{queue_id: string, type: string, flow_subject: string|null, flow_source: class-string<\Wundii\Flowcrafter\Interface\FlowInterface>, flow_hash: string|null, message_source: string, message: string, include_steps: string|null} $row */
+            /** @var class-string[] $includeStepsParsed */
+            $includeStepsParsed = json_decode($row['include_steps'] ?? '[]', true) ?? [];
 
             $messageArray = json_decode($row['message'], true);
             if (!is_array($messageArray)) {
@@ -693,7 +693,7 @@ class MySql extends Service implements StorageInterface
                 flowHash: $row['flow_hash'],
                 messageSource: $row['message_source'],
                 message: $messageArray,
-                includeStubs: $includeStubsParsed,
+                includeSteps: $includeStepsParsed,
             );
         }
     }
@@ -786,7 +786,7 @@ class MySql extends Service implements StorageInterface
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $message) {
-            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, stub_source: string, stub_hash: string|null, message_type: string, message_source: string, message_hash: string, message: string, predecessor_hash: string, time: string} $message */
+            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, step_source: string, step_hash: string|null, message_type: string, message_source: string, message_hash: string, message: string, predecessor_hash: string, time: string} $message */
             $messageJson = $message['message'];
             if (!json_validate($messageJson)) {
                 throw new RuntimeException('Could not validate flow message payload.');
@@ -801,8 +801,8 @@ class MySql extends Service implements StorageInterface
                 'hash' => $message['hash'],
                 'flowHash' => $message['flow_hash'],
                 'flowRuntimeHash' => $message['flow_runtime_hash'],
-                'stubSource' => $message['stub_source'],
-                'stubHash' => $message['stub_hash'],
+                'stepSource' => $message['step_source'],
+                'stepHash' => $message['step_hash'],
                 'messageType' => $message['message_type'],
                 'messageSource' => $message['message_source'],
                 'messageHash' => $message['message_hash'],
@@ -824,14 +824,14 @@ class MySql extends Service implements StorageInterface
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $exception) {
-            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, flow_type: string, stub_source: string, stub_hash: string|null, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string} $exception */
+            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, flow_type: string, step_source: string, step_hash: string|null, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string} $exception */
             $flowArray['flowExceptions'][] = [
                 'hash' => $exception['hash'],
                 'flowHash' => $exception['flow_hash'],
                 'flowRuntimeHash' => $exception['flow_runtime_hash'],
                 'flowType' => $exception['flow_type'],
-                'stubSource' => $exception['stub_source'],
-                'stubHash' => $exception['stub_hash'],
+                'stepSource' => $exception['step_source'],
+                'stepHash' => $exception['step_hash'],
                 'code' => $exception['code'],
                 'message' => $exception['message'],
                 'file' => $exception['file'],
@@ -853,13 +853,13 @@ class MySql extends Service implements StorageInterface
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $result) {
-            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, stub_source: string, stub_hash: string|null, result: int|string, time: string} $result */
+            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, step_source: string, step_hash: string|null, result: int|string, time: string} $result */
             $flowArray['flowResults'][] = [
                 'hash' => $result['hash'],
                 'flowHash' => $result['flow_hash'],
                 'flowRuntimeHash' => $result['flow_runtime_hash'],
-                'stubSource' => $result['stub_source'],
-                'stubHash' => $result['stub_hash'],
+                'stepSource' => $result['step_source'],
+                'stepHash' => $result['step_hash'],
                 'result' => (bool) $result['result'],
                 'time' => $result['time'],
             ];
@@ -917,54 +917,54 @@ class MySql extends Service implements StorageInterface
     /**
      * @throws Exception
      */
-    public function findStubSourceByHash(string $stubHash): ?StubSourceEntity
+    public function findStepSourceByHash(string $stepHash): ?StepSourceEntity
     {
         $stmt = $this->client->prepare(
-            'SELECT * FROM flow_source_stub ' .
-            'WHERE stub_hash = :stub_hash'
+            'SELECT * FROM flow_source_step ' .
+            'WHERE step_hash = :step_hash'
         );
         $stmt->execute([
-            ':stub_hash' => $stubHash,
+            ':step_hash' => $stepHash,
         ]);
 
-        $stubSource = $stmt->fetch();
-        if ($stubSource === false) {
+        $stepSource = $stmt->fetch();
+        if ($stepSource === false) {
             return null;
         }
 
-        /** @var array{stub_hash: string, stub_source: class-string<StubInterface>, source_content: string, time: string} $stubSource */
-        return new StubSourceEntity(
-            stubHash: $stubSource['stub_hash'],
-            stubSource: $stubSource['stub_source'],
-            sourceContent: $stubSource['source_content'],
-            time: new DateTimeImmutable($stubSource['time']),
+        /** @var array{step_hash: string, step_source: class-string<StepInterface>, source_content: string, time: string} $stepSource */
+        return new StepSourceEntity(
+            stepHash: $stepSource['step_hash'],
+            stepSource: $stepSource['step_source'],
+            sourceContent: $stepSource['source_content'],
+            time: new DateTimeImmutable($stepSource['time']),
         );
     }
 
     /**
-     * @param class-string $stubSource
-     * @return iterable<StubSourceEntity>
+     * @param class-string $stepSource
+     * @return iterable<StepSourceEntity>
      */
-    public function findStubSourcesByStubSource(string $stubSource): iterable
+    public function findStepSourcesByStepSource(string $stepSource): iterable
     {
         $stmt = $this->client->prepare(
-            'SELECT * FROM flow_source_stub ' .
-            'WHERE stub_source = :stub_source ' .
+            'SELECT * FROM flow_source_step ' .
+            'WHERE step_source = :step_source ' .
             'ORDER BY `time` ASC'
         );
         $stmt->execute([
-            ':stub_source' => $stubSource,
+            ':step_source' => $stepSource,
         ]);
 
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
-        foreach ($stmt as $stubSource) {
-            /** @var array{stub_hash: string, stub_source: class-string<StubInterface>, source_content: string, time: string} $stubSource */
-            yield new StubSourceEntity(
-                stubHash: $stubSource['stub_hash'],
-                stubSource: $stubSource['stub_source'],
-                sourceContent: $stubSource['source_content'],
-                time: new DateTimeImmutable($stubSource['time']),
+        foreach ($stmt as $stepSource) {
+            /** @var array{step_hash: string, step_source: class-string<StepInterface>, source_content: string, time: string} $stepSource */
+            yield new StepSourceEntity(
+                stepHash: $stepSource['step_hash'],
+                stepSource: $stepSource['step_source'],
+                sourceContent: $stepSource['source_content'],
+                time: new DateTimeImmutable($stepSource['time']),
             );
         }
     }
@@ -1042,11 +1042,11 @@ class MySql extends Service implements StorageInterface
                 throw new RuntimeException('Could not validate flow message payload.');
             }
 
-            $includeStubsRaw = $row['include_stubs'] ?? '[]';
-            /** @var class-string[] $includeStubsParsed */
-            $includeStubsParsed = is_string($includeStubsRaw) ? (json_decode($includeStubsRaw, true) ?? []) : [];
+            $includeStepsRaw = $row['include_steps'] ?? '[]';
+            /** @var class-string[] $includeStepsParsed */
+            $includeStepsParsed = is_string($includeStepsRaw) ? (json_decode($includeStepsRaw, true) ?? []) : [];
 
-            /** @var array{queue_id: string, type: string, flow_source: class-string<FlowInterface>, flow_hash: ?string, flow_subject: ?string, message_source: string, message: string, include_stubs?: string} $row */
+            /** @var array{queue_id: string, type: string, flow_source: class-string<FlowInterface>, flow_hash: ?string, flow_subject: ?string, message_source: string, message: string, include_steps?: string} $row */
             return new ObserveItem(
                 queueId: (string) $row['queue_id'],
                 type: $row['type'],
@@ -1055,7 +1055,7 @@ class MySql extends Service implements StorageInterface
                 flowHash: $row['flow_hash'],
                 messageSource: $row['message_source'],
                 message: $message,
-                includeStubs: $includeStubsParsed,
+                includeSteps: $includeStepsParsed,
             );
         } catch (PDOException $pdoException) {
             if ($this->client->inTransaction()) {

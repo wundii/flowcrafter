@@ -64,7 +64,7 @@ final class FlowPreflightTest extends TestCase
     {
         $flowPreflight = new FlowPreflight();
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('is not consumed by any stub');
+        $this->expectExceptionMessage('is not consumed by any step');
         $flowPreflight->ensureMessageSource(WorkflowMock::class, MessageSubDataMock::class);
     }
 

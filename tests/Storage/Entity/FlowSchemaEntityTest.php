@@ -11,31 +11,31 @@ final class FlowSchemaEntityTest extends TestCase
 {
     public function testConstructorAndPublicProperties(): void
     {
-        $stubs = ['StubA', 'StubB'];
+        $steps = ['StepA', 'StepB'];
         $flowSchemaEntity = new FlowSchemaEntity(
             schemaHash: 'abc-123',
             type: 'flow.test.v1',
-            stubs: $stubs,
+            steps: $steps,
         );
 
         $this->assertSame('abc-123', $flowSchemaEntity->schemaHash);
         $this->assertSame('flow.test.v1', $flowSchemaEntity->type);
-        $this->assertSame($stubs, $flowSchemaEntity->stubs);
+        $this->assertSame($steps, $flowSchemaEntity->steps);
     }
 
     public function testJsonSerialize(): void
     {
-        $stubs = ['StubX'];
+        $steps = ['StepX'];
         $flowSchemaEntity = new FlowSchemaEntity(
             schemaHash: 'hash-xyz',
             type: 'flow.example.v2',
-            stubs: $stubs,
+            steps: $steps,
         );
 
         $this->assertSame([
             'schemaHash' => 'hash-xyz',
             'type' => 'flow.example.v2',
-            'stubs' => $stubs,
+            'steps' => $steps,
         ], $flowSchemaEntity->jsonSerialize());
     }
 }

@@ -6,9 +6,9 @@ namespace Tests\MockClass;
 
 use RuntimeException;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
-class FailStubMock implements StubInterface
+class FailStepMock implements StepInterface
 {
     public function __construct(
         private readonly MessageDataMock $messageDataMock,

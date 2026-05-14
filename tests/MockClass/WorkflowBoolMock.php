@@ -17,7 +17,7 @@ class WorkflowBoolMock implements FlowInterface
             MessageInitMock::class,
         );
 
-        $flowBuilder->addStub(BoolStubMock::class);
+        $flowBuilder->addStep(BoolStepMock::class);
 
         return $flowBuilder->build();
     }

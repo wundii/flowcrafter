@@ -11,7 +11,7 @@ use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 enum MessageEnum: string
 {
     case INIT = 'init';
-    case DATA = 'stub';
+    case DATA = 'step';
     case RETURN = 'return';
 
     /**

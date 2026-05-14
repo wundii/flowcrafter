@@ -7,18 +7,18 @@ namespace Wundii\Flowcrafter;
 use DateTimeImmutable;
 use DateTimeInterface;
 use JsonSerializable;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
 class FlowResult implements JsonSerializable
 {
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
     public function __construct(
         private readonly string $flowHash,
         private readonly string $flowRuntimeHash,
-        private readonly string $stubSource,
-        private readonly string $stubHash,
+        private readonly string $stepSource,
+        private readonly string $stepHash,
         private readonly bool $result,
         private readonly DateTimeInterface $time,
         private readonly string $hash,
@@ -26,21 +26,21 @@ class FlowResult implements JsonSerializable
     ) {
         if (!$skipClassValidation) {
             Assert::classString(
-                $stubSource,
-                StubInterface::class,
-                sprintf('Message source class "%s" does not implement StubInterface.', $stubSource)
+                $stepSource,
+                StepInterface::class,
+                sprintf('Message source class "%s" does not implement StepInterface.', $stepSource)
             );
         }
     }
 
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
     public static function create(
         string $flowHash,
         string $flowRuntimeHash,
-        string $stubSource,
-        string $stubHash,
+        string $stepSource,
+        string $stepHash,
         bool $result,
         ?DateTimeInterface $time = null,
         ?string $hash = null,
@@ -48,8 +48,8 @@ class FlowResult implements JsonSerializable
         return new self(
             flowHash: $flowHash,
             flowRuntimeHash: $flowRuntimeHash,
-            stubSource: $stubSource,
-            stubHash: $stubHash,
+            stepSource: $stepSource,
+            stepHash: $stepHash,
             result: $result,
             time: $time ?? new DateTimeImmutable(),
             hash: $hash ?? Uuid::uuid7($time)->toString(),
@@ -66,14 +66,14 @@ class FlowResult implements JsonSerializable
         return $this->flowRuntimeHash;
     }
 
-    public function getStubSource(): string
+    public function getStepSource(): string
     {
-        return $this->stubSource;
+        return $this->stepSource;
     }
 
-    public function getStubHash(): string
+    public function getStepHash(): string
     {
-        return $this->stubHash;
+        return $this->stepHash;
     }
 
     public function getResult(): bool
@@ -99,8 +99,8 @@ class FlowResult implements JsonSerializable
         return [
             'flowHash' => $this->flowHash,
             'flowRuntimeHash' => $this->flowRuntimeHash,
-            'stubSource' => $this->stubSource,
-            'stubHash' => $this->stubHash,
+            'stepSource' => $this->stepSource,
+            'stepHash' => $this->stepHash,
             'result' => $this->result,
             'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
             'hash' => $this->hash,

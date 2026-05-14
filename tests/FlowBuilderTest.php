@@ -6,19 +6,19 @@ namespace Tests;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use Tests\MockClass\BoolStubMock;
-use Tests\MockClass\DanglingStubMock;
-use Tests\MockClass\DisconnectedStubMock;
-use Tests\MockClass\LoopStubAlphaMock;
-use Tests\MockClass\LoopStubBetaMock;
-use Tests\MockClass\LoopStubGammaMock;
+use Tests\MockClass\BoolStepMock;
+use Tests\MockClass\DanglingStepMock;
+use Tests\MockClass\DisconnectedStepMock;
+use Tests\MockClass\LoopStepAlphaMock;
+use Tests\MockClass\LoopStepBetaMock;
+use Tests\MockClass\LoopStepGammaMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
-use Tests\MockClass\NextStubMock;
-use Tests\MockClass\OtherStubMock;
-use Tests\MockClass\PostStubMock;
-use Tests\MockClass\StubMock;
+use Tests\MockClass\NextStepMock;
+use Tests\MockClass\OtherStepMock;
+use Tests\MockClass\PostStepMock;
+use Tests\MockClass\StepMock;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\FlowBuilder;
 
@@ -46,7 +46,7 @@ final class FlowBuilderTest extends TestCase
         );
     }
 
-    public function testAddStubWithInvalidClass(): void
+    public function testAddStepWithInvalidClass(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
@@ -57,10 +57,10 @@ final class FlowBuilderTest extends TestCase
         );
 
         /** @phpstan-ignore argument.type */
-        $flowBuilder->addStub(MessageInitMock::class);
+        $flowBuilder->addStep(MessageInitMock::class);
     }
 
-    public function testBuildWithoutStubs(): void
+    public function testBuildWithoutSteps(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('MessageInit');
@@ -85,7 +85,7 @@ final class FlowBuilderTest extends TestCase
             MessageReturnMock::class,
         );
 
-        $flowBuilder->addStub(StubMock::class);
+        $flowBuilder->addStep(StepMock::class);
 
         $flowBuilder->build();
     }
@@ -98,18 +98,18 @@ final class FlowBuilderTest extends TestCase
             MessageReturnMock::class,
         );
 
-        $flowBuilder->addStub(StubMock::class);
-        $flowBuilder->addStub(NextStubMock::class);
-        $flowBuilder->addStub(OtherStubMock::class);
-        $flowBuilder->addStub(PostStubMock::class);
+        $flowBuilder->addStep(StepMock::class);
+        $flowBuilder->addStep(NextStepMock::class);
+        $flowBuilder->addStep(OtherStepMock::class);
+        $flowBuilder->addStep(PostStepMock::class);
 
         $flowSchema = $flowBuilder->build();
 
         $this->assertSame('flow.test.v1', $flowSchema->type());
-        $this->assertCount(4, $flowSchema->stubs());
+        $this->assertCount(4, $flowSchema->steps());
     }
 
-    public function testBuildReturnsCorrectStubs(): void
+    public function testBuildReturnsCorrectSteps(): void
     {
         $flowBuilder = new FlowBuilder(
             'flow.test.v1',
@@ -117,18 +117,18 @@ final class FlowBuilderTest extends TestCase
             MessageReturnMock::class,
         );
 
-        $flowBuilder->addStub(StubMock::class);
-        $flowBuilder->addStub(NextStubMock::class);
-        $flowBuilder->addStub(OtherStubMock::class);
-        $flowBuilder->addStub(PostStubMock::class);
+        $flowBuilder->addStep(StepMock::class);
+        $flowBuilder->addStep(NextStepMock::class);
+        $flowBuilder->addStep(OtherStepMock::class);
+        $flowBuilder->addStep(PostStepMock::class);
 
         $flowSchema = $flowBuilder->build();
-        $stubs = $flowSchema->stubs();
+        $steps = $flowSchema->steps();
 
-        $this->assertSame(StubMock::class, $stubs[0]->getSource());
-        $this->assertSame(NextStubMock::class, $stubs[1]->getSource());
-        $this->assertSame(OtherStubMock::class, $stubs[2]->getSource());
-        $this->assertSame(PostStubMock::class, $stubs[3]->getSource());
+        $this->assertSame(StepMock::class, $steps[0]->getSource());
+        $this->assertSame(NextStepMock::class, $steps[1]->getSource());
+        $this->assertSame(OtherStepMock::class, $steps[2]->getSource());
+        $this->assertSame(PostStepMock::class, $steps[3]->getSource());
     }
 
     public function testBuildWithoutMessageReturn(): void
@@ -138,12 +138,12 @@ final class FlowBuilderTest extends TestCase
             MessageInitMock::class,
         );
 
-        $flowBuilder->addStub(BoolStubMock::class);
+        $flowBuilder->addStep(BoolStepMock::class);
 
         $flowSchema = $flowBuilder->build();
 
         $this->assertSame('flow.test.v1', $flowSchema->type());
-        $this->assertCount(1, $flowSchema->stubs());
+        $this->assertCount(1, $flowSchema->steps());
     }
 
     public function testBuildMissingMessageReturnStillValidatesWhenProvided(): void
@@ -157,11 +157,11 @@ final class FlowBuilderTest extends TestCase
             MessageReturnMock::class,
         );
 
-        $flowBuilder->addStub(BoolStubMock::class);
+        $flowBuilder->addStep(BoolStepMock::class);
         $flowBuilder->build();
     }
 
-    public function testBuildInitStubIsDetected(): void
+    public function testBuildInitStepIsDetected(): void
     {
         $flowBuilder = new FlowBuilder(
             'flow.test.v1',
@@ -169,36 +169,36 @@ final class FlowBuilderTest extends TestCase
             MessageReturnMock::class,
         );
 
-        $flowBuilder->addStub(StubMock::class);
-        $flowBuilder->addStub(NextStubMock::class);
-        $flowBuilder->addStub(OtherStubMock::class);
-        $flowBuilder->addStub(PostStubMock::class);
+        $flowBuilder->addStep(StepMock::class);
+        $flowBuilder->addStep(NextStepMock::class);
+        $flowBuilder->addStep(OtherStepMock::class);
+        $flowBuilder->addStep(PostStepMock::class);
 
         $flowSchema = $flowBuilder->build();
-        $initStub = $flowSchema->initStub();
+        $initStep = $flowSchema->initStep();
 
-        $this->assertSame(StubMock::class, $initStub->getSource());
-        $this->assertSame(MessageEnum::INIT, $initStub->getMessageEnum());
+        $this->assertSame(StepMock::class, $initStep->getSource());
+        $this->assertSame(MessageEnum::INIT, $initStep->getMessageEnum());
     }
 
     public function testBuildDetectsLoop(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Loop detected in stub chain');
+        $this->expectExceptionMessage('Loop detected in step chain');
 
         $flowBuilder = new FlowBuilder(
             'flow.test.v1',
             MessageInitMock::class,
         );
 
-        $flowBuilder->addStub(LoopStubAlphaMock::class);
-        $flowBuilder->addStub(LoopStubBetaMock::class);
-        $flowBuilder->addStub(LoopStubGammaMock::class);
+        $flowBuilder->addStep(LoopStepAlphaMock::class);
+        $flowBuilder->addStep(LoopStepBetaMock::class);
+        $flowBuilder->addStep(LoopStepGammaMock::class);
 
         $flowBuilder->build();
     }
 
-    public function testBuildDetectsDisconnectedStub(): void
+    public function testBuildDetectsDisconnectedStep(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('not connected to the flow');
@@ -209,16 +209,16 @@ final class FlowBuilderTest extends TestCase
             MessageReturnMock::class,
         );
 
-        // StubMock(InitMock) -> DataMock -> NextStubMock (leaf, bool)
-        // DisconnectedStubMock(DataSecondMock) -> ReturnMock — not reachable from init
-        $flowBuilder->addStub(StubMock::class);
-        $flowBuilder->addStub(NextStubMock::class);
-        $flowBuilder->addStub(DisconnectedStubMock::class);
+        // StepMock(InitMock) -> DataMock -> NextStepMock (leaf, bool)
+        // DisconnectedStepMock(DataSecondMock) -> ReturnMock — not reachable from init
+        $flowBuilder->addStep(StepMock::class);
+        $flowBuilder->addStep(NextStepMock::class);
+        $flowBuilder->addStep(DisconnectedStepMock::class);
 
         $flowBuilder->build();
     }
 
-    public function testAddDuplicateStubThrows(): void
+    public function testAddDuplicateStepThrows(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('already added');
@@ -228,8 +228,8 @@ final class FlowBuilderTest extends TestCase
             MessageInitMock::class,
         );
 
-        $flowBuilder->addStub(StubMock::class);
-        $flowBuilder->addStub(StubMock::class);
+        $flowBuilder->addStep(StepMock::class);
+        $flowBuilder->addStep(StepMock::class);
     }
 
     public function testConstructorWithInvalidTypeFormat(): void
@@ -257,15 +257,15 @@ final class FlowBuilderTest extends TestCase
     public function testBuildDetectsDanglingReturnType(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('not consumed by any stub');
+        $this->expectExceptionMessage('not consumed by any step');
 
         $flowBuilder = new FlowBuilder(
             'flow.test.v1',
             MessageInitMock::class,
         );
 
-        // DanglingStubMock(InitMock) -> DataMock, but no stub consumes DataMock
-        $flowBuilder->addStub(DanglingStubMock::class);
+        // DanglingStepMock(InitMock) -> DataMock, but no step consumes DataMock
+        $flowBuilder->addStep(DanglingStepMock::class);
 
         $flowBuilder->build();
     }

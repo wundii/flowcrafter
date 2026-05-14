@@ -17,26 +17,26 @@ Jeder Flow trägt einen berechneten Status, der beim Lesen aus der SQLite
 
 | Status                  | Wert | Bedingung                                                                      |
 | ----------------------- | ---- | ------------------------------------------------------------------------------ |
-| `IN_PROGRESS`           | 0    | Runs vorhanden, aber noch nicht alle Leaf-Stubs im letzten Run erreicht        |
+| `IN_PROGRESS`           | 0    | Runs vorhanden, aber noch nicht alle Leaf-Steps im letzten Run erreicht        |
 | `IN_PROGRESS_EXCEEDED`  | 1    | `IN_PROGRESS` + letzter Run liegt > 1 Stunde zurück                            |
-| `OK`                    | 2    | Alle relevanten Leaf-Stubs erreicht, keine Exceptions, keine `false`-Results   |
-| `WARNING`               | 3    | Alle Leaf-Stubs erreicht, aber mindestens ein `FlowResult` mit `result = false` |
+| `OK`                    | 2    | Alle relevanten Leaf-Steps erreicht, keine Exceptions, keine `false`-Results   |
+| `WARNING`               | 3    | Alle Leaf-Steps erreicht, aber mindestens ein `FlowResult` mit `result = false` |
 | `FAILED`                | 4    | Mindestens eine `FlowException` im letzten Run                                 |
 
-**Leaf-Stubs** sind Stubs, deren Rückgabetypen von keinem weiteren Stub
+**Leaf-Steps** sind Steps, deren Rückgabetypen von keinem weiteren Step
 konsumiert werden (Endknoten des Workflow-Graphen). Erst wenn alle
-relevanten Leaf-Stubs im letzten Run Messages erhalten haben, gilt der
+relevanten Leaf-Steps im letzten Run Messages erhalten haben, gilt der
 Flow als abgeschlossen.
 
-Bei partiellen Re-Runs mit `includeStubs` werden nur diejenigen
-Leaf-Stubs geprüft, die im letzten Run tatsächlich Messages empfangen
-haben — Leaf-Stubs aus anderen Zweigen (z. B. bei AND-Joins, deren
+Bei partiellen Re-Runs mit `includeSteps` werden nur diejenigen
+Leaf-Steps geprüft, die im letzten Run tatsächlich Messages empfangen
+haben — Leaf-Steps aus anderen Zweigen (z. B. bei AND-Joins, deren
 zweite Eingabe fehlt) werden ignoriert.
 
 ## FlowSchema
 
 Das Schema definiert den Workflow-Aufbau: welche
-`StubInterface`-Implementierungen existieren, welche Nachrichtentypen sie
+`StepInterface`-Implementierungen existieren, welche Nachrichtentypen sie
 konsumieren und welcher Message-Typ den Flow initialisiert bzw.
 abschließt. Das Schema wird per MD5 gehasht — stimmt der aktuelle Hash
 nicht mit dem gespeicherten `flowSchemaHash` überein, gilt der Flow als
@@ -46,27 +46,27 @@ nicht ausführbar (`isExecutable = false`).
 
 | Zustand   | Bedeutung                                     |
 | --------- | --------------------------------------------- |
-| `WAIT`    | Message wartet auf weitere Inputs im Stub     |
-| `PROCESS` | Alle Inputs vorhanden, Stub wird ausgeführt   |
+| `WAIT`    | Message wartet auf weitere Inputs im Step     |
+| `PROCESS` | Alle Inputs vorhanden, Step wird ausgeführt   |
 | `FINISH`  | Message wurde verarbeitet                     |
 
-Ein Stub kann zurückgeben:
+Ein Step kann zurückgeben:
 - `MessageInterface` → Flow läuft weiter
 - `MessageReturnInterface` → Flow endet
-- `bool` → Wird als `FlowResult` persistiert (pro Stub-Ausführung mit
-  `flowHash`, `flowRuntimeHash`, `stubSource`, `stubHash`, `result`, `time`)
+- `bool` → Wird als `FlowResult` persistiert (pro Step-Ausführung mit
+  `flowHash`, `flowRuntimeHash`, `stepSource`, `stepHash`, `result`, `time`)
 
-## Selektive Stub-Ausführung (`includeStubs`)
+## Selektive Step-Ausführung (`includeSteps`)
 
-Wenn eine Message-Klasse von mehreren Stubs konsumiert wird, können beim
-Auslösen eines Runs gezielt einzelne Stubs ausgewählt werden. Der
-optionale Parameter `includeStubs` (Array von Stub-Klassennamen) steuert,
-welche Stubs ausgeführt werden:
+Wenn eine Message-Klasse von mehreren Steps konsumiert wird, können beim
+Auslösen eines Runs gezielt einzelne Steps ausgewählt werden. Der
+optionale Parameter `includeSteps` (Array von Step-Klassennamen) steuert,
+welche Steps ausgeführt werden:
 
-- **Leeres Array** (Default): Alle Stubs werden wie gewohnt ausgeführt,
-  alle Leaf-Stubs müssen erreicht werden
-- **Nicht-leeres Array**: Nur die aufgeführten Stubs werden ausgeführt.
-  Die Status-Berechnung berücksichtigt nur Leaf-Stubs, die im letzten Run
+- **Leeres Array** (Default): Alle Steps werden wie gewohnt ausgeführt,
+  alle Leaf-Steps müssen erreicht werden
+- **Nicht-leeres Array**: Nur die aufgeführten Steps werden ausgeführt.
+  Die Status-Berechnung berücksichtigt nur Leaf-Steps, die im letzten Run
   tatsächlich Messages empfangen haben — alle anderen werden ignoriert
 
 Dies gilt sowohl für synchrone Ausführung (`/api/flows/run`) als auch
@@ -108,15 +108,15 @@ Innerhalb von `process()` stehen zwei Methoden bereit:
 - `$this->run(...)` — führt einen Flow synchron aus
 
 Schedule-Klassen unterstützen Constructor-Injection mit den gleichen
-`dependenciesInjection`-Einträgen wie Stubs.
+`dependenciesInjection`-Einträgen wie Steps.
 
 Der Scheduler trackt pro Schedule die letzte Ausführungsminute und
 verhindert so Doppelausführungen innerhalb derselben Minute (relevant
 im Dev-Modus, wo `tick()` häufiger aufgerufen wird).
 
-## Stub-Source-Snapshotting
+## Step-Source-Snapshotting
 
-Bei jeder Flow-Ausführung wird der Quellcode der beteiligten Stubs als
-`StubSourceEntity` gespeichert. Über die API kann der historische
+Bei jeder Flow-Ausführung wird der Quellcode der beteiligten Steps als
+`StepSourceEntity` gespeichert. Über die API kann der historische
 Snapshot mit dem aktuellen Dateiinhalt verglichen werden
 (`current: true/false`).

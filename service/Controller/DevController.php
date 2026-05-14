@@ -110,11 +110,11 @@ final class DevController
             $type = $schema->type();
 
             $storedHash = null;
-            $storedStubs = null;
+            $storedSteps = null;
             foreach ($this->storage->findAllSchemas() as $storedSchema) {
                 if ($storedSchema->type === $type) {
                     $storedHash = $storedSchema->schemaHash;
-                    $storedStubs = $storedSchema;
+                    $storedSteps = $storedSchema;
                     break;
                 }
             }
@@ -122,8 +122,8 @@ final class DevController
             $hashDrift = $storedHash !== null && $storedHash !== $hash;
 
             $changedMessages = [];
-            foreach ($schema->stubs() as $stub) {
-                $messageSources = [...$stub->getMessages(), ...$stub->getReturnTypes()];
+            foreach ($schema->steps() as $step) {
+                $messageSources = [...$step->getMessages(), ...$step->getReturnTypes()];
                 foreach ($messageSources as $messageSource) {
                     if (array_key_exists($messageSource, $changedMessages)) {
                         continue;
@@ -162,12 +162,12 @@ final class DevController
 
             $initMessageSchema = null;
             $initMessageTypes = null;
-            foreach ($schema->stubs() as $stub) {
-                if ($stub->getMessageEnum() !== MessageEnum::INIT) {
+            foreach ($schema->steps() as $step) {
+                if ($step->getMessageEnum() !== MessageEnum::INIT) {
                     continue;
                 }
 
-                $initMessageClass = $stub->getMessages()[0] ?? null;
+                $initMessageClass = $step->getMessages()[0] ?? null;
                 if ($initMessageClass !== null && class_exists($initMessageClass)) {
                     $built = $this->buildInitMessageSchema($initMessageClass);
                     $initMessageSchema = $built['defaults'];
@@ -178,8 +178,8 @@ final class DevController
             }
 
             $messageSchemas = [];
-            foreach ($schema->stubs() as $stub) {
-                foreach ([...$stub->getMessages(), ...$stub->getReturnTypes()] as $messageClass) {
+            foreach ($schema->steps() as $step) {
+                foreach ([...$step->getMessages(), ...$step->getReturnTypes()] as $messageClass) {
                     if (!class_exists($messageClass)) {
                         continue;
                     }
@@ -195,7 +195,7 @@ final class DevController
                 'hash' => $hash,
                 'storedHash' => $storedHash,
                 'hashDrift' => $hashDrift,
-                'storedSchema' => $hashDrift ? $storedStubs : null,
+                'storedSchema' => $hashDrift ? $storedSteps : null,
                 'changedMessages' => array_values($changedMessages),
                 'messageSchemas' => $messageSchemas,
                 'initMessageSchema' => $initMessageSchema,

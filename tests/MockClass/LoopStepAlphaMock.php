@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Tests\MockClass;
 
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
-class LoopStubBetaMock implements StubInterface
+class LoopStepAlphaMock implements StepInterface
 {
     public function __construct(
-        private readonly MessageDataMock $messageDataMock,
+        private readonly MessageInitMock $messageInitMock,
     ) {
     }
 
@@ -20,12 +20,12 @@ class LoopStubBetaMock implements StubInterface
     public function returnTypes(): array
     {
         return [
-            MessageDataSecondMock::class,
+            MessageDataMock::class,
         ];
     }
 
     public function process(): MessageDataInterface
     {
-        return new MessageDataSecondMock($this->messageDataMock->getData(), new MessageSubDataMock('sub'));
+        return new MessageDataMock($this->messageInitMock->getData());
     }
 }

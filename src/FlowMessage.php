@@ -10,19 +10,19 @@ use InvalidArgumentException;
 use JsonSerializable;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\MessageInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
 class FlowMessage implements JsonSerializable
 {
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      * @param class-string<MessageInterface> $messageSource
      */
     public function __construct(
         private readonly string $flowHash,
         private readonly string $flowRuntimeHash,
-        private readonly string $stubSource,
-        private readonly string $stubHash,
+        private readonly string $stepSource,
+        private readonly string $stepHash,
         private MessageTypeEnum $messageTypeEnum,
         private readonly string $messageSource,
         private readonly string $messageHash,
@@ -34,9 +34,9 @@ class FlowMessage implements JsonSerializable
     ) {
         if (!$skipClassValidation) {
             Assert::classString(
-                $stubSource,
-                StubInterface::class,
-                sprintf('Message source class "%s" does not implement StubInterface.', $stubSource)
+                $stepSource,
+                StepInterface::class,
+                sprintf('Message source class "%s" does not implement StepInterface.', $stepSource)
             );
             Assert::classString(
                 $messageSource,
@@ -47,13 +47,13 @@ class FlowMessage implements JsonSerializable
     }
 
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
     public static function create(
         string $flowHash,
         string $flowRuntimeHash,
-        string $stubSource,
-        string $stubHash,
+        string $stepSource,
+        string $stepHash,
         MessageTypeEnum $messageTypeEnum,
         string $messageHash,
         MessageInterface $message,
@@ -64,8 +64,8 @@ class FlowMessage implements JsonSerializable
         return new self(
             flowHash: $flowHash,
             flowRuntimeHash: $flowRuntimeHash,
-            stubSource: $stubSource,
-            stubHash: $stubHash,
+            stepSource: $stepSource,
+            stepHash: $stepHash,
             messageTypeEnum: $messageTypeEnum,
             messageSource: get_class($message),
             messageHash: $messageHash,
@@ -104,14 +104,14 @@ class FlowMessage implements JsonSerializable
         return $this->flowRuntimeHash;
     }
 
-    public function getStubSource(): string
+    public function getStepSource(): string
     {
-        return $this->stubSource;
+        return $this->stepSource;
     }
 
-    public function getStubHash(): ?string
+    public function getStepHash(): ?string
     {
-        return $this->stubHash;
+        return $this->stepHash;
     }
 
     public function getMessageType(): MessageTypeEnum
@@ -157,8 +157,8 @@ class FlowMessage implements JsonSerializable
         return [
             'flowHash' => $this->flowHash,
             'flowRuntimeHash' => $this->flowRuntimeHash,
-            'stubSource' => $this->stubSource,
-            'stubHash' => $this->stubHash,
+            'stepSource' => $this->stepSource,
+            'stepHash' => $this->stepHash,
             'messageType' => $this->messageTypeEnum->value,
             'messageSource' => $this->messageSource,
             'messageHash' => $this->messageHash,

@@ -12,7 +12,7 @@ use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
 class Flow implements JsonSerializable
 {
@@ -23,7 +23,7 @@ class Flow implements JsonSerializable
     /**
      * @var class-string[]
      */
-    private array $includeStubs = [];
+    private array $includeSteps = [];
 
     /**
      * @param class-string<FlowInterface> $flowSource
@@ -194,7 +194,7 @@ class Flow implements JsonSerializable
      */
     public function runs(): array
     {
-        $this->runStubTimings();
+        $this->runStepTimings();
 
         return array_values($this->flowRuns);
     }
@@ -227,30 +227,30 @@ class Flow implements JsonSerializable
     }
 
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      * @return FlowMessage[]
      */
-    public function executableMessages(string $stubSource): array
+    public function executableMessages(string $stepSource): array
     {
-        Assert::classString($stubSource, StubInterface::class);
+        Assert::classString($stepSource, StepInterface::class);
 
         $flowMessages = array_filter(
             $this->flowMessages,
-            static fn (FlowMessage $flowMessage): bool => $flowMessage->getStubSource() === $stubSource
+            static fn (FlowMessage $flowMessage): bool => $flowMessage->getStepSource() === $stepSource
                 && $flowMessage->getMessageType() === MessageTypeEnum::WAIT,
         );
 
-        $stub = $this->flowSchema->stubBySource($stubSource);
-        $stubMessageClasses = $stub->getMessages();
+        $step = $this->flowSchema->stepBySource($stepSource);
+        $stepMessageClasses = $step->getMessages();
         $flowMessageClasses = array_map(
             static fn (FlowMessage $flowMessage): string => $flowMessage->getMessageSource(),
             $flowMessages,
         );
 
-        sort($stubMessageClasses);
+        sort($stepMessageClasses);
         sort($flowMessageClasses);
 
-        if ($stubMessageClasses !== $flowMessageClasses) {
+        if ($stepMessageClasses !== $flowMessageClasses) {
             return [];
         }
 
@@ -284,11 +284,11 @@ class Flow implements JsonSerializable
     }
 
     /**
-     * @param class-string[] $includeStubs
+     * @param class-string[] $includeSteps
      */
-    public function setIncludeStubs(array $includeStubs): void
+    public function setIncludeSteps(array $includeSteps): void
     {
-        $this->includeStubs = $includeStubs;
+        $this->includeSteps = $includeSteps;
     }
 
     public function status(): StatusEnum
@@ -322,7 +322,7 @@ class Flow implements JsonSerializable
         return StatusEnum::OK;
     }
 
-    public function runStubTimings(): void
+    public function runStepTimings(): void
     {
         foreach ($this->flowRuns as $flowRun) {
             $runtimeHash = $flowRun->getFlowRuntimeHash();
@@ -351,30 +351,30 @@ class Flow implements JsonSerializable
             }
 
             $timings = [];
-            foreach ($this->flowSchema->stubs() as $stub) {
-                $stubSource = $stub->getSource();
+            foreach ($this->flowSchema->steps() as $step) {
+                $stepSource = $step->getSource();
 
-                $stubMsgs = array_values(array_filter($runMessages, fn (FlowMessage $flowMessage): bool => $flowMessage->getStubSource() === $stubSource));
-                $stubExcs = array_values(array_filter($runExceptions, fn (FlowException $flowException): bool => $flowException->getStubSource() === $stubSource));
-                $stubRess = array_values(array_filter($runResults, fn (FlowResult $flowResult): bool => $flowResult->getStubSource() === $stubSource));
+                $stepMsgs = array_values(array_filter($runMessages, fn (FlowMessage $flowMessage): bool => $flowMessage->getStepSource() === $stepSource));
+                $stepExcs = array_values(array_filter($runExceptions, fn (FlowException $flowException): bool => $flowException->getStepSource() === $stepSource));
+                $stepRess = array_values(array_filter($runResults, fn (FlowResult $flowResult): bool => $flowResult->getStepSource() === $stepSource));
 
-                if ($stubMsgs === [] && $stubExcs === [] && $stubRess === []) {
+                if ($stepMsgs === [] && $stepExcs === [] && $stepRess === []) {
                     continue;
                 }
 
-                // START = when the last required input arrived (stub can only run once all inputs are present)
+                // START = when the last required input arrived (step can only run once all inputs are present)
                 $inputMsgs = array_values(array_filter(
-                    $stubMsgs,
-                    fn (FlowMessage $flowMessage): bool => in_array($flowMessage->getMessageSource(), $stub->getMessages(), true),
+                    $stepMsgs,
+                    fn (FlowMessage $flowMessage): bool => in_array($flowMessage->getMessageSource(), $step->getMessages(), true),
                 ));
 
                 if ($inputMsgs !== []) {
                     $startMs = max(array_map(fn (FlowMessage $flowMessage): int => $this->toMs($flowMessage->getTime()), $inputMsgs));
                 } else {
                     $allMs = array_merge(
-                        array_map(fn (FlowMessage $flowMessage): int => $this->toMs($flowMessage->getTime()), $stubMsgs),
-                        array_map(fn (FlowException $flowException): int => $this->toMs($flowException->getTime()), $stubExcs),
-                        array_map(fn (FlowResult $flowResult): int => $this->toMs($flowResult->getTime()), $stubRess),
+                        array_map(fn (FlowMessage $flowMessage): int => $this->toMs($flowMessage->getTime()), $stepMsgs),
+                        array_map(fn (FlowException $flowException): int => $this->toMs($flowException->getTime()), $stepExcs),
+                        array_map(fn (FlowResult $flowResult): int => $this->toMs($flowResult->getTime()), $stepRess),
                     );
                     if ($allMs === []) {
                         continue;
@@ -383,32 +383,32 @@ class Flow implements JsonSerializable
                     $startMs = min($allMs);
                 }
 
-                // END = when the earliest output message first appeared at another stub (or result for bool stubs)
-                if ($stub->getReturnTypes() !== []) {
+                // END = when the earliest output message first appeared at another step (or result for bool steps)
+                if ($step->getReturnTypes() !== []) {
                     $outputMs = array_values(array_filter(
-                        array_map(fn (string $rt): ?int => $firstAppearance[$rt] ?? null, $stub->getReturnTypes()),
+                        array_map(fn (string $rt): ?int => $firstAppearance[$rt] ?? null, $step->getReturnTypes()),
                         fn (?int $t): bool => $t !== null,
                     ));
                     $endMs = $outputMs !== [] ? min($outputMs) : $startMs;
                 } else {
-                    $endMs = $stubRess !== []
-                        ? max(array_map(fn (FlowResult $flowResult): int => $this->toMs($flowResult->getTime()), $stubRess))
+                    $endMs = $stepRess !== []
+                        ? max(array_map(fn (FlowResult $flowResult): int => $this->toMs($flowResult->getTime()), $stepRess))
                         : $startMs;
                 }
 
-                $timings[] = new StubTiming(
-                    $stubSource,
+                $timings[] = new StepTiming(
+                    $stepSource,
                     $this->fromMs($startMs),
                     $this->fromMs($endMs),
                 );
             }
 
-            $flowRun->setStubTimings($timings);
+            $flowRun->setStepTimings($timings);
         }
     }
 
     /**
-     * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowResult|FlowRun|StubTiming[]|string>|FlowSchema>
+     * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowResult|FlowRun|StepTiming[]|string>|FlowSchema>
      */
     public function jsonSerialize(): array
     {
@@ -445,7 +445,7 @@ class Flow implements JsonSerializable
     }
 
     /**
-     * Returns the leaf stub class strings that have not yet been reached.
+     * Returns the leaf step class strings that have not yet been reached.
      * First checks the last run, then falls back to previous registered runs
      * to support targeted partial re-runs where some leafs were handled earlier.
      *
@@ -454,13 +454,13 @@ class Flow implements JsonSerializable
     private function resolvePendingLeafs(string $lastRuntimeHash): array
     {
         $leafSources = array_map(
-            static fn (Stub $stub): string => $stub->getSource(),
-            $this->flowSchema->getLeafStubs(),
+            static fn (Step $step): string => $step->getSource(),
+            $this->flowSchema->getLeafSteps(),
         );
 
-        if ($this->includeStubs !== []) {
+        if ($this->includeSteps !== []) {
             $lastRunSources = array_unique(array_map(
-                static fn (FlowMessage $flowMessage): string => $flowMessage->getStubSource(),
+                static fn (FlowMessage $flowMessage): string => $flowMessage->getStepSource(),
                 array_filter(
                     $this->flowMessages,
                     fn (FlowMessage $flowMessage): bool => $flowMessage->getFlowRuntimeHash() === $lastRuntimeHash,
@@ -483,7 +483,7 @@ class Flow implements JsonSerializable
                 continue;
             }
 
-            $key = array_search($flowMessage->getStubSource(), $leafSources, true);
+            $key = array_search($flowMessage->getStepSource(), $leafSources, true);
             if ($key !== false) {
                 unset($leafSources[$key]);
             }

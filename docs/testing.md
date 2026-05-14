@@ -1,7 +1,7 @@
 # Testing
 - [Back to README.md](./../README.md)
 
-Flows, Stubs und Messages in Flowcrafter sind von Grund auf so entworfen,
+Flows, Steps und Messages in Flowcrafter sind von Grund auf so entworfen,
 dass sie sich mit **PHPUnit 11+** sauber testen lassen — ohne Mocks, ohne
 Docker, ohne Datenbank. Dieser Leitfaden zeigt, wie du deine eigenen Flows
 testest.
@@ -12,11 +12,11 @@ testest.
 - [Test-Ebenen im Überblick](#test-ebenen-im-überblick)
 - [Schnellstart: FlowTestCase](#schnellstart-flowtestcase)
 - [runFlow() — kompletter Flow-Durchlauf](#runflow--kompletter-flow-durchlauf)
-- [runStub() — Stub isoliert testen](#runstub--stub-isoliert-testen)
+- [runStep() — Step isoliert testen](#runstep--step-isoliert-testen)
 - [Assertions im Detail](#assertions-im-detail)
 - [Dependency Injection im Test](#dependency-injection-im-test)
 - [Fehlerpfade und Exceptions testen](#fehlerpfade-und-exceptions-testen)
-- [Teilweise Ausführung mit includeStubs](#teilweise-ausführung-mit-includestubs)
+- [Teilweise Ausführung mit includeSteps](#teilweise-ausführung-mit-includesteps)
 - [Mehrere Flows in einem Test](#mehrere-flows-in-einem-test)
 - [FlowAssertTrait in eigene Basisklassen einbinden](#flowasserttrait-in-eigene-basisklassen-einbinden)
 - [Storage-Integrationstests](#storage-integrationstests)
@@ -29,7 +29,7 @@ testest.
 |---|---|
 | `FlowRunner` akzeptiert `StorageInterface` optional (`null`) | Komplette Flow-Ausführung **ohne DB, ohne Docker** |
 | Messages sind `readonly` Value-Objects | Triviale Konstruktion und `assertEquals`-vergleichbar |
-| Stubs haben Constructor-DI mit Typen | Autowiring — Fakes lassen sich direkt injizieren |
+| Steps haben Constructor-DI mit Typen | Autowiring — Fakes lassen sich direkt injizieren |
 | Flow-Objekt exponiert den kompletten Lifecycle | Routing, Fan-In, Exceptions und Results sind introspektierbar |
 | `FlowBuilder::build()` validiert beim Bauen | Schema-Fehler fallen schon beim `MyFlow::schema()`-Aufruf auf |
 
@@ -40,9 +40,9 @@ testest.
 | Ebene | Werkzeug | Geschwindigkeit | Braucht Docker |
 |---|---|---|---|
 | Schema-Validierung | `MyFlow::schema()` direkt aufrufen | ms | nein |
-| Stub isoliert | `runStub()` oder `new Stub(...)` | ms | nein |
+| Step isoliert | `runStep()` oder `new Step(...)` | ms | nein |
 | Flow end-to-end (in-memory) | `runFlow()` bzw. `FlowRunner` ohne Storage | ms–10ms | nein |
-| Branch- / Fehlerpfade | `runFlow()` + `includeStubs` + Fake-Dependencies | ms | nein |
+| Branch- / Fehlerpfade | `runFlow()` + `includeSteps` + Fake-Dependencies | ms | nein |
 | Storage-Integration | Testcontainers (MySQL / Redis / EsDB) | Sekunden | ja |
 
 **Empfehlung:** 90% der Tests laufen ohne Docker. Storage-Integrationstests
@@ -66,7 +66,7 @@ namespace App\Tests;
 use App\Flow\OrderFlow;
 use App\Message\OrderCompleted;
 use App\Message\OrderInit;
-use App\Stub\ValidateStub;
+use App\Step\ValidateStep;
 use Wundii\Flowcrafter\Testing\FlowTestCase;
 
 final class OrderFlowTest extends FlowTestCase
@@ -80,7 +80,7 @@ final class OrderFlowTest extends FlowTestCase
         );
 
         $this->assertFlowOk();
-        $this->assertStubExecuted(ValidateStub::class);
+        $this->assertStepExecuted(ValidateStep::class);
         $return = $this->assertFlowReturned(OrderCompleted::class);
         $this->assertSame('sku-42', $return->getSku());
     }
@@ -103,7 +103,7 @@ protected function runFlow(
     MessageInterface $initMessage,
     ?string $flowSubject = null,
     array $dependencies = [],
-    array $includeStubs = [],
+    array $includeSteps = [],
 ): bool|MessageReturnInterface;
 ```
 
@@ -113,8 +113,8 @@ protected function runFlow(
 | `flowSource` | Die `FlowInterface`-Klasse |
 | `initMessage` | Die Start-Message (`MessageInitInterface`) |
 | `flowSubject` | Optionaler Geschäfts-Key (z. B. Order-ID), zur späteren Suche |
-| `dependencies` | Services, die in Stubs autowired werden (siehe [Dependency Injection im Test](#dependency-injection-im-test)) |
-| `includeStubs` | Nur diese Stubs ausführen (siehe [Teilweise Ausführung](#teilweise-ausführung-mit-includestubs)) |
+| `dependencies` | Services, die in Steps autowired werden (siehe [Dependency Injection im Test](#dependency-injection-im-test)) |
+| `includeSteps` | Nur diese Steps ausführen (siehe [Teilweise Ausführung](#teilweise-ausführung-mit-includesteps)) |
 
 Nach dem Aufruf stehen dir zwei Hilfsmethoden zur Verfügung:
 
@@ -125,14 +125,14 @@ protected function lastResult(): bool|MessageReturnInterface;  // der Rückgabew
 
 ---
 
-## runStub() — Stub isoliert testen
+## runStep() — Step isoliert testen
 
-Wenn du einen **einzelnen** Stub ohne den ganzen Flow-Graph testen willst
-(z. B. weil er komplexe DI-Abhängigkeiten hat), nutze `runStub()`:
+Wenn du einen **einzelnen** Step ohne den ganzen Flow-Graph testen willst
+(z. B. weil er komplexe DI-Abhängigkeiten hat), nutze `runStep()`:
 
 ```php
-protected function runStub(
-    string $stubSource,
+protected function runStep(
+    string $stepSource,
     array $messages,
     array $dependencies = [],
 ): bool|MessageInterface;
@@ -140,14 +140,14 @@ protected function runStub(
 
 Intern baut der Helper einen Symfony `ContainerBuilder` mit derselben
 Autowire-Logik wie `FlowRunner`, registriert deine Messages als
-Synthetic-Services und ruft `$stub->process()` auf. **Kein Flow, keine
+Synthetic-Services und ruft `$step->process()` auf. **Kein Flow, keine
 Schema-Validierung, kein Message-Lifecycle.**
 
 ```php
-public function testValidateStubIsolated(): void
+public function testValidateStepIsolated(): void
 {
-    $result = $this->runStub(
-        stubSource: ValidateStub::class,
+    $result = $this->runStep(
+        stepSource: ValidateStep::class,
         messages: [new OrderInit('sku-42')],
         dependencies: [new FakeHttpClient()],
     );
@@ -156,13 +156,13 @@ public function testValidateStubIsolated(): void
 }
 ```
 
-**Wann `runStub()` statt `new MyStub(...)`?**
+**Wann `runStep()` statt `new MyStep(...)`?**
 
 | Situation | Empfehlung |
 |---|---|
-| Stub hat nur Message-Parameter im Constructor | `new MyStub(new Init('x'))` — expliziter |
-| Stub hat 2+ zusätzliche Services (`HttpClient`, `Repository`, `Logger`) | `runStub()` — spart den manuellen Wireup |
-| Service soll autowired werden (kein `new`) | `runStub()` übernimmt Autowiring |
+| Step hat nur Message-Parameter im Constructor | `new MyStep(new Init('x'))` — expliziter |
+| Step hat 2+ zusätzliche Services (`HttpClient`, `Repository`, `Logger`) | `runStep()` — spart den manuellen Wireup |
+| Service soll autowired werden (kein `new`) | `runStep()` übernimmt Autowiring |
 
 ---
 
@@ -184,7 +184,7 @@ Die berechnete Status-Logik (`Flow::status()`):
 
 | Status | Bedingung |
 |---|---|
-| `IN_PROGRESS` | Leaf-Stubs noch nicht erreicht |
+| `IN_PROGRESS` | Leaf-Steps noch nicht erreicht |
 | `IN_PROGRESS_EXCEEDED` | wie oben, aber Run > 1h alt |
 | `OK` | Alle Leafs erreicht, alle FlowResults `true` |
 | `WARNING` | Alle Leafs erreicht, mindestens ein FlowResult `false` |
@@ -200,11 +200,11 @@ $this->assertSame('sku-42', $return->getSku());
 Gibt die gecastete `MessageReturnInterface`-Instanz zurück — praktisch für
 Folge-Assertions auf Feldern.
 
-### Stub-Ausführung prüfen
+### Step-Ausführung prüfen
 
 ```php
-$this->assertStubExecuted(ValidateStub::class);
-$this->assertStubNotExecuted(SendEmailStub::class);
+$this->assertStepExecuted(ValidateStep::class);
+$this->assertStepNotExecuted(SendEmailStep::class);
 ```
 
 ### Message-Inhalte prüfen
@@ -214,11 +214,11 @@ $this->assertFlowHasMessage(OrderValidated::class);  // nutzt Flow::hasMessage()
 $this->assertFlowMessageCount(6);
 ```
 
-### Bool-Ergebnisse (Leaf-Stubs)
+### Bool-Ergebnisse (Leaf-Steps)
 
 ```php
 $this->assertFlowBoolResult(true);                        // alle FlowResults sind true
-$this->assertFlowBoolResultFrom(AuditStub::class, true);  // nur Results eines bestimmten Stubs
+$this->assertFlowBoolResultFrom(AuditStep::class, true);  // nur Results eines bestimmten Steps
 $this->assertFlowResultCount(2);
 ```
 
@@ -226,8 +226,8 @@ $this->assertFlowResultCount(2);
 
 ```php
 $this->assertNoFlowExceptions();
-$this->assertFlowExceptionFrom(ValidateStub::class);
-$this->assertFlowExceptionFrom(ValidateStub::class, 'sku required');
+$this->assertFlowExceptionFrom(ValidateStep::class);
+$this->assertFlowExceptionFrom(ValidateStep::class, 'sku required');
 ```
 
 Der zweite Parameter prüft per `str_contains()` auf die Exception-Message.
@@ -257,13 +257,13 @@ $this->assertFlowOk($runner->getFlow());
 
 ## Dependency Injection im Test
 
-Stubs, die zusätzliche Services brauchen (nicht nur Messages), bekommen
+Steps, die zusätzliche Services brauchen (nicht nur Messages), bekommen
 diese per Constructor autowired. Im Produktivcode via
 `FlowcrafterConfig::$dependenciesInjection`, im Test via den
 `dependencies`-Parameter:
 
 ```php
-class ValidateStub implements StubInterface
+class ValidateStep implements StepInterface
 {
     public function __construct(
         private readonly OrderInit $init,
@@ -291,14 +291,14 @@ $this->runFlow(
 ```
 
 **Faustregel:**
-- **Fertiges Objekt** übergeben → wenn du das Verhalten kontrollierst (Fake, Spy, Stub).
+- **Fertiges Objekt** übergeben → wenn du das Verhalten kontrollierst (Fake, Spy, Step).
 - **Klassenname** übergeben → wenn der Symfony-Container die Dependency selbst bauen soll.
 
 ---
 
 ## Fehlerpfade und Exceptions testen
 
-Wenn ein Stub wirft, **rethrow** `FlowRunner::run()` nach dem Persistieren
+Wenn ein Step wirft, **rethrow** `FlowRunner::run()` nach dem Persistieren
 der `FlowException` auf dem Flow. Im Test fängst du die Exception ab und
 assertierst anschließend auf dem Flow:
 
@@ -318,7 +318,7 @@ public function testValidationFailsOnEmptySku(): void
 
     // Der Flow ist auch nach dem Rethrow verfügbar:
     $this->assertFlowFailed();
-    $this->assertFlowExceptionFrom(ValidateStub::class, 'sku required');
+    $this->assertFlowExceptionFrom(ValidateStep::class, 'sku required');
 }
 ```
 
@@ -327,9 +327,9 @@ geworfenen Exception befüllt ist.
 
 ---
 
-## Teilweise Ausführung mit includeStubs
+## Teilweise Ausführung mit includeSteps
 
-`FlowRunner` unterstützt selektive Stub-Ausführung — nützlich für
+`FlowRunner` unterstützt selektive Step-Ausführung — nützlich für
 **Branch-Tests** oder um einen konkreten Sub-Pfad isoliert zu prüfen:
 
 ```php
@@ -337,16 +337,16 @@ $this->runFlow(
     flowType: 'flow.order.v1',
     flowSource: OrderFlow::class,
     initMessage: new OrderInit('sku-42'),
-    includeStubs: [ValidateStub::class],   // Rest wird übersprungen
+    includeSteps: [ValidateStep::class],   // Rest wird übersprungen
 );
 
-$this->assertStubExecuted(ValidateStub::class);
-$this->assertStubNotExecuted(ChargeStub::class);
+$this->assertStepExecuted(ValidateStep::class);
+$this->assertStepNotExecuted(ChargeStep::class);
 ```
 
-Nicht gelistete Stubs werden vom Runner übersprungen — auch wenn sie
-laut Schema eigentlich dran wären. `includeStubs: []` (Default) führt alle
-Stubs aus.
+Nicht gelistete Steps werden vom Runner übersprungen — auch wenn sie
+laut Schema eigentlich dran wären. `includeSteps: []` (Default) führt alle
+Steps aus.
 
 ---
 
@@ -413,11 +413,11 @@ deine Flow-Logik wird in-memory getestet.
 | Du willst … | Nutze |
 |---|---|
 | …den ganzen Flow durchspielen | `$this->runFlow(...)` |
-| …einen einzelnen Stub mit DI testen | `$this->runStub(...)` |
-| …einen Stub ohne DI trivial testen | `new MyStub(new Init('x'))` + `$stub->process()` |
+| …einen einzelnen Step mit DI testen | `$this->runStep(...)` |
+| …einen Step ohne DI trivial testen | `new MyStep(new Init('x'))` + `$step->process()` |
 | …prüfen, dass der Flow erfolgreich war | `$this->assertFlowOk()` |
-| …prüfen, welche Stubs liefen | `assertStubExecuted()` / `assertStubNotExecuted()` |
+| …prüfen, welche Steps liefen | `assertStepExecuted()` / `assertStepNotExecuted()` |
 | …den Return-Wert prüfen | `$r = $this->assertFlowReturned(Foo::class)` |
 | …einen Fehlerpfad prüfen | `try { runFlow() } catch {}` + `assertFlowFailed()` + `assertFlowExceptionFrom()` |
-| …nur einen Teil des Flows ausführen | `includeStubs: [...]` in `runFlow()` |
-| …Services im Stub fälschen | `dependencies: [new FakeService()]` |
+| …nur einen Teil des Flows ausführen | `includeSteps: [...]` in `runFlow()` |
+| …Services im Step fälschen | `dependencies: [new FakeService()]` |

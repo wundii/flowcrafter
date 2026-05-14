@@ -12,7 +12,7 @@ final readonly class ObserveItem implements JsonSerializable
     /**
      * @param class-string<FlowInterface> $flowSource
      * @param array<mixed> $message
-     * @param class-string[] $includeStubs
+     * @param class-string[] $includeSteps
      */
     public function __construct(
         private string $queueId,
@@ -22,7 +22,7 @@ final readonly class ObserveItem implements JsonSerializable
         private ?string $flowHash,
         private string $messageSource,
         private ?array $message,
-        private array $includeStubs = [],
+        private array $includeSteps = [],
     ) {
     }
 
@@ -65,9 +65,9 @@ final readonly class ObserveItem implements JsonSerializable
     /**
      * @return class-string[]
      */
-    public function getIncludeStubs(): array
+    public function getIncludeSteps(): array
     {
-        return $this->includeStubs;
+        return $this->includeSteps;
     }
 
     public function getFlowSubject(): ?string
@@ -85,7 +85,7 @@ final readonly class ObserveItem implements JsonSerializable
             'flowHash' => $this->flowHash,
             'messageSource' => $this->messageSource,
             'message' => $this->message,
-            'includeStubs' => $this->includeStubs,
+            'includeSteps' => $this->includeSteps,
         ];
     }
 }

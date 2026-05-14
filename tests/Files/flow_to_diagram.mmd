@@ -3,9 +3,9 @@ title: flow.workflow.v1 - /workflow/1
 theme: neo
 ---
 stateDiagram-v2
-[*]-->Tests\MockClass\StubMock: Tests\MockClass\MessageInitMock
-Tests\MockClass\StubMock-->Tests\MockClass\NextStubMock: Tests\MockClass\MessageDataMock
-Tests\MockClass\StubMock-->Tests\MockClass\OtherStubMock: Tests\MockClass\MessageDataMock
-Tests\MockClass\StubMock-->Tests\MockClass\PostStubMock: Tests\MockClass\MessageDataMock
-Tests\MockClass\OtherStubMock-->Tests\MockClass\PostStubMock: Tests\MockClass\MessageDataSecondMock
-Tests\MockClass\PostStubMock-->[*]: Tests\MockClass\MessageReturnMock
+[*]-->Tests\MockClass\StepMock: Tests\MockClass\MessageInitMock
+Tests\MockClass\StepMock-->Tests\MockClass\NextStepMock: Tests\MockClass\MessageDataMock
+Tests\MockClass\StepMock-->Tests\MockClass\OtherStepMock: Tests\MockClass\MessageDataMock
+Tests\MockClass\StepMock-->Tests\MockClass\PostStepMock: Tests\MockClass\MessageDataMock
+Tests\MockClass\OtherStepMock-->Tests\MockClass\PostStepMock: Tests\MockClass\MessageDataSecondMock
+Tests\MockClass\PostStepMock-->[*]: Tests\MockClass\MessageReturnMock

@@ -9,10 +9,10 @@ use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\HttpFoundation\Request;
-use Tests\MockClass\StubMock;
+use Tests\MockClass\StepMock;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
-use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
+use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
 use Wundii\Service\Controller\SchemaController;
 
 final class SchemaControllerTest extends TestCase
@@ -22,7 +22,7 @@ final class SchemaControllerTest extends TestCase
         $flowSchemaEntity = new FlowSchemaEntity(
             schemaHash: 'hash-abc',
             type: 'flow.test.v1',
-            stubs: ['StubA', 'StubB'],
+            steps: ['StepA', 'StepB'],
         );
 
         $storage = $this->createMock(StorageInterface::class);
@@ -40,78 +40,78 @@ final class SchemaControllerTest extends TestCase
         $this->assertSame('flow.test.v1', $data[0]['type']);
     }
 
-    public function testStubSourceReturnsCurrent(): void
+    public function testStepSourceReturnsCurrent(): void
     {
-        $storage = $this->createStub(StorageInterface::class);
+        $storage = $this->createStep(StorageInterface::class);
         $schemaController = new SchemaController($storage);
 
-        $request = Request::create('/api/flow/stub-source', 'GET', [
-            'className' => StubMock::class,
+        $request = Request::create('/api/flow/step-source', 'GET', [
+            'className' => StepMock::class,
         ]);
 
-        $jsonResponse = $schemaController->stubSource($request);
+        $jsonResponse = $schemaController->stepSource($request);
 
         $this->assertSame(200, $jsonResponse->getStatusCode());
 
         $data = json_decode((string) $jsonResponse->getContent(), true);
         $this->assertIsArray($data);
         $this->assertTrue($data['current']);
-        $this->assertStringContainsString('class StubMock', (string) $data['source']);
+        $this->assertStringContainsString('class StepMock', (string) $data['source']);
     }
 
-    public function testStubSourceReturns400ForNonStubClass(): void
+    public function testStepSourceReturns400ForNonStepClass(): void
     {
-        $storage = $this->createStub(StorageInterface::class);
+        $storage = $this->createStep(StorageInterface::class);
         $schemaController = new SchemaController($storage);
 
-        $request = Request::create('/api/flow/stub-source', 'GET', [
+        $request = Request::create('/api/flow/step-source', 'GET', [
             'className' => stdClass::class,
         ]);
 
-        $jsonResponse = $schemaController->stubSource($request);
+        $jsonResponse = $schemaController->stepSource($request);
 
         $this->assertSame(400, $jsonResponse->getStatusCode());
 
         $data = json_decode((string) $jsonResponse->getContent(), true);
         $this->assertIsArray($data);
-        $this->assertStringContainsString('StubInterface', (string) $data['error']);
+        $this->assertStringContainsString('StepInterface', (string) $data['error']);
     }
 
-    public function testStubSourceReturns404ForUnknownHash(): void
+    public function testStepSourceReturns404ForUnknownHash(): void
     {
         $storage = $this->createMock(StorageInterface::class);
-        $storage->method('findStubSourceByHash')->willReturn(null);
+        $storage->method('findStepSourceByHash')->willReturn(null);
 
         $schemaController = new SchemaController($storage);
 
-        $request = Request::create('/api/flow/stub-source', 'GET', [
-            'stubHash' => 'nonexistent-hash',
+        $request = Request::create('/api/flow/step-source', 'GET', [
+            'stepHash' => 'nonexistent-hash',
         ]);
 
-        $jsonResponse = $schemaController->stubSource($request);
+        $jsonResponse = $schemaController->stepSource($request);
 
         $this->assertSame(404, $jsonResponse->getStatusCode());
     }
 
-    public function testStubSourceByHashReturnsEntity(): void
+    public function testStepSourceByHashReturnsEntity(): void
     {
-        $stubSourceEntity = new StubSourceEntity(
-            stubHash: 'hash-xyz',
-            stubSource: StubMock::class,
+        $stepSourceEntity = new StepSourceEntity(
+            stepHash: 'hash-xyz',
+            stepSource: StepMock::class,
             sourceContent: '<?php // source',
             time: new DateTimeImmutable('2026-01-01T00:00:00.000+00:00'),
         );
 
         $storage = $this->createMock(StorageInterface::class);
-        $storage->method('findStubSourceByHash')->willReturn($stubSourceEntity);
+        $storage->method('findStepSourceByHash')->willReturn($stepSourceEntity);
 
         $schemaController = new SchemaController($storage);
 
-        $request = Request::create('/api/flow/stub-source', 'GET', [
-            'stubHash' => 'hash-xyz',
+        $request = Request::create('/api/flow/step-source', 'GET', [
+            'stepHash' => 'hash-xyz',
         ]);
 
-        $jsonResponse = $schemaController->stubSource($request);
+        $jsonResponse = $schemaController->stepSource($request);
 
         $this->assertSame(200, $jsonResponse->getStatusCode());
 
@@ -121,25 +121,25 @@ final class SchemaControllerTest extends TestCase
         $this->assertArrayHasKey('source', $data);
     }
 
-    public function testStubSourcesReturnsVersionList(): void
+    public function testStepSourcesReturnsVersionList(): void
     {
-        $stubSourceEntity = new StubSourceEntity(
-            stubHash: 'hash-1',
-            stubSource: StubMock::class,
+        $stepSourceEntity = new StepSourceEntity(
+            stepHash: 'hash-1',
+            stepSource: StepMock::class,
             sourceContent: '<?php // v1',
             time: new DateTimeImmutable('2026-01-01T00:00:00.000+00:00'),
         );
 
         $storage = $this->createMock(StorageInterface::class);
-        $storage->method('findStubSourcesByStubSource')->willReturn(new ArrayIterator([$stubSourceEntity]));
+        $storage->method('findStepSourcesByStepSource')->willReturn(new ArrayIterator([$stepSourceEntity]));
 
         $schemaController = new SchemaController($storage);
 
-        $request = Request::create('/api/flow/stub-source-list', 'GET', [
-            'stubSource' => StubMock::class,
+        $request = Request::create('/api/flow/step-source-list', 'GET', [
+            'stepSource' => StepMock::class,
         ]);
 
-        $jsonResponse = $schemaController->stubSources($request);
+        $jsonResponse = $schemaController->stepSources($request);
 
         $this->assertSame(200, $jsonResponse->getStatusCode());
 

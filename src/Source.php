@@ -8,16 +8,16 @@ use DateTimeImmutable;
 use InvalidArgumentException;
 use ReflectionClass;
 use ReflectionNamedType;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
-use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
+use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
 
 class Source
 {
     /**
-     * @var array<class-string, StubSourceEntity>
+     * @var array<class-string, StepSourceEntity>
      */
-    private static array $stubCache = [];
+    private static array $stepCache = [];
 
     /**
      * @var array<class-string, MessageSourceEntity>
@@ -27,18 +27,18 @@ class Source
     /**
      * @param class-string $source
      */
-    public static function stub(string $source): StubSourceEntity
+    public static function step(string $source): StepSourceEntity
     {
-        if (array_key_exists($source, self::$stubCache)) {
-            return self::$stubCache[$source];
+        if (array_key_exists($source, self::$stepCache)) {
+            return self::$stepCache[$source];
         }
 
         if (!class_exists($source)) {
             throw new InvalidArgumentException(sprintf('Source class "%s" does not exist.', $source));
         }
 
-        if (!is_subclass_of($source, StubInterface::class)) {
-            throw new InvalidArgumentException(sprintf('Source class "%s" does not implement stub interface.', $source));
+        if (!is_subclass_of($source, StepInterface::class)) {
+            throw new InvalidArgumentException(sprintf('Source class "%s" does not implement step interface.', $source));
         }
 
         $reflectionClass = new ReflectionClass($source);
@@ -52,16 +52,16 @@ class Source
             throw new InvalidArgumentException(sprintf('Source class "%s" is unreadable', $source));
         }
 
-        $stubSourceEntity = new StubSourceEntity(
-            stubHash: md5($fileContent),
-            stubSource: $source,
+        $stepSourceEntity = new StepSourceEntity(
+            stepHash: md5($fileContent),
+            stepSource: $source,
             sourceContent: $fileContent,
             time: new DateTimeImmutable('now'),
         );
 
-        self::$stubCache[$source] = $stubSourceEntity;
+        self::$stepCache[$source] = $stepSourceEntity;
 
-        return $stubSourceEntity;
+        return $stepSourceEntity;
     }
 
     /**

@@ -8,9 +8,9 @@ use DateTimeInterface;
 use ReflectionClass;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Wundii\Flowcrafter\Interface\StepInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
-use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
+use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
 
 final class SchemaController
 {
@@ -26,16 +26,16 @@ final class SchemaController
         return new JsonResponse(iterator_to_array($schemas));
     }
 
-    public function stubSource(Request $request): JsonResponse
+    public function stepSource(Request $request): JsonResponse
     {
         $className = $request->query->get('className', '');
-        $stubHash = $request->query->get('stubHash', '');
+        $stepHash = $request->query->get('stepHash', '');
 
         $className = $className && !str_starts_with($className, '\\') ? '\\' . $className : $className;
         if (class_exists($className)) {
-            if (!is_subclass_of($className, StubInterface::class)) {
+            if (!is_subclass_of($className, StepInterface::class)) {
                 return new JsonResponse([
-                    'error' => 'The class does not implement StubInterface',
+                    'error' => 'The class does not implement StepInterface',
                 ], 400);
             }
 
@@ -61,18 +61,18 @@ final class SchemaController
             ]);
         }
 
-        $stubSourceEntity = $this->storage->findStubSourceByHash($stubHash);
-        if (!$stubSourceEntity instanceof StubSourceEntity) {
+        $stepSourceEntity = $this->storage->findStepSourceByHash($stepHash);
+        if (!$stepSourceEntity instanceof StepSourceEntity) {
             return new JsonResponse([
-                'error' => 'Stub source not found',
+                'error' => 'Step source not found',
             ], 404);
         }
 
-        $current = class_exists($stubSourceEntity->stubSource);
-        $source = $stubSourceEntity->sourceContent;
+        $current = class_exists($stepSourceEntity->stepSource);
+        $source = $stepSourceEntity->sourceContent;
 
         if ($current) {
-            $ref = new ReflectionClass($stubSourceEntity->stubSource);
+            $ref = new ReflectionClass($stepSourceEntity->stepSource);
             $file = (string) $ref->getFileName();
 
             $current = file_exists($file);
@@ -94,20 +94,20 @@ final class SchemaController
         return new JsonResponse(iterator_to_array($messageSources));
     }
 
-    public function stubSources(Request $request): JsonResponse
+    public function stepSources(Request $request): JsonResponse
     {
-        $stubSource = $request->query->get('stubSource', '');
+        $stepSource = $request->query->get('stepSource', '');
 
-        /** @var class-string $stubSource */
-        $stubSources = $this->storage->findStubSourcesByStubSource($stubSource);
+        /** @var class-string $stepSource */
+        $stepSources = $this->storage->findStepSourcesByStepSource($stepSource);
 
         $result = [];
-        foreach ($stubSources as $stubSource) {
-            $current = class_exists($stubSource->stubSource);
-            $source = $stubSource->sourceContent;
+        foreach ($stepSources as $stepSource) {
+            $current = class_exists($stepSource->stepSource);
+            $source = $stepSource->sourceContent;
 
             if ($current) {
-                $ref = new ReflectionClass($stubSource->stubSource);
+                $ref = new ReflectionClass($stepSource->stepSource);
                 $file = (string) $ref->getFileName();
 
                 $current = file_exists($file);
@@ -119,7 +119,7 @@ final class SchemaController
             $result[] = [
                 'current' => $current,
                 'source' => $source,
-                'time' => $stubSource->time->format(DateTimeInterface::RFC3339_EXTENDED),
+                'time' => $stepSource->time->format(DateTimeInterface::RFC3339_EXTENDED),
             ];
         }
 

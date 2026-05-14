@@ -24,7 +24,7 @@ use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
-use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
+use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
 
 final class FlowStorageRedisTest extends TestCase
 {
@@ -644,7 +644,7 @@ final class FlowStorageRedisTest extends TestCase
     /**
      * @throws Exception
      */
-    public function testFindStubSource(): void
+    public function testFindStepSource(): void
     {
         $storage = $this->storage();
         $flowRunner = new FlowRunner(
@@ -659,19 +659,19 @@ final class FlowStorageRedisTest extends TestCase
         $this->assertInstanceOf(Flow::class, $flow);
         $flowMessage = $flow->getFlowMessages()[0];
 
-        $stubSource = $storage->findStubSourceByHash($flowMessage->getStubHash());
-        $this->assertInstanceOf(StubSourceEntity::class, $stubSource);
-        $this->assertSame($flowMessage->getStubHash(), $stubSource->stubHash);
-        $this->assertSame($flowMessage->getStubSource(), $stubSource->stubSource);
-        $this->assertNotEmpty($stubSource->sourceContent);
+        $stepSource = $storage->findStepSourceByHash($flowMessage->getStepHash());
+        $this->assertInstanceOf(StepSourceEntity::class, $stepSource);
+        $this->assertSame($flowMessage->getStepHash(), $stepSource->stepHash);
+        $this->assertSame($flowMessage->getStepSource(), $stepSource->stepSource);
+        $this->assertNotEmpty($stepSource->sourceContent);
 
-        $stubSources = $storage->findStubSourcesByStubSource($flowMessage->getStubSource());
-        $stubSources = iterator_to_array($stubSources);
-        $this->assertCount(1, $stubSources);
-        $this->assertInstanceOf(StubSourceEntity::class, $stubSources[0]);
-        $this->assertSame($flowMessage->getStubHash(), $stubSources[0]->stubHash);
-        $this->assertSame($flowMessage->getStubSource(), $stubSources[0]->stubSource);
-        $this->assertNotEmpty($stubSources[0]->sourceContent);
+        $stepSources = $storage->findStepSourcesByStepSource($flowMessage->getStepSource());
+        $stepSources = iterator_to_array($stepSources);
+        $this->assertCount(1, $stepSources);
+        $this->assertInstanceOf(StepSourceEntity::class, $stepSources[0]);
+        $this->assertSame($flowMessage->getStepHash(), $stepSources[0]->stepHash);
+        $this->assertSame($flowMessage->getStepSource(), $stepSources[0]->stepSource);
+        $this->assertNotEmpty($stepSources[0]->sourceContent);
     }
 
     /**

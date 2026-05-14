@@ -5,33 +5,33 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter;
 
 use JsonSerializable;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
 final readonly class FlowOutput implements JsonSerializable
 {
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
     public function __construct(
-        private string $stubSource,
+        private string $stepSource,
         private string $content,
     ) {
     }
 
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
-    public static function create(string $stubSource, string $content): self
+    public static function create(string $stepSource, string $content): self
     {
         return new self(
-            stubSource: $stubSource,
+            stepSource: $stepSource,
             content: $content,
         );
     }
 
-    public function getStubSource(): string
+    public function getStepSource(): string
     {
-        return $this->stubSource;
+        return $this->stepSource;
     }
 
     public function getContent(): string
@@ -45,7 +45,7 @@ final readonly class FlowOutput implements JsonSerializable
     public function jsonSerialize(): array
     {
         return [
-            'class' => $this->stubSource,
+            'class' => $this->stepSource,
             'content' => $this->content,
         ];
     }

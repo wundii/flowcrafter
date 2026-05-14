@@ -8,14 +8,14 @@ use InvalidArgumentException;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Interface\MessageInitInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
 class FlowBuilder
 {
     /**
-     * @var Stub[]
+     * @var Step[]
      */
-    private array $stubs = [];
+    private array $steps = [];
 
     /**
      * @param class-string<MessageInitInterface> $messageInit
@@ -49,26 +49,26 @@ class FlowBuilder
     }
 
     /**
-     * @param class-string<StubInterface> $stub
+     * @param class-string<StepInterface> $step
      */
-    public function addStub(string $stub): void
+    public function addStep(string $step): void
     {
         Assert::classString(
-            $stub,
-            StubInterface::class,
-            'Stub must be an instance of StubInterface'
+            $step,
+            StepInterface::class,
+            'Step must be an instance of StepInterface'
         );
 
-        foreach ($this->stubs as $existing) {
-            if ($existing->getSource() === $stub) {
+        foreach ($this->steps as $existing) {
+            if ($existing->getSource() === $step) {
                 throw new InvalidArgumentException(sprintf(
-                    'Stub "%s" is already added to the flow.',
-                    $stub,
+                    'Step "%s" is already added to the flow.',
+                    $step,
                 ));
             }
         }
 
-        $this->stubs[] = Stub::create($stub);
+        $this->steps[] = Step::create($step);
     }
 
     public function build(): FlowSchema
@@ -95,10 +95,10 @@ class FlowBuilder
 
         $adjacency = $this->buildAdjacencyMap();
         $this->validateNoLoops($adjacency);
-        $this->validateAllStubsConnected($adjacency);
+        $this->validateAllStepsConnected($adjacency);
         $this->validateNoDanglingReturnTypes();
 
-        return new FlowSchema($this->type, $this->stubs);
+        return new FlowSchema($this->type, $this->steps);
     }
 
     /**
@@ -107,8 +107,8 @@ class FlowBuilder
     private function collectAllMessages(): array
     {
         $messages = [];
-        foreach ($this->stubs as $stub) {
-            array_push($messages, ...$stub->getMessages());
+        foreach ($this->steps as $step) {
+            array_push($messages, ...$step->getMessages());
         }
 
         return $messages;
@@ -120,33 +120,33 @@ class FlowBuilder
     private function collectAllReturnTypes(): array
     {
         $returnTypes = [];
-        foreach ($this->stubs as $stub) {
-            array_push($returnTypes, ...$stub->getReturnTypes());
+        foreach ($this->steps as $step) {
+            array_push($returnTypes, ...$step->getReturnTypes());
         }
 
         return array_unique($returnTypes);
     }
 
     /**
-     * @return array<string, string[]> map of stub source class → list of successor stub source classes
+     * @return array<string, string[]> map of step source class → list of successor step source classes
      */
     private function buildAdjacencyMap(): array
     {
-        /** @var array<class-string, string[]> $messageToStubs message class → list of stub sources consuming it */
-        $messageToStubs = [];
-        foreach ($this->stubs as $stub) {
-            foreach ($stub->getMessages() as $messageClass) {
-                $messageToStubs[$messageClass][] = $stub->getSource();
+        /** @var array<class-string, string[]> $messageToSteps message class → list of step sources consuming it */
+        $messageToSteps = [];
+        foreach ($this->steps as $step) {
+            foreach ($step->getMessages() as $messageClass) {
+                $messageToSteps[$messageClass][] = $step->getSource();
             }
         }
 
         $adjacency = [];
-        foreach ($this->stubs as $stub) {
-            $source = $stub->getSource();
+        foreach ($this->steps as $step) {
+            $source = $step->getSource();
             $adjacency[$source] = [];
 
-            foreach ($stub->getReturnTypes() as $returnType) {
-                foreach ($messageToStubs[$returnType] ?? [] as $consumerSource) {
+            foreach ($step->getReturnTypes() as $returnType) {
+                foreach ($messageToSteps[$returnType] ?? [] as $consumerSource) {
                     $adjacency[$source][] = $consumerSource;
                 }
             }
@@ -172,7 +172,7 @@ class FlowBuilder
         foreach (array_keys($adjacency) as $node) {
             if ($color[$node] === 'white' && $this->hasCycleDfs($node, $adjacency, $color, $cyclePath)) {
                 throw new InvalidArgumentException(sprintf(
-                    'Loop detected in stub chain: %s',
+                    'Loop detected in step chain: %s',
                     implode(' -> ', $cyclePath),
                 ));
             }
@@ -210,16 +210,16 @@ class FlowBuilder
     /**
      * @param array<string, string[]> $adjacency
      */
-    private function validateAllStubsConnected(array $adjacency): void
+    private function validateAllStepsConnected(array $adjacency): void
     {
-        if ($this->stubs === []) {
+        if ($this->steps === []) {
             return;
         }
 
         $initSource = null;
-        foreach ($this->stubs as $stub) {
-            if (in_array($this->messageInit, $stub->getMessages(), true)) {
-                $initSource = $stub->getSource();
+        foreach ($this->steps as $step) {
+            if (in_array($this->messageInit, $step->getMessages(), true)) {
+                $initSource = $step->getSource();
                 break;
             }
         }
@@ -248,15 +248,15 @@ class FlowBuilder
         }
 
         $unreachable = [];
-        foreach ($this->stubs as $stub) {
-            if (!array_key_exists($stub->getSource(), $visited)) {
-                $unreachable[] = $stub->getSource();
+        foreach ($this->steps as $step) {
+            if (!array_key_exists($step->getSource(), $visited)) {
+                $unreachable[] = $step->getSource();
             }
         }
 
         if ($unreachable !== []) {
             throw new InvalidArgumentException(sprintf(
-                'The following stubs are not connected to the flow: %s',
+                'The following steps are not connected to the flow: %s',
                 implode(', ', $unreachable),
             ));
         }
@@ -266,16 +266,16 @@ class FlowBuilder
     {
         $allMessages = $this->collectAllMessages();
 
-        foreach ($this->stubs as $stub) {
-            foreach ($stub->getReturnTypes() as $returnType) {
+        foreach ($this->steps as $step) {
+            foreach ($step->getReturnTypes() as $returnType) {
                 if (is_subclass_of($returnType, MessageEnum::RETURN->interface())) {
                     continue;
                 }
 
                 if (!in_array($returnType, $allMessages, true)) {
                     throw new InvalidArgumentException(sprintf(
-                        'Stub "%s" produces message "%s" that is not consumed by any stub.',
-                        $stub->getSource(),
+                        'Step "%s" produces message "%s" that is not consumed by any step.',
+                        $step->getSource(),
                         $returnType,
                     ));
                 }

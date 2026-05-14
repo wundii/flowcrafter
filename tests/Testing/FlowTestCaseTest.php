@@ -6,18 +6,18 @@ namespace Tests\Testing;
 
 use PHPUnit\Framework\AssertionFailedError;
 use RuntimeException;
-use Tests\MockClass\BoolStubMock;
+use Tests\MockClass\BoolStepMock;
 use Tests\MockClass\DependencyConstructMock;
 use Tests\MockClass\DependencyMock;
-use Tests\MockClass\FailStubMock;
+use Tests\MockClass\FailStepMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
 use Tests\MockClass\MessageSubDataMock;
-use Tests\MockClass\NextStubMock;
-use Tests\MockClass\PostStubMock;
-use Tests\MockClass\StubMock;
+use Tests\MockClass\NextStepMock;
+use Tests\MockClass\PostStepMock;
+use Tests\MockClass\StepMock;
 use Tests\MockClass\WorkflowBoolMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
@@ -39,15 +39,15 @@ final class FlowTestCaseTest extends FlowTestCase
             ],
         );
 
-        // NextStubMock returns a non-deterministic bool (random_int) — the flow
+        // NextStepMock returns a non-deterministic bool (random_int) — the flow
         // status therefore oscillates between OK and WARNING, we only assert the
         // absence of failures here.
         $this->assertNoFlowExceptions();
         $this->assertFlowRunCount(1);
         $this->assertFlowMessageCount(6);
         $this->assertFlowResultCount(1);
-        $this->assertStubExecuted(StubMock::class);
-        $this->assertStubExecuted(PostStubMock::class);
+        $this->assertStepExecuted(StepMock::class);
+        $this->assertStepExecuted(PostStepMock::class);
         $this->assertFlowHasMessage(MessageDataMock::class);
 
         $messageReturn = $this->assertFlowReturned(MessageReturnMock::class);
@@ -66,11 +66,11 @@ final class FlowTestCaseTest extends FlowTestCase
         $this->assertTrue($result);
         $this->assertFlowStatus(StatusEnum::OK);
         $this->assertFlowBoolResult(true);
-        $this->assertFlowBoolResultFrom(BoolStubMock::class, true);
+        $this->assertFlowBoolResultFrom(BoolStepMock::class, true);
         $this->assertFlowResultCount(1);
     }
 
-    public function testAssertFlowBoolResultFromFailsWhenStubNotFound(): void
+    public function testAssertFlowBoolResultFromFailsWhenStepNotFound(): void
     {
         $this->runFlow(
             flowType: 'flow.workflow.bool.v1',
@@ -79,8 +79,8 @@ final class FlowTestCaseTest extends FlowTestCase
         );
 
         $this->expectException(AssertionFailedError::class);
-        $this->expectExceptionMessage('Expected a FlowResult from stub');
-        $this->assertFlowBoolResultFrom(FailStubMock::class, true);
+        $this->expectExceptionMessage('Expected a FlowResult from step');
+        $this->assertFlowBoolResultFrom(FailStepMock::class, true);
     }
 
     public function testAssertFlowBoolResultFromFailsOnWrongBool(): void
@@ -92,7 +92,7 @@ final class FlowTestCaseTest extends FlowTestCase
         );
 
         $this->expectException(AssertionFailedError::class);
-        $this->assertFlowBoolResultFrom(BoolStubMock::class, false);
+        $this->assertFlowBoolResultFrom(BoolStepMock::class, false);
     }
 
     public function testRunFlowFailed(): void
@@ -103,29 +103,29 @@ final class FlowTestCaseTest extends FlowTestCase
                 flowSource: WorkflowFailMock::class,
                 initMessage: new MessageInitMock('boom'),
             );
-            self::fail('Expected RuntimeException from FailStubMock was not thrown.');
+            self::fail('Expected RuntimeException from FailStepMock was not thrown.');
         } catch (RuntimeException $runtimeException) {
             $this->assertStringStartsWith('Test Exception', $runtimeException->getMessage());
         }
 
         $this->assertFlowFailed();
-        $this->assertFlowExceptionFrom(FailStubMock::class);
-        $this->assertFlowExceptionFrom(FailStubMock::class, 'Test Exception');
+        $this->assertFlowExceptionFrom(FailStepMock::class);
+        $this->assertFlowExceptionFrom(FailStepMock::class, 'Test Exception');
     }
 
-    public function testRunFlowWithIncludeStubs(): void
+    public function testRunFlowWithIncludeSteps(): void
     {
-        // NextStubMock has no return types (leaf), so expansion adds nothing downstream.
-        // OtherStubMock and PostStubMock are not reachable from NextStubMock.
+        // NextStepMock has no return types (leaf), so expansion adds nothing downstream.
+        // OtherStepMock and PostStepMock are not reachable from NextStepMock.
         $this->runFlow(
             flowType: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             initMessage: new MessageDataMock('partial'),
-            includeStubs: [NextStubMock::class],
+            includeSteps: [NextStepMock::class],
         );
 
-        $this->assertStubExecuted(NextStubMock::class);
-        $this->assertStubNotExecuted(PostStubMock::class);
+        $this->assertStepExecuted(NextStepMock::class);
+        $this->assertStepNotExecuted(PostStepMock::class);
     }
 
     public function testLastResultAndLastFlowThrowWhenNoRun(): void
@@ -161,13 +161,13 @@ final class FlowTestCaseTest extends FlowTestCase
         );
 
         $this->expectException(AssertionFailedError::class);
-        $this->assertFlowExceptionFrom(FailStubMock::class);
+        $this->assertFlowExceptionFrom(FailStepMock::class);
     }
 
-    public function testRunStubIsolated(): void
+    public function testRunStepIsolated(): void
     {
-        $result = $this->runStub(
-            stubSource: StubMock::class,
+        $result = $this->runStep(
+            stepSource: StepMock::class,
             messages: [new MessageInitMock('isolated')],
         );
 
@@ -175,27 +175,27 @@ final class FlowTestCaseTest extends FlowTestCase
         $this->assertStringStartsWith('isolated mit ', $result->getData());
     }
 
-    public function testRunStubBoolReturn(): void
+    public function testRunStepBoolReturn(): void
     {
-        $result = $this->runStub(
-            stubSource: BoolStubMock::class,
+        $result = $this->runStep(
+            stepSource: BoolStepMock::class,
             messages: [new MessageInitMock('x')],
         );
 
         $this->assertTrue($result);
 
-        $resultEmpty = $this->runStub(
-            stubSource: BoolStubMock::class,
+        $resultEmpty = $this->runStep(
+            stepSource: BoolStepMock::class,
             messages: [new MessageInitMock('')],
         );
 
         $this->assertFalse($resultEmpty);
     }
 
-    public function testRunStubWithDependencies(): void
+    public function testRunStepWithDependencies(): void
     {
-        $result = $this->runStub(
-            stubSource: PostStubMock::class,
+        $result = $this->runStep(
+            stepSource: PostStepMock::class,
             messages: [
                 new MessageDataMock('first'),
                 new MessageDataSecondMock('second', new MessageSubDataMock('sub')),

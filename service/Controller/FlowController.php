@@ -168,8 +168,8 @@ final class FlowController
         $flowHash = Assert::string($body['flowHash'] ?? '');
         $messageSource = Assert::string($body['messageSource'] ?? '');
         $message = Assert::array($body['message'] ?? []);
-        /** @var class-string[] $includeStubs */
-        $includeStubs = Assert::array($body['includeStubs'] ?? []);
+        /** @var class-string[] $includeSteps */
+        $includeSteps = Assert::array($body['includeSteps'] ?? []);
         $messageReturn = null;
 
         $isEmptyInitMessage = is_a($messageSource, EmptyInitMessage::class, true);
@@ -221,7 +221,7 @@ final class FlowController
             $messageReturn = $flowRunner->run(
                 message: $messageInstance,
                 flowHash: $flowHash,
-                includeStubs: $includeStubs,
+                includeSteps: $includeSteps,
             );
         } catch (InvalidArgumentException $invalidArgumentException) {
             return new JsonResponse([

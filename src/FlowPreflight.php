@@ -52,9 +52,9 @@ final readonly class FlowPreflight
         Source::message($messageSource);
 
         $schema = $flowSource::schema();
-        if (!array_key_exists($messageSource, $schema->getMessageToSubsMap())) {
+        if (!array_key_exists($messageSource, $schema->getMessageToStepsMap())) {
             throw new InvalidArgumentException(sprintf(
-                'messageSource "%s" is not consumed by any stub in flow "%s".',
+                'messageSource "%s" is not consumed by any step in flow "%s".',
                 $messageSource,
                 $flowSource,
             ));

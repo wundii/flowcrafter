@@ -20,8 +20,8 @@ use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\ObserverException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
@@ -29,7 +29,7 @@ use Wundii\Flowcrafter\Storage\Config\RedisConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
-use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
+use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
 use Wundii\Flowcrafter\Uuid;
 
 class Redis extends Service implements StorageInterface
@@ -48,7 +48,7 @@ class Redis extends Service implements StorageInterface
 
     public const PREFIX_TYPE_SOURCE_MESSAGE = 'flow:source:message:';
 
-    public const PREFIX_TYPE_SOURCE_STUB = 'flow:source:stub:';
+    public const PREFIX_TYPE_SOURCE_STEP = 'flow:source:step:';
 
     private const INDEX_INSTANCE = 'idx:flow';
 
@@ -64,7 +64,7 @@ class Redis extends Service implements StorageInterface
 
     private const INDEX_SOURCE_MESSAGE = 'idx:flow:source:message';
 
-    private const INDEX_SOURCE_STUB = 'idx:flow:source:stub';
+    private const INDEX_SOURCE_STEP = 'idx:flow:source:step';
 
     protected Client $client;
 
@@ -159,9 +159,9 @@ class Redis extends Service implements StorageInterface
             'AS',
             'type',
             'TAG',
-            '$.stubs[*].source',
+            '$.steps[*].source',
             'AS',
-            'stubSource',
+            'stepSource',
             'TAG',
         );
 
@@ -193,26 +193,26 @@ class Redis extends Service implements StorageInterface
             'SORTABLE',
         );
 
-        if ($this->existIndex(self::INDEX_SOURCE_STUB)) {
-            $this->client->rawCommand('FT.DROPINDEX', self::INDEX_SOURCE_STUB);
+        if ($this->existIndex(self::INDEX_SOURCE_STEP)) {
+            $this->client->rawCommand('FT.DROPINDEX', self::INDEX_SOURCE_STEP);
         }
 
         $this->client->rawCommand(
             'FT.CREATE',
-            self::INDEX_SOURCE_STUB,
+            self::INDEX_SOURCE_STEP,
             'ON',
             'JSON',
             'PREFIX',
             '1',
-            self::PREFIX_TYPE_SOURCE_STUB,
+            self::PREFIX_TYPE_SOURCE_STEP,
             'SCHEMA',
-            '$.stubHash',
+            '$.stepHash',
             'AS',
-            'stubHash',
+            'stepHash',
             'TAG',
-            '$.stubSource',
+            '$.stepSource',
             'AS',
-            'stubSource',
+            'stepSource',
             'TAG',
             '$.sourceContent',
             'AS',
@@ -322,13 +322,13 @@ class Redis extends Service implements StorageInterface
             'AS',
             'flowRuntimeHash',
             'TAG',
-            '$.stubSource',
+            '$.stepSource',
             'AS',
-            'stubSource',
+            'stepSource',
             'TAG',
-            '$.stubHash',
+            '$.stepHash',
             'AS',
-            'stubHash',
+            'stepHash',
             'TAG',
             '$.messageHash',
             'AS',
@@ -377,13 +377,13 @@ class Redis extends Service implements StorageInterface
             'AS',
             'flowType',
             'TAG',
-            '$.stubSource',
+            '$.stepSource',
             'AS',
-            'stubSource',
+            'stepSource',
             'TAG',
-            '$.stubHash',
+            '$.stepHash',
             'AS',
-            'stubHash',
+            'stepHash',
             'TAG',
             '$.code',
             'AS',
@@ -438,13 +438,13 @@ class Redis extends Service implements StorageInterface
             'AS',
             'flowRuntimeHash',
             'TAG',
-            '$.stubSource',
+            '$.stepSource',
             'AS',
-            'stubSource',
+            'stepSource',
             'TAG',
-            '$.stubHash',
+            '$.stepHash',
             'AS',
-            'stubHash',
+            'stepHash',
             'TAG',
             '$.result',
             'AS',
@@ -502,15 +502,15 @@ class Redis extends Service implements StorageInterface
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
 
-    public function registerStubSource(StubSourceEntity $stubSourceEntity): void
+    public function registerStepSource(StepSourceEntity $stepSourceEntity): void
     {
-        $key = self::PREFIX_TYPE_SOURCE_STUB . $stubSourceEntity->stubHash;
+        $key = self::PREFIX_TYPE_SOURCE_STEP . $stepSourceEntity->stepHash;
         if ($this->client->exists($key)) {
             return;
         }
 
-        $data = $stubSourceEntity->jsonSerialize();
-        $data['time'] = $stubSourceEntity->time->getTimestamp();
+        $data = $stepSourceEntity->jsonSerialize();
+        $data['time'] = $stepSourceEntity->time->getTimestamp();
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
@@ -623,7 +623,7 @@ class Redis extends Service implements StorageInterface
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeStubs = [], ?string $flowSubject = null): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);
@@ -634,7 +634,7 @@ class Redis extends Service implements StorageInterface
             'flowHash' => $flowHash,
             'messageSource' => $messageSource,
             'message' => $message,
-            'includeStubs' => $includeStubs,
+            'includeSteps' => $includeSteps,
             'flowSubject' => $flowSubject,
         ];
 
@@ -667,7 +667,7 @@ class Redis extends Service implements StorageInterface
                 throw new RuntimeException('The flow message payload must be a valid JSON object.');
             }
 
-            /** @var array{type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeStubs?: class-string[], flowSubject?: ?string} $payload */
+            /** @var array{type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeSteps?: class-string[], flowSubject?: ?string} $payload */
             yield new ObserveItem(
                 queueId: Uuid::uuid7(new DateTimeImmutable())->toString(),
                 type: $payload['type'],
@@ -676,7 +676,7 @@ class Redis extends Service implements StorageInterface
                 flowHash: $payload['flowHash'],
                 messageSource: $payload['messageSource'],
                 message: $payload['message'],
-                includeStubs: $payload['includeStubs'] ?? [],
+                includeSteps: $payload['includeSteps'] ?? [],
             );
         }
     }
@@ -708,11 +708,11 @@ class Redis extends Service implements StorageInterface
     {
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SCHEMA, '*');
         foreach (self::fetchData($result) as $event) {
-            /** @var array{schemaHash: string, type: string, stubs: array<mixed>} $event */
+            /** @var array{schemaHash: string, type: string, steps: array<mixed>} $event */
             yield new FlowSchemaEntity(
                 $event['schemaHash'],
                 $event['type'],
-                $event['stubs'],
+                $event['steps'],
             );
         }
     }
@@ -759,7 +759,7 @@ class Redis extends Service implements StorageInterface
                 continue;
             }
 
-            /** @var array{queueId: string, type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: null|array<mixed>, includeStubs?: class-string[], flowSubject?: ?string} $payload */
+            /** @var array{queueId: string, type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: null|array<mixed>, includeSteps?: class-string[], flowSubject?: ?string} $payload */
             yield new ObserveItem(
                 queueId: $payload['queueId'],
                 type: $payload['type'],
@@ -768,7 +768,7 @@ class Redis extends Service implements StorageInterface
                 flowHash: $payload['flowHash'],
                 messageSource: $payload['messageSource'],
                 message: $payload['message'],
-                includeStubs: $payload['includeStubs'] ?? [],
+                includeSteps: $payload['includeSteps'] ?? [],
             );
         }
     }
@@ -869,45 +869,45 @@ class Redis extends Service implements StorageInterface
         return $this->findFlowByHash($flowHash);
     }
 
-    public function findStubSourceByHash(string $stubHash): ?StubSourceEntity
+    public function findStepSourceByHash(string $stepHash): ?StepSourceEntity
     {
-        if ($stubHash === '' || $stubHash === '*') {
+        if ($stepHash === '' || $stepHash === '*') {
             return null;
         }
 
-        $stubHash = self::escapeValue($stubHash);
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SOURCE_STUB, '@stubHash:{' . $stubHash . '}', 'RETURN', '1', '$');
-        $stubSourceArray = self::fetchData($result)[0] ?? [];
+        $stepHash = self::escapeValue($stepHash);
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SOURCE_STEP, '@stepHash:{' . $stepHash . '}', 'RETURN', '1', '$');
+        $stepSourceArray = self::fetchData($result)[0] ?? [];
 
-        if ($stubSourceArray === []) {
+        if ($stepSourceArray === []) {
             return null;
         }
 
-        /** @var array{stubHash: string, stubSource: class-string<StubInterface>, sourceContent: string, time: int} $stubSourceArray */
-        return new StubSourceEntity(
-            stubHash: $stubSourceArray['stubHash'],
-            stubSource: $stubSourceArray['stubSource'],
-            sourceContent: $stubSourceArray['sourceContent'],
-            time: new DateTimeImmutable('@' . $stubSourceArray['time']),
+        /** @var array{stepHash: string, stepSource: class-string<StepInterface>, sourceContent: string, time: int} $stepSourceArray */
+        return new StepSourceEntity(
+            stepHash: $stepSourceArray['stepHash'],
+            stepSource: $stepSourceArray['stepSource'],
+            sourceContent: $stepSourceArray['sourceContent'],
+            time: new DateTimeImmutable('@' . $stepSourceArray['time']),
         );
     }
 
     /**
-     * @param class-string $stubSource
-     * @return iterable<StubSourceEntity>
+     * @param class-string $stepSource
+     * @return iterable<StepSourceEntity>
      */
-    public function findStubSourcesByStubSource(string $stubSource): iterable
+    public function findStepSourcesByStepSource(string $stepSource): iterable
     {
-        $stubSource = self::escapeValue($stubSource);
+        $stepSource = self::escapeValue($stepSource);
 
-        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SOURCE_STUB, '@stubSource:{' . $stubSource . '}', 'RETURN', '1', '$');
-        foreach (self::fetchData($result) as $stubSourceEvent) {
-            /** @var array{stubHash: string, stubSource: class-string<StubInterface>, sourceContent: string, time: int} $stubSourceEvent */
-            yield new StubSourceEntity(
-                stubHash: $stubSourceEvent['stubHash'],
-                stubSource: $stubSourceEvent['stubSource'],
-                sourceContent: $stubSourceEvent['sourceContent'],
-                time: new DateTimeImmutable('@' . $stubSourceEvent['time']),
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_SOURCE_STEP, '@stepSource:{' . $stepSource . '}', 'RETURN', '1', '$');
+        foreach (self::fetchData($result) as $stepSourceEvent) {
+            /** @var array{stepHash: string, stepSource: class-string<StepInterface>, sourceContent: string, time: int} $stepSourceEvent */
+            yield new StepSourceEntity(
+                stepHash: $stepSourceEvent['stepHash'],
+                stepSource: $stepSourceEvent['stepSource'],
+                sourceContent: $stepSourceEvent['sourceContent'],
+                time: new DateTimeImmutable('@' . $stepSourceEvent['time']),
             );
         }
     }

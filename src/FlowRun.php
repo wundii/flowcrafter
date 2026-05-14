@@ -11,9 +11,9 @@ use JsonSerializable;
 class FlowRun implements JsonSerializable
 {
     /**
-     * @var StubTiming[]
+     * @var StepTiming[]
      */
-    private array $stubTimings = [];
+    private array $stepTimings = [];
 
     public function __construct(
         private readonly string $flowHash,
@@ -66,19 +66,19 @@ class FlowRun implements JsonSerializable
     }
 
     /**
-     * @param StubTiming[] $stubTimings
+     * @param StepTiming[] $stepTimings
      */
-    public function setStubTimings(array $stubTimings): void
+    public function setStepTimings(array $stepTimings): void
     {
-        $this->stubTimings = $stubTimings;
+        $this->stepTimings = $stepTimings;
     }
 
     /**
-     * @return StubTiming[]
+     * @return StepTiming[]
      */
-    public function getStubTimings(): array
+    public function getStepTimings(): array
     {
-        return $this->stubTimings;
+        return $this->stepTimings;
     }
 
     /**
@@ -90,7 +90,7 @@ class FlowRun implements JsonSerializable
             'flowHash' => $this->flowHash,
             'flowRuntimeHash' => $this->flowRuntimeHash,
             'flowType' => $this->flowType,
-            'flowStubTimings' => $this->stubTimings,
+            'flowStepTimings' => $this->stepTimings,
             'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
             'queueId' => $this->queueId,
         ];

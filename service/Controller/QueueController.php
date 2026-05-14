@@ -51,8 +51,8 @@ final class QueueController
         $flowHash = Assert::nullOrString($body['flowHash'] ?? null);
         $messageSource = Assert::string($body['messageSource'] ?? '');
         $message = Assert::nullOrArray($body['message'] ?? null);
-        /** @var class-string[] $includeStubs */
-        $includeStubs = Assert::array($body['includeStubs'] ?? []);
+        /** @var class-string[] $includeSteps */
+        $includeSteps = Assert::array($body['includeSteps'] ?? []);
         $flowType = Assert::string($body['type'] ?? '');
         $flowSource = Assert::string($body['flowSource'] ?? '');
         $flowSubject = Assert::nullOrString($body['flowSubject'] ?? null);
@@ -93,7 +93,7 @@ final class QueueController
                 flowHash: $flowHash,
                 messageSource: $messageSource,
                 message: $message,
-                includeStubs: $includeStubs,
+                includeSteps: $includeSteps,
                 flowSubject: $flowSubject,
             );
         } catch (Throwable $throwable) {

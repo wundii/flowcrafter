@@ -9,28 +9,28 @@ use RuntimeException;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
 class FlowSchema implements JsonSerializable
 {
     private ?string $hash = null;
 
     /**
-     * @var array<class-string<MessageInterface>, Stub[]>|null
+     * @var array<class-string<MessageInterface>, Step[]>|null
      */
-    private ?array $messageToSubsMap = null;
+    private ?array $messageToStepsMap = null;
 
     /**
-     * @var Stub[]|null
+     * @var Step[]|null
      */
-    private ?array $leafStubs = null;
+    private ?array $leafSteps = null;
 
     /**
-     * @param Stub[] $stubs
+     * @param Step[] $steps
      */
     public function __construct(
         private readonly string $type,
-        private readonly array $stubs,
+        private readonly array $steps,
     ) {
     }
 
@@ -53,28 +53,28 @@ class FlowSchema implements JsonSerializable
         return $this->type;
     }
 
-    public function initStub(): Stub
+    public function initStep(): Step
     {
-        $stubs = array_filter(
-            $this->stubs,
-            static fn (Stub $stub): bool => $stub->getMessageEnum() === MessageEnum::INIT,
+        $steps = array_filter(
+            $this->steps,
+            static fn (Step $step): bool => $step->getMessageEnum() === MessageEnum::INIT,
         );
 
-        return reset($stubs) ?: throw new RuntimeException('No INIT stub found in the schema.');
+        return reset($steps) ?: throw new RuntimeException('No INIT step found in the schema.');
     }
 
     /**
-     * @return Stub[]
+     * @return Step[]
      */
-    public function stubs(): array
+    public function steps(): array
     {
-        return $this->stubs;
+        return $this->steps;
     }
 
     /**
-     * @return Stub[]
+     * @return Step[]
      */
-    public function stubByMessageClass(string $messageClass): array
+    public function stepByMessageClass(string $messageClass): array
     {
         Assert::classString(
             $messageClass,
@@ -82,52 +82,52 @@ class FlowSchema implements JsonSerializable
             sprintf('Class "%s" does not implement MessageInterface.', $messageClass),
         );
 
-        $stubs = array_filter(
-            $this->stubs,
-            static fn (Stub $stub): bool => in_array($messageClass, $stub->getMessages(), true)
+        $steps = array_filter(
+            $this->steps,
+            static fn (Step $step): bool => in_array($messageClass, $step->getMessages(), true)
         );
 
-        return array_values($stubs);
+        return array_values($steps);
     }
 
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
-    public function stubBySource(string $stubSource): Stub
+    public function stepBySource(string $stepSource): Step
     {
         Assert::classString(
-            $stubSource,
-            StubInterface::class,
-            sprintf('Class "%s" does not implement StubInterface.', $stubSource),
+            $stepSource,
+            StepInterface::class,
+            sprintf('Class "%s" does not implement StepInterface.', $stepSource),
         );
 
-        foreach ($this->stubs as $stub) {
-            if ($stub->getSource() === $stubSource) {
-                return $stub;
+        foreach ($this->steps as $step) {
+            if ($step->getSource() === $stepSource) {
+                return $step;
             }
         }
 
-        throw new RuntimeException(sprintf('No stub found with source "%s".', $stubSource));
+        throw new RuntimeException(sprintf('No step found with source "%s".', $stepSource));
     }
 
     /**
-     * @return array<class-string<MessageInterface>, Stub[]>
+     * @return array<class-string<MessageInterface>, Step[]>
      */
-    public function getMessageToSubsMap(): array
+    public function getMessageToStepsMap(): array
     {
-        if ($this->messageToSubsMap !== null) {
-            return $this->messageToSubsMap;
+        if ($this->messageToStepsMap !== null) {
+            return $this->messageToStepsMap;
         }
 
         $map = [];
 
-        foreach ($this->stubs as $stub) {
-            foreach ($stub->getMessages() as $messageClass) {
-                $map[$messageClass][] = $stub;
+        foreach ($this->steps as $step) {
+            foreach ($step->getMessages() as $messageClass) {
+                $map[$messageClass][] = $step;
             }
         }
 
-        $this->messageToSubsMap = $map;
+        $this->messageToStepsMap = $map;
 
         return $map;
     }
@@ -149,24 +149,24 @@ class FlowSchema implements JsonSerializable
     }
 
     /**
-     * @return Stub[]
+     * @return Step[]
      */
-    public function getLeafStubs(): array
+    public function getLeafSteps(): array
     {
-        if ($this->leafStubs !== null) {
-            return $this->leafStubs;
+        if ($this->leafSteps !== null) {
+            return $this->leafSteps;
         }
 
         $allMessages = [];
 
-        foreach ($this->stubs as $stub) {
-            foreach ($stub->getMessages() as $message) {
+        foreach ($this->steps as $step) {
+            foreach ($step->getMessages() as $message) {
                 $allMessages[] = $message;
             }
         }
 
-        $this->leafStubs = array_values(array_filter($this->stubs, function (Stub $stub) use ($allMessages): bool {
-            foreach ($stub->getReturnTypes() as $returnType) {
+        $this->leafSteps = array_values(array_filter($this->steps, function (Step $step) use ($allMessages): bool {
+            foreach ($step->getReturnTypes() as $returnType) {
                 if (in_array($returnType, $allMessages, true)) {
                     return false;
                 }
@@ -175,7 +175,7 @@ class FlowSchema implements JsonSerializable
             return true;
         }));
 
-        return $this->leafStubs;
+        return $this->leafSteps;
     }
 
     /**
@@ -185,7 +185,7 @@ class FlowSchema implements JsonSerializable
     {
         return [
             'type' => $this->type,
-            'stubs' => $this->stubs,
+            'steps' => $this->steps,
         ];
     }
 }

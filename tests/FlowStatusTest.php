@@ -11,10 +11,10 @@ use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
 use Tests\MockClass\MessageSubDataMock;
-use Tests\MockClass\NextStubMock;
-use Tests\MockClass\OtherStubMock;
-use Tests\MockClass\PostStubMock;
-use Tests\MockClass\StubMock;
+use Tests\MockClass\NextStepMock;
+use Tests\MockClass\OtherStepMock;
+use Tests\MockClass\PostStepMock;
+use Tests\MockClass\StepMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
@@ -46,8 +46,8 @@ final class FlowStatusTest extends TestCase
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class));
-        $flow->addMessage($this->makeMessage($flow, PostStubMock::class));
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class));
+        $flow->addMessage($this->makeMessage($flow, PostStepMock::class));
 
         $this->assertSame(StatusEnum::OK, $flow->status());
     }
@@ -56,7 +56,7 @@ final class FlowStatusTest extends TestCase
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class));
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class));
 
         $this->assertSame(StatusEnum::IN_PROGRESS, $flow->status());
     }
@@ -65,8 +65,8 @@ final class FlowStatusTest extends TestCase
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class, 'old-runtime-hash'));
-        $flow->addMessage($this->makeMessage($flow, PostStubMock::class, 'old-runtime-hash'));
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class, 'old-runtime-hash'));
+        $flow->addMessage($this->makeMessage($flow, PostStepMock::class, 'old-runtime-hash'));
 
         $this->assertSame(StatusEnum::IN_PROGRESS, $flow->status());
     }
@@ -93,8 +93,8 @@ final class FlowStatusTest extends TestCase
         $time = new DateTimeImmutable('-2 hours');
         $flow = $this->createFlow($time);
         $flow->addRun(null, $time);
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class));
-        $flow->addMessage($this->makeMessage($flow, PostStubMock::class));
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class));
+        $flow->addMessage($this->makeMessage($flow, PostStepMock::class));
 
         $this->assertSame(StatusEnum::OK, $flow->status());
     }
@@ -103,13 +103,13 @@ final class FlowStatusTest extends TestCase
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class));
-        $flow->addMessage($this->makeMessage($flow, PostStubMock::class));
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class));
+        $flow->addMessage($this->makeMessage($flow, PostStepMock::class));
         $flow->addResult(FlowResult::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: $flow->getRuntimeHash(),
-            stubSource: NextStubMock::class,
-            stubHash: 'stub-hash',
+            stepSource: NextStepMock::class,
+            stepHash: 'step-hash',
             result: false,
         ));
 
@@ -120,13 +120,13 @@ final class FlowStatusTest extends TestCase
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class));
-        $flow->addMessage($this->makeMessage($flow, PostStubMock::class));
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class));
+        $flow->addMessage($this->makeMessage($flow, PostStepMock::class));
         $flow->addResult(FlowResult::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: $flow->getRuntimeHash(),
-            stubSource: NextStubMock::class,
-            stubHash: 'stub-hash',
+            stepSource: NextStepMock::class,
+            stepHash: 'step-hash',
             result: true,
         ));
 
@@ -137,12 +137,12 @@ final class FlowStatusTest extends TestCase
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class));
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class));
         $flow->addResult(FlowResult::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: $flow->getRuntimeHash(),
-            stubSource: NextStubMock::class,
-            stubHash: 'stub-hash',
+            stepSource: NextStepMock::class,
+            stepHash: 'step-hash',
             result: false,
         ));
 
@@ -153,13 +153,13 @@ final class FlowStatusTest extends TestCase
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class));
-        $flow->addMessage($this->makeMessage($flow, PostStubMock::class));
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class));
+        $flow->addMessage($this->makeMessage($flow, PostStepMock::class));
         $flow->addResult(FlowResult::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: 'old-runtime-hash',
-            stubSource: NextStubMock::class,
-            stubHash: 'stub-hash',
+            stepSource: NextStepMock::class,
+            stepHash: 'step-hash',
             result: false,
         ));
 
@@ -174,8 +174,8 @@ final class FlowStatusTest extends TestCase
             flowHash: $flow->getHash(),
             flowRuntimeHash: $flow->getRuntimeHash(),
             flowType: 'flow.workflow.v1',
-            stubSource: NextStubMock::class,
-            stubHash: 'stub-hash',
+            stepSource: NextStepMock::class,
+            stepHash: 'step-hash',
             code: 500,
             message: 'something went wrong',
             file: __FILE__,
@@ -190,14 +190,14 @@ final class FlowStatusTest extends TestCase
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class));
-        $flow->addMessage($this->makeMessage($flow, PostStubMock::class));
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class));
+        $flow->addMessage($this->makeMessage($flow, PostStepMock::class));
         $flow->addException(FlowException::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: 'old-runtime-hash',
             flowType: 'flow.workflow.v1',
-            stubSource: NextStubMock::class,
-            stubHash: 'stub-hash',
+            stepSource: NextStepMock::class,
+            stepHash: 'step-hash',
             code: 500,
             message: 'old exception',
             file: __FILE__,
@@ -212,21 +212,21 @@ final class FlowStatusTest extends TestCase
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class));
-        $flow->addMessage($this->makeMessage($flow, PostStubMock::class));
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class));
+        $flow->addMessage($this->makeMessage($flow, PostStepMock::class));
         $flow->addResult(FlowResult::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: $flow->getRuntimeHash(),
-            stubSource: NextStubMock::class,
-            stubHash: 'stub-hash',
+            stepSource: NextStepMock::class,
+            stepHash: 'step-hash',
             result: false,
         ));
         $flow->addException(FlowException::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: $flow->getRuntimeHash(),
             flowType: 'flow.workflow.v1',
-            stubSource: PostStubMock::class,
-            stubHash: 'stub-hash',
+            stepSource: PostStepMock::class,
+            stepHash: 'step-hash',
             code: 500,
             message: 'fatal error',
             file: __FILE__,
@@ -237,37 +237,37 @@ final class FlowStatusTest extends TestCase
         $this->assertSame(StatusEnum::FAILED, $flow->status());
     }
 
-    public function testIncludeStubsFiltersIrrelevantLeaf(): void
+    public function testIncludeStepsFiltersIrrelevantLeaf(): void
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->setIncludeStubs([NextStubMock::class]);
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class));
+        $flow->setIncludeSteps([NextStepMock::class]);
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class));
 
         $this->assertSame(StatusEnum::OK, $flow->status());
     }
 
-    public function testIncludeStubsWithoutLeafInLastRunIsOk(): void
+    public function testIncludeStepsWithoutLeafInLastRunIsOk(): void
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->setIncludeStubs([OtherStubMock::class]);
-        $flow->addMessage($this->makeMessage($flow, OtherStubMock::class));
+        $flow->setIncludeSteps([OtherStepMock::class]);
+        $flow->addMessage($this->makeMessage($flow, OtherStepMock::class));
 
         $this->assertSame(StatusEnum::OK, $flow->status());
     }
 
-    public function testIncludeStubsRelevantLeafReachedViaAndJoinInput(): void
+    public function testIncludeStepsRelevantLeafReachedViaAndJoinInput(): void
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->setIncludeStubs([OtherStubMock::class]);
-        $flow->addMessage($this->makeMessage($flow, OtherStubMock::class));
+        $flow->setIncludeSteps([OtherStepMock::class]);
+        $flow->addMessage($this->makeMessage($flow, OtherStepMock::class));
         $flow->addMessage(FlowMessage::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: $flow->getRuntimeHash(),
-            stubSource: PostStubMock::class,
-            stubHash: 'stub-hash',
+            stepSource: PostStepMock::class,
+            stepHash: 'step-hash',
             messageTypeEnum: MessageTypeEnum::FINISH,
             messageHash: Source::message(MessageDataSecondMock::class)->messageHash,
             message: new MessageDataSecondMock('test', new MessageSubDataMock('alien')),
@@ -277,11 +277,11 @@ final class FlowStatusTest extends TestCase
         $this->assertSame(StatusEnum::OK, $flow->status());
     }
 
-    public function testIncludeStubsWithoutIncludeStubsChecksBothLeafs(): void
+    public function testIncludeStepsWithoutIncludeStepsChecksBothLeafs(): void
     {
         $flow = $this->createFlow();
         $flow->addRun();
-        $flow->addMessage($this->makeMessage($flow, NextStubMock::class));
+        $flow->addMessage($this->makeMessage($flow, NextStepMock::class));
 
         $this->assertSame(StatusEnum::IN_PROGRESS, $flow->status());
     }
@@ -301,28 +301,28 @@ final class FlowStatusTest extends TestCase
             'flowType' => 'flow.workflow.v1',
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
-                'stubs' => [
+                'steps' => [
                     [
-                        'source' => StubMock::class,
+                        'source' => StepMock::class,
                         'messageEnum' => 'init',
                         'messages' => [MessageInitMock::class],
                         'returnTypes' => [MessageDataMock::class],
                     ],
                     [
-                        'source' => NextStubMock::class,
-                        'messageEnum' => 'stub',
+                        'source' => NextStepMock::class,
+                        'messageEnum' => 'step',
                         'messages' => [MessageDataMock::class],
                         'returnTypes' => [],
                     ],
                     [
-                        'source' => OtherStubMock::class,
-                        'messageEnum' => 'stub',
+                        'source' => OtherStepMock::class,
+                        'messageEnum' => 'step',
                         'messages' => [MessageDataMock::class],
                         'returnTypes' => [MessageDataSecondMock::class],
                     ],
                     [
-                        'source' => PostStubMock::class,
-                        'messageEnum' => 'stub',
+                        'source' => PostStepMock::class,
+                        'messageEnum' => 'step',
                         'messages' => [MessageDataMock::class, MessageDataSecondMock::class],
                         'returnTypes' => [MessageReturnMock::class],
                     ],
@@ -335,8 +335,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run4Hash,
-                    'stubSource' => NextStubMock::class,
-                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'stepSource' => NextStepMock::class,
+                    'stepHash' => '4b8cb9b50c0221f29b01127972094971',
                     'messageType' => 'finish',
                     'messageSource' => MessageDataMock::class,
                     'message' => [
@@ -349,8 +349,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run1Hash,
-                    'stubSource' => PostStubMock::class,
-                    'stubHash' => 'ff59175d198b078258ce53be2142d063',
+                    'stepSource' => PostStepMock::class,
+                    'stepHash' => 'ff59175d198b078258ce53be2142d063',
                     'messageType' => 'finish',
                     'messageSource' => MessageDataSecondMock::class,
                     'message' => [
@@ -363,8 +363,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run1Hash,
-                    'stubSource' => NextStubMock::class,
-                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'stepSource' => NextStepMock::class,
+                    'stepHash' => '4b8cb9b50c0221f29b01127972094971',
                     'messageType' => 'finish',
                     'messageSource' => MessageDataMock::class,
                     'message' => [
@@ -377,8 +377,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run1Hash,
-                    'stubSource' => PostStubMock::class,
-                    'stubHash' => 'ff59175d198b078258ce53be2142d063',
+                    'stepSource' => PostStepMock::class,
+                    'stepHash' => 'ff59175d198b078258ce53be2142d063',
                     'messageType' => 'finish',
                     'messageSource' => MessageDataMock::class,
                     'message' => [
@@ -391,8 +391,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run1Hash,
-                    'stubSource' => OtherStubMock::class,
-                    'stubHash' => '0c424a4b88caeb050472b7dc8d4cc522',
+                    'stepSource' => OtherStepMock::class,
+                    'stepHash' => '0c424a4b88caeb050472b7dc8d4cc522',
                     'messageType' => 'finish',
                     'messageSource' => MessageDataMock::class,
                     'message' => [
@@ -405,8 +405,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run2Hash,
-                    'stubSource' => NextStubMock::class,
-                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'stepSource' => NextStepMock::class,
+                    'stepHash' => '4b8cb9b50c0221f29b01127972094971',
                     'messageType' => 'finish',
                     'messageSource' => MessageDataMock::class,
                     'message' => [
@@ -419,8 +419,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run1Hash,
-                    'stubSource' => PostStubMock::class,
-                    'stubHash' => 'ff59175d198b078258ce53be2142d063',
+                    'stepSource' => PostStepMock::class,
+                    'stepHash' => 'ff59175d198b078258ce53be2142d063',
                     'messageType' => 'finish',
                     'messageSource' => MessageReturnMock::class,
                     'message' => [
@@ -434,8 +434,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run3Hash,
-                    'stubSource' => NextStubMock::class,
-                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'stepSource' => NextStepMock::class,
+                    'stepHash' => '4b8cb9b50c0221f29b01127972094971',
                     'messageType' => 'finish',
                     'messageSource' => MessageDataMock::class,
                     'message' => [
@@ -448,8 +448,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run1Hash,
-                    'stubSource' => StubMock::class,
-                    'stubHash' => 'b8ac5971875756a83b4ce0552d3de0a3',
+                    'stepSource' => StepMock::class,
+                    'stepHash' => 'b8ac5971875756a83b4ce0552d3de0a3',
                     'messageType' => 'finish',
                     'messageSource' => MessageInitMock::class,
                     'message' => [
@@ -462,8 +462,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run5Hash,
-                    'stubSource' => NextStubMock::class,
-                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'stepSource' => NextStepMock::class,
+                    'stepHash' => '4b8cb9b50c0221f29b01127972094971',
                     'messageType' => 'finish',
                     'messageSource' => MessageDataMock::class,
                     'message' => [
@@ -479,8 +479,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run1Hash,
-                    'stubSource' => NextStubMock::class,
-                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'stepSource' => NextStepMock::class,
+                    'stepHash' => '4b8cb9b50c0221f29b01127972094971',
                     'result' => false,
                     'time' => '2026-03-31T06:39:57.000+00:00',
                     'hash' => '019d429e-d1d7-7370-911b-f61113310c27',
@@ -488,8 +488,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run2Hash,
-                    'stubSource' => NextStubMock::class,
-                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'stepSource' => NextStepMock::class,
+                    'stepHash' => '4b8cb9b50c0221f29b01127972094971',
                     'result' => true,
                     'time' => '2026-03-31T06:51:35.000+00:00',
                     'hash' => '019d42a9-7611-7260-9d2a-ee40d6138596',
@@ -497,8 +497,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run3Hash,
-                    'stubSource' => NextStubMock::class,
-                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'stepSource' => NextStepMock::class,
+                    'stepHash' => '4b8cb9b50c0221f29b01127972094971',
                     'result' => true,
                     'time' => '2026-03-31T06:54:42.000+00:00',
                     'hash' => '019d42ac-508b-7209-bb05-0f551526ae65',
@@ -506,8 +506,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run4Hash,
-                    'stubSource' => NextStubMock::class,
-                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'stepSource' => NextStepMock::class,
+                    'stepHash' => '4b8cb9b50c0221f29b01127972094971',
                     'result' => true,
                     'time' => '2026-03-31T07:24:51.000+00:00',
                     'hash' => '019d42c7-ed32-7161-ba2e-25573ce671d7',
@@ -515,8 +515,8 @@ final class FlowStatusTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $run5Hash,
-                    'stubSource' => NextStubMock::class,
-                    'stubHash' => '4b8cb9b50c0221f29b01127972094971',
+                    'stepSource' => NextStepMock::class,
+                    'stepHash' => '4b8cb9b50c0221f29b01127972094971',
                     'result' => true,
                     'time' => '2026-03-31T08:58:26.000+00:00',
                     'hash' => '019d431d-990f-707f-9062-1ad83987bd4e',
@@ -574,15 +574,15 @@ final class FlowStatusTest extends TestCase
     }
 
     /**
-     * @param class-string $stubSource
+     * @param class-string $stepSource
      */
-    private function makeMessage(Flow $flow, string $stubSource, ?string $runtimeHash = null): FlowMessage
+    private function makeMessage(Flow $flow, string $stepSource, ?string $runtimeHash = null): FlowMessage
     {
         return FlowMessage::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: $runtimeHash ?? $flow->getRuntimeHash(),
-            stubSource: $stubSource,
-            stubHash: 'stub-hash',
+            stepSource: $stepSource,
+            stepHash: 'step-hash',
             messageTypeEnum: MessageTypeEnum::FINISH,
             messageHash: Source::message(MessageDataSecondMock::class)->messageHash,
             message: new MessageDataMock('test'),

@@ -88,8 +88,8 @@ abstract class Service implements StorageInterface
                 flow_hash TEXT NOT NULL,
                 flow_runtime_hash TEXT NOT NULL,
                 flow_type TEXT NOT NULL,
-                stub_source TEXT NOT NULL,
-                stub_hash TEXT NOT NULL,
+                step_source TEXT NOT NULL,
+                step_hash TEXT NOT NULL,
                 code INTEGER NOT NULL,
                 message TEXT NOT NULL,
                 file TEXT NOT NULL,
@@ -193,8 +193,8 @@ abstract class Service implements StorageInterface
         }
 
         $stmt = $this->client->prepare(
-            'INSERT OR IGNORE INTO flow_exception_list (hash, flow_hash, flow_runtime_hash, flow_type, stub_source, stub_hash, code, message, file, line, trace_string, time) ' .
-            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :flow_type, :stub_source, :stub_hash, :code, :message, :file, :line, :trace_string, :time)'
+            'INSERT OR IGNORE INTO flow_exception_list (hash, flow_hash, flow_runtime_hash, flow_type, step_source, step_hash, code, message, file, line, trace_string, time) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :flow_type, :step_source, :step_hash, :code, :message, :file, :line, :trace_string, :time)'
         );
 
         foreach ($flow->getFlowExceptions() as $flowException) {
@@ -203,8 +203,8 @@ abstract class Service implements StorageInterface
                 ':flow_hash' => $flowException->getFlowHash(),
                 ':flow_runtime_hash' => $flowException->getFlowRuntimeHash(),
                 ':flow_type' => $flowException->getFlowType(),
-                ':stub_source' => $flowException->getStubSource(),
-                ':stub_hash' => $flowException->getStubHash(),
+                ':step_source' => $flowException->getStepSource(),
+                ':step_hash' => $flowException->getStepHash(),
                 ':code' => $flowException->getCode(),
                 ':message' => $flowException->getMessage(),
                 ':file' => $flowException->getFile(),
@@ -398,7 +398,7 @@ abstract class Service implements StorageInterface
         $sql =
             "SELECT 'flow' AS exception_type," .
             ' fel.hash, fel.code, fel.message, fel.file, fel.line, fel.trace_string, fel.time,' .
-            ' fel.flow_hash, fel.flow_runtime_hash, fel.flow_type, fel.stub_source, fel.stub_hash,' .
+            ' fel.flow_hash, fel.flow_runtime_hash, fel.flow_type, fel.step_source, fel.step_hash,' .
             ' fl.status AS flow_status,' .
             ' NULL AS schedule_class, NULL AS schedule_name, NULL AS schedule_expression,' .
             ' NULL AS observer_flow_source, NULL AS observer_message_source, NULL AS observer_queue_id' .
@@ -431,7 +431,7 @@ abstract class Service implements StorageInterface
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $row) {
-            /** @var array{exception_type: string, hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_hash: string|null, flow_runtime_hash: string|null, flow_type: string|null, stub_source: string|null, stub_hash: string|null, flow_status: string|null, schedule_class: string|null, schedule_name: string|null, schedule_expression: string|null, observer_flow_source: string|null, observer_message_source: string|null, observer_queue_id: string|null} $row */
+            /** @var array{exception_type: string, hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_hash: string|null, flow_runtime_hash: string|null, flow_type: string|null, step_source: string|null, step_hash: string|null, flow_status: string|null, schedule_class: string|null, schedule_name: string|null, schedule_expression: string|null, observer_flow_source: string|null, observer_message_source: string|null, observer_queue_id: string|null} $row */
             yield new ExceptionListEntity(
                 type: $row['exception_type'],
                 hash: $row['hash'],
@@ -444,8 +444,8 @@ abstract class Service implements StorageInterface
                 flowHash: $row['flow_hash'],
                 flowRuntimeHash: $row['flow_runtime_hash'],
                 flowType: $row['flow_type'],
-                stubSource: $row['stub_source'],
-                stubHash: $row['stub_hash'],
+                stepSource: $row['step_source'],
+                stepHash: $row['step_hash'],
                 flowStatus: $row['flow_status'] !== null ? StatusEnum::fromName($row['flow_status']) : null,
                 scheduleClass: $row['schedule_class'],
                 scheduleName: $row['schedule_name'],

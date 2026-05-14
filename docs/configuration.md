@@ -72,4 +72,4 @@ $flowcrafterConfig->setStorageConfig(
 | `setServerHttps()`             | HTTPS aktivieren für FrankenPHP (Default: `false`)                                   |
 | `setServerSecret()`            | Bearer-Token für die API-Authentifizierung (ohne Secret sind alle Routen öffentlich) |
 | `setServerDescription()`       | Beschreibung, die über `/api/info` und `/metrics` exponiert wird                     |
-| `setDependenciesInjection()`   | Service-Instanzen, die in Stub-Konstruktoren injiziert werden                        |
+| `setDependenciesInjection()`   | Service-Instanzen, die in Step-Konstruktoren injiziert werden                        |

@@ -28,7 +28,7 @@ use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\ObserverException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
@@ -36,7 +36,7 @@ use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
-use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
+use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
 
 class Esdb extends Service
 {
@@ -64,7 +64,7 @@ class Esdb extends Service
 
     public const TYPE_SOURCE_MESSAGE = 'flowcrafter.flow.source.message.v1';
 
-    public const TYPE_SOURCE_STUB = 'flowcrafter.flow.source.stub.v1';
+    public const TYPE_SOURCE_STEP = 'flowcrafter.flow.source.step.v1';
 
     protected Client $client;
 
@@ -179,7 +179,7 @@ class Esdb extends Service
                     'type' => [
                         'type' => 'string',
                     ],
-                    'stubs' => [
+                    'steps' => [
                         'type' => 'array',
                         'properties' => [
                             'source' => [
@@ -205,7 +205,7 @@ class Esdb extends Service
                 ],
                 'required' => [
                     'type',
-                    'stubs',
+                    'steps',
                 ],
                 'additionalProperties' => false,
             ];
@@ -243,15 +243,15 @@ class Esdb extends Service
             $this->client->registerEventSchema($eventType, $registerEventSchema);
         }
 
-        if (!in_array(self::TYPE_SOURCE_STUB, $eventTypes, true)) {
-            $eventType = self::TYPE_SOURCE_STUB;
+        if (!in_array(self::TYPE_SOURCE_STEP, $eventTypes, true)) {
+            $eventType = self::TYPE_SOURCE_STEP;
             $registerEventSchema = [
                 'type' => 'object',
                 'properties' => [
-                    'stubHash' => [
+                    'stepHash' => [
                         'type' => 'string',
                     ],
-                    'stubSource' => [
+                    'stepSource' => [
                         'type' => 'string',
                     ],
                     'sourceContent' => [
@@ -262,8 +262,8 @@ class Esdb extends Service
                     ],
                 ],
                 'required' => [
-                    'stubHash',
-                    'stubSource',
+                    'stepHash',
+                    'stepSource',
                     'sourceContent',
                     'time',
                 ],
@@ -284,10 +284,10 @@ class Esdb extends Service
                     'flowRuntimeHash' => [
                         'type' => 'string',
                     ],
-                    'stubSource' => [
+                    'stepSource' => [
                         'type' => 'string',
                     ],
-                    'stubHash' => [
+                    'stepHash' => [
                         'type' => 'string',
                     ],
                     'messageHash' => [
@@ -315,8 +315,8 @@ class Esdb extends Service
                 'required' => [
                     'flowHash',
                     'flowRuntimeHash',
-                    'stubSource',
-                    'stubHash',
+                    'stepSource',
+                    'stepHash',
                     'messageHash',
                     'messageType',
                     'messageSource',
@@ -345,10 +345,10 @@ class Esdb extends Service
                     'flowType' => [
                         'type' => 'string',
                     ],
-                    'stubSource' => [
+                    'stepSource' => [
                         'type' => 'string',
                     ],
-                    'stubHash' => [
+                    'stepHash' => [
                         'type' => 'string',
                     ],
                     'code' => [
@@ -377,8 +377,8 @@ class Esdb extends Service
                     'flowHash',
                     'flowRuntimeHash',
                     'flowType',
-                    'stubSource',
-                    'stubHash',
+                    'stepSource',
+                    'stepHash',
                     'code',
                     'message',
                     'file',
@@ -404,10 +404,10 @@ class Esdb extends Service
                     'flowRuntimeHash' => [
                         'type' => 'string',
                     ],
-                    'stubSource' => [
+                    'stepSource' => [
                         'type' => 'string',
                     ],
-                    'stubHash' => [
+                    'stepHash' => [
                         'type' => ['null', 'string'],
                     ],
                     'result' => [
@@ -423,8 +423,8 @@ class Esdb extends Service
                 'required' => [
                     'flowHash',
                     'flowRuntimeHash',
-                    'stubSource',
-                    'stubHash',
+                    'stepSource',
+                    'stepHash',
                     'result',
                     'time',
                     'hash',
@@ -458,7 +458,7 @@ class Esdb extends Service
                     'message' => [
                         'type' => ['null', 'array', 'object'],
                     ],
-                    'includeStubs' => [
+                    'includeSteps' => [
                         'type' => ['array'],
                     ],
                 ],
@@ -469,7 +469,7 @@ class Esdb extends Service
                     'flowHash',
                     'messageSource',
                     'message',
-                    'includeStubs',
+                    'includeSteps',
                 ],
                 'additionalProperties' => false,
             ];
@@ -554,9 +554,9 @@ class Esdb extends Service
         );
     }
 
-    public function registerStubSource(StubSourceEntity $stubSourceEntity): void
+    public function registerStepSource(StepSourceEntity $stepSourceEntity): void
     {
-        $subject = '/flow/source/stub/' . $stubSourceEntity->stubHash;
+        $subject = '/flow/source/step/' . $stepSourceEntity->stepHash;
 
         $readEventsOptions = new ReadEventsOptions(false);
         if (iterator_to_array($this->client->readEvents($subject, $readEventsOptions)) !== []) {
@@ -566,8 +566,8 @@ class Esdb extends Service
         $eventCandidate = new EventCandidate(
             source: self::SOURCE,
             subject: $subject,
-            type: self::TYPE_SOURCE_STUB,
-            data: $stubSourceEntity->jsonSerialize(),
+            type: self::TYPE_SOURCE_STEP,
+            data: $stepSourceEntity->jsonSerialize(),
         );
 
         $this->client->writeEvents(
@@ -756,7 +756,7 @@ class Esdb extends Service
      * @param class-string $messageSource
      * @param array<mixed> $message
      */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeStubs = [], ?string $flowSubject = null): void
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void
     {
         Assert::classString($flowSource, FlowInterface::class);
         Assert::classString($messageSource, MessageInterface::class);
@@ -772,7 +772,7 @@ class Esdb extends Service
                     'flowHash' => $flowHash,
                     'messageSource' => $messageSource,
                     'message' => $message,
-                    'includeStubs' => $includeStubs,
+                    'includeSteps' => $includeSteps,
                     'flowSubject' => $flowSubject,
                 ],
             ),
@@ -806,7 +806,7 @@ class Esdb extends Service
                 flowHash: $event->data['flowHash'] ?? null,
                 messageSource: $event->data['messageSource'] ?? '',
                 message: $event->data['message'] ?? null,
-                includeStubs: $event->data['includeStubs'] ?? [],
+                includeSteps: $event->data['includeSteps'] ?? [],
             );
         }
     }
@@ -853,7 +853,7 @@ class Esdb extends Service
             yield new FlowSchemaEntity(
                 basename($schemaEvent->subject),
                 $schemaEvent->data['type'],
-                $schemaEvent->data['stubs'],
+                $schemaEvent->data['steps'],
             );
         }
     }
@@ -906,7 +906,7 @@ class Esdb extends Service
                 flowHash: $allEvent->data['flowHash'] ?? null,
                 messageSource: $allEvent->data['messageSource'] ?? '',
                 message: $allEvent->data['message'] ?? [],
-                includeStubs: $allEvent->data['includeStubs'] ?? [],
+                includeSteps: $allEvent->data['includeSteps'] ?? [],
             );
         }
     }
@@ -1003,53 +1003,53 @@ class Esdb extends Service
         return $this->findFlowByHash($flowHash);
     }
 
-    public function findStubSourceByHash(string $stubHash): ?StubSourceEntity
+    public function findStepSourceByHash(string $stepHash): ?StepSourceEntity
     {
-        if ($stubHash === '') {
+        if ($stepHash === '') {
             return null;
         }
 
-        $stubSourceEvents = $this->client->readEvents(
-            subject: '/flow/source/stub/' . $stubHash,
+        $stepSourceEvents = $this->client->readEvents(
+            subject: '/flow/source/step/' . $stepHash,
             readEventsOptions: new ReadEventsOptions(recursive: false)
         );
-        $stubSourceEvent = iterator_to_array($stubSourceEvents)[0] ?? null;
+        $stepSourceEvent = iterator_to_array($stepSourceEvents)[0] ?? null;
 
-        if ($stubSourceEvent === null) {
+        if ($stepSourceEvent === null) {
             return null;
         }
 
-        /** @var array{stubHash: string, stubSource: class-string<StubInterface>, sourceContent: string, time: string} $data */
-        $data = $stubSourceEvent->data;
-        return new StubSourceEntity(
-            stubHash: $data['stubHash'],
-            stubSource: $data['stubSource'],
+        /** @var array{stepHash: string, stepSource: class-string<StepInterface>, sourceContent: string, time: string} $data */
+        $data = $stepSourceEvent->data;
+        return new StepSourceEntity(
+            stepHash: $data['stepHash'],
+            stepSource: $data['stepSource'],
             sourceContent: $data['sourceContent'],
             time: new DateTimeImmutable($data['time']),
         );
     }
 
     /**
-     * @param class-string $stubSource
-     * @return iterable<StubSourceEntity>
+     * @param class-string $stepSource
+     * @return iterable<StepSourceEntity>
      */
-    public function findStubSourcesByStubSource(string $stubSource): iterable
+    public function findStepSourcesByStepSource(string $stepSource): iterable
     {
-        $stubSourceEvents = $this->client->runEventQlQuery(
+        $stepSourceEvents = $this->client->runEventQlQuery(
             'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_SOURCE_STUB . '" ' .
-            'AND e.data.stubSource == "' . $stubSource . '" ' .
+            'WHERE e.type == "' . self::TYPE_SOURCE_STEP . '" ' .
+            'AND e.data.stepSource == "' . $stepSource . '" ' .
             'ORDER by e.id ASC ' .
             'PROJECT INTO e.data'
         );
 
-        foreach ($stubSourceEvents as $stubSourceEvent) {
-            /** @var array{stubHash: string, stubSource: class-string<StubInterface>, sourceContent: string, time: string} $stubSourceEvent */
-            yield new StubSourceEntity(
-                stubHash: $stubSourceEvent['stubHash'],
-                stubSource: $stubSourceEvent['stubSource'],
-                sourceContent: $stubSourceEvent['sourceContent'],
-                time: new DateTimeImmutable($stubSourceEvent['time']),
+        foreach ($stepSourceEvents as $stepSourceEvent) {
+            /** @var array{stepHash: string, stepSource: class-string<StepInterface>, sourceContent: string, time: string} $stepSourceEvent */
+            yield new StepSourceEntity(
+                stepHash: $stepSourceEvent['stepHash'],
+                stepSource: $stepSourceEvent['stepSource'],
+                sourceContent: $stepSourceEvent['sourceContent'],
+                time: new DateTimeImmutable($stepSourceEvent['time']),
             );
         }
     }

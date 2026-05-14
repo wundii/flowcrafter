@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\MockClass;
 
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\EmptyInitMessage;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
-class BoolStubMock implements StubInterface
+class EmptyBoolStepMock implements StepInterface
 {
     public function __construct(
-        private readonly MessageInitMock $messageInitMock,
+        public readonly EmptyInitMessage $init,
     ) {
     }
 
@@ -23,6 +24,6 @@ class BoolStubMock implements StubInterface
 
     public function process(): bool
     {
-        return $this->messageInitMock->getData() !== '';
+        return true;
     }
 }

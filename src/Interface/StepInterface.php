@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Interface;
 
-interface StubInterface
+interface StepInterface
 {
     public function process(): bool|MessageDataInterface|MessageReturnInterface;
 

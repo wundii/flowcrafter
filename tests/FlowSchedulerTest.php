@@ -16,7 +16,7 @@ final class FlowSchedulerTest extends TestCase
 {
     public function testGetScheduleAttributesReturnsConfiguredSchedules(): void
     {
-        $storage = $this->createStub(StorageInterface::class);
+        $storage = $this->createStep(StorageInterface::class);
 
         $schedules = [
             ScheduleMock::class => new FlowSchedule('* * * * *', name: 'test-schedule'),
@@ -85,7 +85,7 @@ final class FlowSchedulerTest extends TestCase
 
     public function testTickLogsErrorsAndContinues(): void
     {
-        $storage = $this->createStub(StorageInterface::class);
+        $storage = $this->createStep(StorageInterface::class);
 
         $schedules = [
             ScheduleFailMock::class => new FlowSchedule('* * * * *', name: 'fail-schedule'),
@@ -109,7 +109,7 @@ final class FlowSchedulerTest extends TestCase
 
     public function testTickWithEmptySchedulesDoesNothing(): void
     {
-        $storage = $this->createStub(StorageInterface::class);
+        $storage = $this->createStep(StorageInterface::class);
 
         $flowScheduler = new FlowScheduler($storage, [], []);
         $flowScheduler->tick();

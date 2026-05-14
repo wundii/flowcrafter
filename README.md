@@ -51,10 +51,10 @@ Die vollständige Dokumentation liegt im [`docs/`](docs/)-Ordner:
 | [Entwicklung](docs/development.md) | QA-Scripts für Contributor |
 | [Getting Started](docs/getting-started.md) | Erste Schritte: Config, Storage, Dev-Server |
 | [Konfiguration](docs/configuration.md) | `flowcrafter.php`, Storage-Backends, Server-Einstellungen |
-| [Konzepte](docs/concepts.md) | Flow, Status, Schema, Messages, includeStubs, Observer |
+| [Konzepte](docs/concepts.md) | Flow, Status, Schema, Messages, includeSteps, Observer |
 | [Monitoring](docs/monitoring.md) | Prometheus / OpenMetrics, CheckMK |
 | [REST-API](docs/api.md) | Endpunkte, Pagination, Auth |
-| [Testing](docs/testing.md) | Flows & Stubs testen mit PHPUnit 11+ |
+| [Testing](docs/testing.md) | Flows & Steps testen mit PHPUnit 11+ |
 
 ## Quickstart
 
@@ -91,7 +91,7 @@ docker run -p 5173:5173 -v ./data:/flowcrafter/data wundii/flowcrafter-ui:latest
 Das optionale Claude Code Plugin
 [flowcrafter-claude](https://github.com/wundii/flowcrafter-claude) erweitert
 [Claude Code](https://claude.ai/code) mit Flowcrafter-Wissen — Flows,
-Stubs, Messages und Schedules lassen sich per Slash-Command generieren und
+Steps, Messages und Schedules lassen sich per Slash-Command generieren und
 analysieren, ohne das Framework-Modell im Kopf behalten zu müssen.
 
 ```
@@ -102,7 +102,7 @@ analysieren, ohne das Framework-Modell im Kopf behalten zu müssen.
 | Command | Beschreibung |
 |---|---|
 | `/create-flow` | Flow-Klasse mit FlowBuilder-DSL generieren |
-| `/create-stub` | Stub-Klasse mit Message-Injection generieren |
+| `/create-step` | Step-Klasse mit Message-Injection generieren |
 | `/create-message` | Message-Klasse (init / data / return) generieren |
 | `/create-schedule` | Schedule-Klasse mit Cron-Ausdruck generieren |
 | `/analyze-flow` | Flow auf Fehler und Verbesserungen prüfen |
@@ -113,7 +113,7 @@ Flowcrafter-Begriffe im Gespräch auftauchen — ohne manuellen Befehl.
 ## Minimalbeispiel
 
 ### Messages
-readonly Value-Objects. Drei Typen: `Init` startet den Flow, `Data` fließt zwischen Stubs, `Return` beendet den Flow:
+readonly Value-Objects. Drei Typen: `Init` startet den Flow, `Data` fließt zwischen Steps, `Return` beendet den Flow:
 
 ```php
 use Wundii\Flowcrafter\AbstractMessage;
@@ -141,14 +141,14 @@ readonly class OrderCompleted extends AbstractMessage implements MessageReturnIn
 }
 ```
 
-Braucht der erste Stub keinen externen Input, kann statt einer eigenen Init-Klasse die mitgelieferte
+Braucht der erste Step keinen externen Input, kann statt einer eigenen Init-Klasse die mitgelieferte
 `Wundii\Flowcrafter\EmptyInitMessage` verwendet werden. Damit Rector den Konstruktor-Parameter nicht als
 ungenutzt entfernt, wird sie als `public readonly` promoted Property deklariert:
 
 ```php
 use Wundii\Flowcrafter\EmptyInitMessage;
 
-class StartStub implements StubInterface
+class StartStep implements StepInterface
 {
     public function __construct(
         public readonly EmptyInitMessage $init,
@@ -164,17 +164,17 @@ class StartStub implements StubInterface
 }
 ```
 
-### Stubs
-reine PHP-Klassen. Der Constructor-Typ entscheidet das Routing. Ein Stub kann `MessageData` (→ Flow läuft weiter), `MessageReturn`
+### Steps
+reine PHP-Klassen. Der Constructor-Typ entscheidet das Routing. Ein Step kann `MessageData` (→ Flow läuft weiter), `MessageReturn`
 (→ Flow endet) oder `bool` (→ Leaf-Result) zurückgeben:
 
 ```php
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
 // Zwischenschritt: Init → Data
-class ValidateStub implements StubInterface
+class ValidateStep implements StepInterface
 {
     public function __construct(private readonly OrderInit $init) {}
 
@@ -188,7 +188,7 @@ class ValidateStub implements StubInterface
 }
 
 // Haupt-Branch: Data → Return (beendet den Flow)
-class CompleteOrderStub implements StubInterface
+class CompleteOrderStep implements StepInterface
 {
     public function __construct(private readonly OrderValidated $validated) {}
 
@@ -205,8 +205,8 @@ class CompleteOrderStub implements StubInterface
     }
 }
 
-// Leaf-Stub: Data → bool (FlowResult, kein Weiterleiten)
-class AuditStub implements StubInterface
+// Leaf-Step: Data → bool (FlowResult, kein Weiterleiten)
+class AuditStep implements StepInterface
 {
     public function __construct(private readonly OrderValidated $validated) {}
 
@@ -221,7 +221,7 @@ class AuditStub implements StubInterface
 ```
 
 ### Flow
-Schema via `FlowBuilder`, kein YAML. Zwei Stubs konsumieren `OrderValidated` parallel.
+Schema via `FlowBuilder`, kein YAML. Zwei Steps konsumieren `OrderValidated` parallel.
 
 Optional kann ein Flow mit `#[FlowGroup]` einer UI-Gruppe zugeordnet werden — beeinflusst den Schema-Hash nicht:
 
@@ -242,9 +242,9 @@ class OrderFlow implements FlowInterface
     public static function schema(): FlowSchema
     {
         $builder = new FlowBuilder('flow.order.v1', OrderInit::class, OrderCompleted::class);
-        $builder->addStub(ValidateStub::class);
-        $builder->addStub(CompleteOrderStub::class);
-        $builder->addStub(AuditStub::class);
+        $builder->addStep(ValidateStep::class);
+        $builder->addStep(CompleteOrderStep::class);
+        $builder->addStep(AuditStep::class);
         return $builder->build();
     }
 }
@@ -259,10 +259,10 @@ title: flow.order.v1
 theme: neo
 ---
 stateDiagram-v2
-[*]-->ValidateStub: OrderInit
-ValidateStub-->CompleteOrderStub: OrderValidated
-ValidateStub-->AuditStub: OrderValidated
-CompleteOrderStub-->[*]: OrderCompleted
+[*]-->ValidateStep: OrderInit
+ValidateStep-->CompleteOrderStep: OrderValidated
+ValidateStep-->AuditStep: OrderValidated
+CompleteOrderStep-->[*]: OrderCompleted
 ```
 
 ### Flow auslösen
@@ -320,7 +320,7 @@ Schedule-Klassen werden über das `#[FlowSchedule]`-Attribut automatisch aus dem
 
 ### Dependency Injection
 
-Stubs können neben Messages auch externe Services per Constructor-Injection erhalten. Die Abhängigkeiten werden über `dependenciesInjection` in `FlowRunner`, `FlowScheduler` und `FlowAssertTrait` registriert — drei Modi stehen zur Verfügung:
+Steps können neben Messages auch externe Services per Constructor-Injection erhalten. Die Abhängigkeiten werden über `dependenciesInjection` in `FlowRunner`, `FlowScheduler` und `FlowAssertTrait` registriert — drei Modi stehen zur Verfügung:
 
 | Schlüssel | Wert | Verhalten |
 |---|---|---|
@@ -329,8 +329,8 @@ Stubs können neben Messages auch externe Services per Constructor-Injection erh
 | Interface-Klassenname | `object` | Instanz wird an Interface **und** Konkreten Klasse gebunden (Alias) |
 
 ```php
-// Stub mit Interface-Abhängigkeit
-class FetchStub implements StubInterface
+// Step mit Interface-Abhängigkeit
+class FetchStep implements StepInterface
 {
     public function __construct(
         private readonly OrderInit $init,
@@ -393,11 +393,11 @@ final class OrderFlowTest extends FlowTestCase
         );
 
         $this->assertFlowOk();
-        $this->assertStubExecuted(ValidateStub::class);
-        $this->assertStubExecuted(CompleteOrderStub::class);
-        $this->assertStubExecuted(AuditStub::class);
+        $this->assertStepExecuted(ValidateStep::class);
+        $this->assertStepExecuted(CompleteOrderStep::class);
+        $this->assertStepExecuted(AuditStep::class);
         $this->assertFlowHasMessage(OrderValidated::class);
-        $this->assertFlowBoolResult(true);   // AuditStub lieferte true
+        $this->assertFlowBoolResult(true);   // AuditStep lieferte true
 
         $return = $this->assertFlowReturned(OrderCompleted::class);
         $this->assertSame('Order sku-42 x1 completed', $return->getSummary());

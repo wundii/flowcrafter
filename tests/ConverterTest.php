@@ -7,15 +7,15 @@ namespace Tests;
 use DateTimeImmutable;
 use DateTimeInterface;
 use PHPUnit\Framework\TestCase;
-use Tests\MockClass\EmptyBoolStubMock;
+use Tests\MockClass\EmptyBoolStepMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
-use Tests\MockClass\NextStubMock;
-use Tests\MockClass\OtherStubMock;
-use Tests\MockClass\PostStubMock;
-use Tests\MockClass\StubMock;
+use Tests\MockClass\NextStepMock;
+use Tests\MockClass\OtherStepMock;
+use Tests\MockClass\PostStepMock;
+use Tests\MockClass\StepMock;
 use Tests\MockClass\WorkflowEmptyMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Converter;
@@ -27,7 +27,7 @@ use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Source;
-use Wundii\Flowcrafter\Stub;
+use Wundii\Flowcrafter\Step;
 use Wundii\Flowcrafter\Uuid;
 
 final class ConverterTest extends TestCase
@@ -42,10 +42,10 @@ final class ConverterTest extends TestCase
     public function testFlowToJsonWithoutMessages(): void
     {
         Uuid::appendUuidStock([
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$json::flowSchema::stubs::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$json::flowSchema::steps::step::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff001', #$json::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff002', #$json::runtimeHash
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$expectedJson::flowSchema::stubs::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$expectedJson::flowSchema::steps::step::hash
         ]);
 
         $flow = Flow::create(
@@ -61,11 +61,11 @@ final class ConverterTest extends TestCase
             'flowType' => 'flow.workflow.v1',
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
-                'stubs' => [
-                    Stub::create(StubMock::class),
-                    Stub::create(NextStubMock::class),
-                    Stub::create(OtherStubMock::class),
-                    Stub::create(PostStubMock::class),
+                'steps' => [
+                    Step::create(StepMock::class),
+                    Step::create(NextStepMock::class),
+                    Step::create(OtherStepMock::class),
+                    Step::create(PostStepMock::class),
                 ],
             ],
             'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
@@ -87,7 +87,7 @@ final class ConverterTest extends TestCase
     public function testFlowToJsonWithMessages(): void
     {
         Uuid::appendUuidStock([
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$json::flowSchema::stubs::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$json::flowSchema::steps::step::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff001', #$json::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff002', #$json::runtimeHash
             '0198ce36-3a94-7125-9ac7-88902e8ff003', #$json::flowException::hash
@@ -95,7 +95,7 @@ final class ConverterTest extends TestCase
             '0198ce36-3a94-7125-9ac7-88902e8ff002', #$expectedJson::flowMessage::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff003', #$expectedJson::flowException::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff004', #$expectedJson::flowResult::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$expectedJson::flowSchema::stubs::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$expectedJson::flowSchema::steps::step::hash
         ]);
 
         $file = __FILE__;
@@ -110,8 +110,8 @@ final class ConverterTest extends TestCase
             FlowMessage::create(
                 flowHash: $flow->getHash(),
                 flowRuntimeHash: $flow->getRuntimeHash(),
-                stubSource: StubMock::class,
-                stubHash: '123',
+                stepSource: StepMock::class,
+                stepHash: '123',
                 messageTypeEnum: messageTypeEnum::FINISH,
                 messageHash: $messageSourceEntity->messageHash,
                 message: new MessageInitMock('test data'),
@@ -125,8 +125,8 @@ final class ConverterTest extends TestCase
                 flowHash: $flow->getHash(),
                 flowRuntimeHash: $flow->getRuntimeHash(),
                 flowType: $flow->getType(),
-                stubSource: StubMock::class,
-                stubHash: '123',
+                stepSource: StepMock::class,
+                stepHash: '123',
                 code: 1,
                 message: 'Exception message',
                 file: $file,
@@ -139,8 +139,8 @@ final class ConverterTest extends TestCase
         $flow->addResult(FlowResult::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: $flow->getRuntimeHash(),
-            stubSource: StubMock::class,
-            stubHash: '123',
+            stepSource: StepMock::class,
+            stepHash: '123',
             result: true,
             time: $flow->getTime(),
             hash: Uuid::uuid7($flow->getTime())->toString(),
@@ -155,11 +155,11 @@ final class ConverterTest extends TestCase
             'flowType' => 'flow.workflow.v1',
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
-                'stubs' => [
-                    Stub::create(StubMock::class),
-                    Stub::create(NextStubMock::class),
-                    Stub::create(OtherStubMock::class),
-                    Stub::create(PostStubMock::class),
+                'steps' => [
+                    Step::create(StepMock::class),
+                    Step::create(NextStepMock::class),
+                    Step::create(OtherStepMock::class),
+                    Step::create(PostStepMock::class),
                 ],
             ],
             'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
@@ -168,8 +168,8 @@ final class ConverterTest extends TestCase
                 [
                     'flowHash' => $flow->getHash(),
                     'flowRuntimeHash' => $flow->getRuntimeHash(),
-                    'stubSource' => StubMock::class,
-                    'stubHash' => '123',
+                    'stepSource' => StepMock::class,
+                    'stepHash' => '123',
                     'messageType' => 'finish',
                     'messageSource' => MessageInitMock::class,
                     'messageHash' => $messageSourceEntity->messageHash,
@@ -186,8 +186,8 @@ final class ConverterTest extends TestCase
                     'flowHash' => $flow->getHash(),
                     'flowRuntimeHash' => $flow->getRuntimeHash(),
                     'flowType' => 'flow.workflow.v1',
-                    'stubSource' => StubMock::class,
-                    'stubHash' => '123',
+                    'stepSource' => StepMock::class,
+                    'stepHash' => '123',
                     'code' => 1,
                     'message' => 'Exception message',
                     'file' => $file,
@@ -201,8 +201,8 @@ final class ConverterTest extends TestCase
                 [
                     'flowHash' => $flow->getHash(),
                     'flowRuntimeHash' => $flow->getRuntimeHash(),
-                    'stubSource' => StubMock::class,
-                    'stubHash' => '123',
+                    'stepSource' => StepMock::class,
+                    'stepHash' => '123',
                     'result' => true,
                     'time' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
                     'hash' => Uuid::uuid7($flow->getTime())->toString(),
@@ -213,9 +213,9 @@ final class ConverterTest extends TestCase
                     'flowHash' => $flow->getHash(),
                     'flowRuntimeHash' => $flow->getRuntimeHash(),
                     'flowType' => 'flow.workflow.v1',
-                    'flowStubTimings' => [
+                    'flowStepTimings' => [
                         [
-                            'stubSource' => StubMock::class,
+                            'stepSource' => StepMock::class,
                             'started' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
                             'ended' => $flow->getTime()->format(DateTimeInterface::RFC3339_EXTENDED),
                             'duration' => 0,
@@ -238,10 +238,10 @@ final class ConverterTest extends TestCase
     public function testJsonToFlowWithoutMessages(): void
     {
         Uuid::appendUuidStock([
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$flow::hash + $expectedFlow::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$flow::hash + $expectedFlow::step::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff001', #$flow::runtimeHash
             '0198ce36-3a94-7125-9ac7-88902e8ff002', #$flow::flowMessage::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff003', #$expectedFlow::flowSchema::stubs::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff003', #$expectedFlow::flowSchema::steps::step::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff001', #$expectedFlow::flowMessage::flowRuntimeHash
             '0198ce36-3a94-7125-9ac7-88902e8ff002', #$expectedFlow::flowMessage::hash
         ]);
@@ -255,9 +255,9 @@ final class ConverterTest extends TestCase
             'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
-                'stubs' => [
+                'steps' => [
                     [
-                        'source' => StubMock::class,
+                        'source' => StepMock::class,
                         'messages' => [
                             MessageInitMock::class,
                         ],
@@ -267,25 +267,25 @@ final class ConverterTest extends TestCase
                         'messageEnum' => 'init',
                     ],
                     [
-                        'source' => NextStubMock::class,
+                        'source' => NextStepMock::class,
                         'messages' => [
                             MessageDataMock::class,
                         ],
                         'returnTypes' => [],
-                        'messageEnum' => 'stub',
+                        'messageEnum' => 'step',
                     ],
                     [
-                        'source' => OtherStubMock::class,
+                        'source' => OtherStepMock::class,
                         'messages' => [
                             MessageDataMock::class,
                         ],
                         'returnTypes' => [
                             MessageDataSecondMock::class,
                         ],
-                        'messageEnum' => 'stub',
+                        'messageEnum' => 'step',
                     ],
                     [
-                        'source' => PostStubMock::class,
+                        'source' => PostStepMock::class,
                         'messages' => [
                             MessageDataMock::class,
                             MessageDataSecondMock::class,
@@ -293,7 +293,7 @@ final class ConverterTest extends TestCase
                         'returnTypes' => [
                             MessageReturnMock::class,
                         ],
-                        'messageEnum' => 'stub',
+                        'messageEnum' => 'step',
                     ],
                 ],
             ],
@@ -331,10 +331,10 @@ final class ConverterTest extends TestCase
     public function testJsonToFlowWithMessages(): void
     {
         Uuid::appendUuidStock([
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$flow::hash + $expectedFlow::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$flow::hash + $expectedFlow::step::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff001', #$flow::runtimeHash
             '0198ce36-3a94-7125-9ac7-88902e8ff002', #$flow::flowMessage::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff003', #$expectedFlow::flowSchema::stubs::stub::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff003', #$expectedFlow::flowSchema::steps::step::hash
             '0198ce36-3a94-7125-9ac7-88902e8ff001', #$expectedFlow::flowMessage::flowRuntimeHash
             '0198ce36-3a94-7125-9ac7-88902e8ff002', #$expectedFlow::flowMessage::hash
         ]);
@@ -349,9 +349,9 @@ final class ConverterTest extends TestCase
             'flowHash' => $hash,
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
-                'stubs' => [
+                'steps' => [
                     [
-                        'source' => StubMock::class,
+                        'source' => StepMock::class,
                         'messages' => [
                             MessageInitMock::class,
                         ],
@@ -361,25 +361,25 @@ final class ConverterTest extends TestCase
                         'messageEnum' => 'init',
                     ],
                     [
-                        'source' => NextStubMock::class,
+                        'source' => NextStepMock::class,
                         'messages' => [
                             MessageDataMock::class,
                         ],
                         'returnTypes' => [],
-                        'messageEnum' => 'stub',
+                        'messageEnum' => 'step',
                     ],
                     [
-                        'source' => OtherStubMock::class,
+                        'source' => OtherStepMock::class,
                         'messages' => [
                             MessageDataMock::class,
                         ],
                         'returnTypes' => [
                             MessageDataSecondMock::class,
                         ],
-                        'messageEnum' => 'stub',
+                        'messageEnum' => 'step',
                     ],
                     [
-                        'source' => PostStubMock::class,
+                        'source' => PostStepMock::class,
                         'messages' => [
                             MessageDataMock::class,
                             MessageDataSecondMock::class,
@@ -387,7 +387,7 @@ final class ConverterTest extends TestCase
                         'returnTypes' => [
                             MessageReturnMock::class,
                         ],
-                        'messageEnum' => 'stub',
+                        'messageEnum' => 'step',
                     ],
                 ],
             ],
@@ -396,8 +396,8 @@ final class ConverterTest extends TestCase
                 [
                     'flowHash' => $hash,
                     'flowRuntimeHash' => Uuid::uuid7($datetime)->toString(),
-                    'stubSource' => StubMock::class,
-                    'stubHash' => '123',
+                    'stepSource' => StepMock::class,
+                    'stepHash' => '123',
                     'messageType' => 'finish',
                     'messageSource' => MessageInitMock::class,
                     'messageHash' => $messageSourceEntity->messageHash,
@@ -426,8 +426,8 @@ final class ConverterTest extends TestCase
                 FlowMessage::create(
                     flowHash: $hash,
                     flowRuntimeHash: Uuid::uuid7($datetime)->toString(),
-                    stubSource: StubMock::class,
-                    stubHash: '123',
+                    stepSource: StepMock::class,
+                    stepHash: '123',
                     messageTypeEnum: messageTypeEnum::FINISH,
                     messageHash: $messageSourceEntity->messageHash,
                     message: new MessageInitMock('test data'),
@@ -465,9 +465,9 @@ final class ConverterTest extends TestCase
             'flowHash' => $flowHash,
             'flowSchema' => [
                 'type' => 'flow.empty.v1',
-                'stubs' => [
+                'steps' => [
                     [
-                        'source' => EmptyBoolStubMock::class,
+                        'source' => EmptyBoolStepMock::class,
                         'messages' => [EmptyInitMessage::class],
                         'returnTypes' => [],
                         'messageEnum' => 'init',
@@ -479,8 +479,8 @@ final class ConverterTest extends TestCase
                 [
                     'flowHash' => $flowHash,
                     'flowRuntimeHash' => $runtimeHash,
-                    'stubSource' => EmptyBoolStubMock::class,
-                    'stubHash' => '',
+                    'stepSource' => EmptyBoolStepMock::class,
+                    'stepHash' => '',
                     'messageType' => 'finish',
                     'messageSource' => EmptyInitMessage::class,
                     'messageHash' => $messageSourceEntity->messageHash,

@@ -9,12 +9,12 @@ use JsonSerializable;
 class FlowSchemaEntity implements JsonSerializable
 {
     /**
-     * @param array<mixed> $stubs
+     * @param array<mixed> $steps
      */
     public function __construct(
         public string $schemaHash,
         public string $type,
-        public array $stubs,
+        public array $steps,
     ) {
     }
 
@@ -26,7 +26,7 @@ class FlowSchemaEntity implements JsonSerializable
         return [
             'schemaHash' => $this->schemaHash,
             'type' => $this->type,
-            'stubs' => $this->stubs,
+            'steps' => $this->steps,
         ];
     }
 }

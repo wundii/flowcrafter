@@ -6,16 +6,16 @@ namespace Wundii\Flowcrafter\Storage\Entity;
 
 use DateTimeInterface;
 use JsonSerializable;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
-class StubSourceEntity implements JsonSerializable
+class StepSourceEntity implements JsonSerializable
 {
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
     public function __construct(
-        public string $stubHash,
-        public string $stubSource,
+        public string $stepHash,
+        public string $stepSource,
         public string $sourceContent,
         public DateTimeInterface $time,
     ) {
@@ -27,8 +27,8 @@ class StubSourceEntity implements JsonSerializable
     public function jsonSerialize(): array
     {
         return [
-            'stubHash' => $this->stubHash,
-            'stubSource' => $this->stubSource,
+            'stepHash' => $this->stepHash,
+            'stepSource' => $this->stepSource,
             'sourceContent' => $this->sourceContent,
             'time' => $this->time->format(DateTimeInterface::RFC3339_EXTENDED),
         ];

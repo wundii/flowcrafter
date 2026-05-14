@@ -18,7 +18,7 @@ class WorkflowEmptyMock implements FlowInterface
             EmptyInitMessage::class,
         );
 
-        $flowBuilder->addStub(EmptyBoolStubMock::class);
+        $flowBuilder->addStep(EmptyBoolStepMock::class);
 
         return $flowBuilder->build();
     }

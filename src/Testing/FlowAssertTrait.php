@@ -13,7 +13,7 @@ use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
 trait FlowAssertTrait
 {
@@ -26,7 +26,7 @@ trait FlowAssertTrait
      *
      * @param class-string<FlowInterface> $flowSource
      * @param array<class-string|object> $dependencies
-     * @param class-string[] $includeStubs
+     * @param class-string[] $includeSteps
      */
     protected function runFlow(
         string $flowType,
@@ -34,7 +34,7 @@ trait FlowAssertTrait
         MessageInterface $initMessage,
         ?string $flowSubject = null,
         array $dependencies = [],
-        array $includeStubs = [],
+        array $includeSteps = [],
     ): bool|MessageReturnInterface {
         $flowRunner = new FlowRunner(
             type: $flowType,
@@ -44,7 +44,7 @@ trait FlowAssertTrait
         );
 
         try {
-            $this->flowUnderTestResult = $flowRunner->run($initMessage, includeStubs: $includeStubs);
+            $this->flowUnderTestResult = $flowRunner->run($initMessage, includeSteps: $includeSteps);
         } finally {
             $flow = $flowRunner->getFlow();
             if ($flow instanceof Flow) {
@@ -80,34 +80,34 @@ trait FlowAssertTrait
     }
 
     /**
-     * Executes a single stub in isolation with a minimal Symfony DI container —
+     * Executes a single step in isolation with a minimal Symfony DI container —
      * no Flow, no schema, no message lifecycle. Mirrors the autowire logic used
-     * internally by FlowRunner::buildContainer() but scoped to one stub.
+     * internally by FlowRunner::buildContainer() but scoped to one step.
      *
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      * @param MessageInterface[] $messages
      * @param array<int|class-string, class-string|object> $dependencies
      */
-    protected function runStub(
-        string $stubSource,
+    protected function runStep(
+        string $stepSource,
         array $messages,
         array $dependencies = [],
     ): bool|MessageInterface {
         $containerBuilder = FlowContainerFactory::build(
-            autowireClasses: [$stubSource],
+            autowireClasses: [$stepSource],
             syntheticServices: $messages,
             dependencies: $dependencies,
         );
 
-        $stubInstance = $containerBuilder->get($stubSource);
-        if (!$stubInstance instanceof StubInterface) {
+        $stepInstance = $containerBuilder->get($stepSource);
+        if (!$stepInstance instanceof StepInterface) {
             throw new RuntimeException(sprintf(
-                'Resolved service "%s" does not implement StubInterface.',
-                $stubSource,
+                'Resolved service "%s" does not implement StepInterface.',
+                $stepSource,
             ));
         }
 
-        return $stubInstance->process();
+        return $stepInstance->process();
     }
 
     protected function assertFlowOk(?Flow $flow = null): void
@@ -128,10 +128,10 @@ trait FlowAssertTrait
             $statusEnum,
             $actual,
             sprintf(
-                'Expected flow status %s, got %s. Executed stubs: [%s]. Exceptions: %d.',
+                'Expected flow status %s, got %s. Executed steps: [%s]. Exceptions: %d.',
                 $statusEnum->name,
                 $actual->name,
-                implode(', ', $this->collectStubs($flow)),
+                implode(', ', $this->collectSteps($flow)),
                 count($flow->getFlowExceptions()),
             ),
         );
@@ -149,10 +149,10 @@ trait FlowAssertTrait
             $messageClass,
             $result,
             sprintf(
-                'Expected flow to return an instance of %s, got %s. Executed stubs: [%s].',
+                'Expected flow to return an instance of %s, got %s. Executed steps: [%s].',
                 $messageClass,
                 is_object($result) ? $result::class : gettype($result),
-                implode(', ', $this->collectStubs($flow)),
+                implode(', ', $this->collectSteps($flow)),
             ),
         );
 
@@ -170,9 +170,9 @@ trait FlowAssertTrait
                 $expected,
                 $result->getResult(),
                 sprintf(
-                    'Expected all FlowResults to be %s, but stub "%s" returned %s.',
+                    'Expected all FlowResults to be %s, but step "%s" returned %s.',
                     $expected ? 'true' : 'false',
-                    $result->getStubSource(),
+                    $result->getStepSource(),
                     $result->getResult() ? 'true' : 'false',
                 ),
             );
@@ -180,14 +180,14 @@ trait FlowAssertTrait
     }
 
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
-    protected function assertFlowBoolResultFrom(string $stubSource, bool $expected, ?Flow $flow = null): void
+    protected function assertFlowBoolResultFrom(string $stepSource, bool $expected, ?Flow $flow = null): void
     {
         $flow ??= $this->lastFlow();
         $matched = false;
         foreach ($flow->getFlowResults() as $flowResult) {
-            if ($flowResult->getStubSource() !== $stubSource) {
+            if ($flowResult->getStepSource() !== $stepSource) {
                 continue;
             }
 
@@ -196,8 +196,8 @@ trait FlowAssertTrait
                 $expected,
                 $flowResult->getResult(),
                 sprintf(
-                    'Expected FlowResult from stub "%s" to be %s, got %s.',
-                    $stubSource,
+                    'Expected FlowResult from step "%s" to be %s, got %s.',
+                    $stepSource,
                     $expected ? 'true' : 'false',
                     $flowResult->getResult() ? 'true' : 'false',
                 ),
@@ -206,46 +206,46 @@ trait FlowAssertTrait
 
         $recordedSources = [];
         foreach ($flow->getFlowResults() as $flowResult) {
-            $recordedSources[$flowResult->getStubSource()] = true;
+            $recordedSources[$flowResult->getStepSource()] = true;
         }
 
         Assert::assertTrue(
             $matched,
             sprintf(
-                'Expected a FlowResult from stub "%s". Recorded result stubs: [%s].',
-                $stubSource,
+                'Expected a FlowResult from step "%s". Recorded result steps: [%s].',
+                $stepSource,
                 implode(', ', array_keys($recordedSources)),
             ),
         );
     }
 
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
-    protected function assertStubExecuted(string $stubSource, ?Flow $flow = null): void
+    protected function assertStepExecuted(string $stepSource, ?Flow $flow = null): void
     {
         $flow ??= $this->lastFlow();
         Assert::assertContains(
-            $stubSource,
-            $this->collectStubs($flow),
+            $stepSource,
+            $this->collectSteps($flow),
             sprintf(
-                'Expected stub "%s" to have been executed. Executed stubs: [%s].',
-                $stubSource,
-                implode(', ', $this->collectStubs($flow)),
+                'Expected step "%s" to have been executed. Executed steps: [%s].',
+                $stepSource,
+                implode(', ', $this->collectSteps($flow)),
             ),
         );
     }
 
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
-    protected function assertStubNotExecuted(string $stubSource, ?Flow $flow = null): void
+    protected function assertStepNotExecuted(string $stepSource, ?Flow $flow = null): void
     {
         $flow ??= $this->lastFlow();
         Assert::assertNotContains(
-            $stubSource,
-            $this->collectStubs($flow),
-            sprintf('Expected stub "%s" NOT to have been executed, but it was.', $stubSource),
+            $stepSource,
+            $this->collectSteps($flow),
+            sprintf('Expected step "%s" NOT to have been executed, but it was.', $stepSource),
         );
     }
 
@@ -295,7 +295,7 @@ trait FlowAssertTrait
         $flow ??= $this->lastFlow();
         $exceptions = $flow->getFlowExceptions();
         $messages = array_map(
-            static fn ($exception): string => sprintf('%s: %s', $exception->getStubSource(), $exception->getMessage()),
+            static fn ($exception): string => sprintf('%s: %s', $exception->getStepSource(), $exception->getMessage()),
             $exceptions,
         );
         Assert::assertCount(
@@ -306,17 +306,17 @@ trait FlowAssertTrait
     }
 
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
     protected function assertFlowExceptionFrom(
-        string $stubSource,
+        string $stepSource,
         ?string $messageContains = null,
         ?Flow $flow = null,
     ): void {
         $flow ??= $this->lastFlow();
         $matched = false;
         foreach ($flow->getFlowExceptions() as $flowException) {
-            if ($flowException->getStubSource() !== $stubSource) {
+            if ($flowException->getStepSource() !== $stepSource) {
                 continue;
             }
 
@@ -329,14 +329,14 @@ trait FlowAssertTrait
         }
 
         $actual = array_map(
-            static fn ($exception): string => sprintf('%s: %s', $exception->getStubSource(), $exception->getMessage()),
+            static fn ($exception): string => sprintf('%s: %s', $exception->getStepSource(), $exception->getMessage()),
             $flow->getFlowExceptions(),
         );
         Assert::assertTrue(
             $matched,
             sprintf(
                 'Expected a FlowException from "%s"%s. Recorded exceptions: [%s].',
-                $stubSource,
+                $stepSource,
                 $messageContains !== null ? sprintf(' containing "%s"', $messageContains) : '',
                 implode(' | ', $actual),
             ),
@@ -356,14 +356,14 @@ trait FlowAssertTrait
     /**
      * @return string[]
      */
-    private function collectStubs(Flow $flow): array
+    private function collectSteps(Flow $flow): array
     {
-        $stubs = [];
+        $steps = [];
         foreach ($flow->getFlowMessages() as $flowMessage) {
-            $stubs[$flowMessage->getStubSource()] = true;
+            $steps[$flowMessage->getStepSource()] = true;
         }
 
-        return array_keys($stubs);
+        return array_keys($steps);
     }
 
     /**

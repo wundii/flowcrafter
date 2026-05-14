@@ -16,7 +16,7 @@ use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
 if (PHP_VERSION_ID < 80300) {
     function json_validate(string $string): bool
@@ -77,7 +77,7 @@ final class Converter
             $flowSource,
             new FlowSchema(
                 Assert::string($flowSchemaArray['type'] ?? null, 'Schema type must be a string.'),
-                array_map(static fn (mixed $a): Stub => self::mapStub($a, $readOnly), Assert::array($flowSchemaArray['stubs'] ?? [], 'Stubs must be an array.')),
+                array_map(static fn (mixed $a): Step => self::mapStep($a, $readOnly), Assert::array($flowSchemaArray['steps'] ?? [], 'Steps must be an array.')),
             ),
             Assert::string($flow['flowSchemaHash'] ?? null, 'FlowSchemaHash must be a string.'),
             Assert::datetimeImmutable($flow['time'] ?? null, 'Time must be a valid date string.'),
@@ -111,7 +111,7 @@ final class Converter
         }
 
         $flowSchema = $flow->getSchema();
-        $initStub = $flowSchema->initStub();
+        $initStep = $flowSchema->initStep();
         $subject = $flow->getSubject();
         $title = $flow->getType();
         if ($subject) {
@@ -121,17 +121,17 @@ final class Converter
         $output = sprintf(
             "---\ntitle: %s\ntheme: neo\n---\nstateDiagram-v2\n[*]-->%s: %s\n",
             $title,
-            $initStub->getSource(),
-            $initStub->getMessages(MessageEnum::INIT)[0],
+            $initStep->getSource(),
+            $initStep->getMessages(MessageEnum::INIT)[0],
         );
 
-        foreach ($flowSchema->stubs() as $stub) {
-            foreach ($stub->getReturnTypes() as $messageClass) {
-                foreach ($flowSchema->stubByMessageClass($messageClass) as $nextStub) {
+        foreach ($flowSchema->steps() as $step) {
+            foreach ($step->getReturnTypes() as $messageClass) {
+                foreach ($flowSchema->stepByMessageClass($messageClass) as $nextStep) {
                     $output .= sprintf(
                         "%s-->%s: %s\n",
-                        $stub->getSource(),
-                        $nextStub->getSource(),
+                        $step->getSource(),
+                        $nextStep->getSource(),
                         $messageClass,
                     );
                 }
@@ -139,7 +139,7 @@ final class Converter
                 if (is_subclass_of($messageClass, MessageEnum::RETURN->interface())) {
                     $output .= sprintf(
                         "%s-->[*]: %s\n",
-                        $stub->getSource(),
+                        $step->getSource(),
                         $messageClass,
                     );
                 }
@@ -158,21 +158,21 @@ final class Converter
         return $filename;
     }
 
-    private static function mapStub(mixed $array, bool $readOnly): Stub
+    private static function mapStep(mixed $array, bool $readOnly): Step
     {
-        $stubArray = Assert::array($array, 'Each stub must be an array.');
+        $stepArray = Assert::array($array, 'Each step must be an array.');
         $source = $readOnly
-            ? Assert::string($stubArray['source'] ?? null, 'Each Source must be a string.')
-            : Assert::classString($stubArray['source'] ?? null, StubInterface::class, 'Each Source must be a string.');
+            ? Assert::string($stepArray['source'] ?? null, 'Each Source must be a string.')
+            : Assert::classString($stepArray['source'] ?? null, StepInterface::class, 'Each Source must be a string.');
 
-        return new Stub(
+        return new Step(
             /** @phpstan-ignore argument.type */
             $source,
             /** @phpstan-ignore-next-line */
-            Assert::array($stubArray['messages'] ?? null, 'Each Messages must be an array.'),
+            Assert::array($stepArray['messages'] ?? null, 'Each Messages must be an array.'),
             /** @phpstan-ignore-next-line */
-            Assert::array($stubArray['returnTypes'] ?? null, 'Each ReturnTypes must be an array.'),
-            MessageEnum::from(Assert::string($stubArray['messageEnum'] ?? null, 'Each MessageEnum must have a string messageEnum.')),
+            Assert::array($stepArray['returnTypes'] ?? null, 'Each ReturnTypes must be an array.'),
+            MessageEnum::from(Assert::string($stepArray['messageEnum'] ?? null, 'Each MessageEnum must have a string messageEnum.')),
             $readOnly,
         );
     }
@@ -194,16 +194,16 @@ final class Converter
             /** @phpstan-ignore argument.type */
             : $dataMapper->array($messageData, $messageSource);
 
-        $stubSource = $readOnly
-            ? Assert::string($message['stubSource'] ?? null, 'Each Message must have a string SubInterface.')
-            : Assert::classString($message['stubSource'] ?? null, StubInterface::class, 'Each Message must have a string SubInterface.');
+        $stepSource = $readOnly
+            ? Assert::string($message['stepSource'] ?? null, 'Each Message must have a string SubInterface.')
+            : Assert::classString($message['stepSource'] ?? null, StepInterface::class, 'Each Message must have a string SubInterface.');
 
         return new FlowMessage(
             Assert::string($message['flowHash'] ?? null, 'Each Message must have a string flowHash.'),
             Assert::string($message['flowRuntimeHash'] ?? null, 'Each Message must have a string flowRuntimeHash.'),
             /** @phpstan-ignore argument.type */
-            $stubSource,
-            Assert::string($message['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
+            $stepSource,
+            Assert::string($message['stepHash'] ?? '', 'Each stepHash must have a string or null.'),
             MessageTypeEnum::from(Assert::string($message['messageType'] ?? null, 'Each Message must have a string messageType.')),
             /** @phpstan-ignore argument.type */
             $messageSource,
@@ -224,8 +224,8 @@ final class Converter
             Assert::string($exception['flowHash'] ?? null, 'Each Exception must have a string flowHash.'),
             Assert::string($exception['flowRuntimeHash'] ?? null, 'Each Exception must have a string flowRuntimeHash.'),
             Assert::string($exception['flowType'] ?? null, 'Each Exception must have a string flowType.'),
-            Assert::string($exception['stubSource'] ?? null, 'Each Exception must have a string stubSource.'), /** @phpstan-ignore argument.type */
-            Assert::string($exception['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
+            Assert::string($exception['stepSource'] ?? null, 'Each Exception must have a string stepSource.'), /** @phpstan-ignore argument.type */
+            Assert::string($exception['stepHash'] ?? '', 'Each stepHash must have a string or null.'),
             Assert::int($exception['code'] ?? null, 'Each Exception must have an integer code.'),
             Assert::string($exception['message'] ?? null, 'Each Exception must have a string message.'),
             Assert::string($exception['file'] ?? null, 'Each Exception must have a string file.'),
@@ -257,8 +257,8 @@ final class Converter
         return new FlowResult(
             Assert::string($result['flowHash'] ?? null, 'Each Result must have a string flowHash.'),
             Assert::string($result['flowRuntimeHash'] ?? null, 'Each Result must have a string flowRuntimeHash.'),
-            Assert::string($result['stubSource'] ?? null, 'Each Result must have a string stubSource.'), /** @phpstan-ignore argument.type */
-            Assert::string($result['stubHash'] ?? '', 'Each stubHash must have a string or null.'),
+            Assert::string($result['stepSource'] ?? null, 'Each Result must have a string stepSource.'), /** @phpstan-ignore argument.type */
+            Assert::string($result['stepHash'] ?? '', 'Each stepHash must have a string or null.'),
             Assert::bool($result['result'] ?? null, 'Each Result must have a bool result.'),
             Assert::datetimeImmutable($result['time'] ?? null, 'Time must be a valid date string.'),
             Assert::string($result['hash'] ?? null, 'Each Result must have a string hash.'),
@@ -328,10 +328,10 @@ final class Converter
             }
         }
 
-        foreach (Assert::array($flowSchemaArray['stubs'] ?? [], 'Stubs must be an array.') as $stubData) {
-            $stubArray = Assert::array($stubData, 'Each stub must be an array.');
-            $stubSource = $stubArray['source'] ?? null;
-            $reasons = [...$reasons, ...self::validateClassSource($stubSource, StubInterface::class, 'Stub source')];
+        foreach (Assert::array($flowSchemaArray['steps'] ?? [], 'Steps must be an array.') as $stepData) {
+            $stepArray = Assert::array($stepData, 'Each step must be an array.');
+            $stepSource = $stepArray['source'] ?? null;
+            $reasons = [...$reasons, ...self::validateClassSource($stepSource, StepInterface::class, 'Step source')];
         }
 
         foreach (Assert::array($flow['flowMessages'] ?? [], 'Messages must be an array.') as $msgData) {
@@ -344,8 +344,8 @@ final class Converter
                 continue;
             }
 
-            $stubSource = $message['stubSource'] ?? null;
-            $reasons = [...$reasons, ...self::validateClassSource($stubSource, StubInterface::class, sprintf("Message '%s' stub source", self::displayValue($messageSource)))];
+            $stepSource = $message['stepSource'] ?? null;
+            $reasons = [...$reasons, ...self::validateClassSource($stepSource, StepInterface::class, sprintf("Message '%s' step source", self::displayValue($messageSource)))];
 
             /** @phpstan-ignore-next-line */
             if ($messageHash !== Source::message($messageSource)->messageHash) {
@@ -355,14 +355,14 @@ final class Converter
 
         foreach (Assert::array($flow['flowExceptions'] ?? [], 'Exceptions must be an array.') as $excData) {
             $exception = Assert::array($excData, 'Each Exception must be an array.');
-            $stubSource = $exception['stubSource'] ?? null;
-            $reasons = [...$reasons, ...self::validateClassSource($stubSource, StubInterface::class, 'Exception stub source')];
+            $stepSource = $exception['stepSource'] ?? null;
+            $reasons = [...$reasons, ...self::validateClassSource($stepSource, StepInterface::class, 'Exception step source')];
         }
 
         foreach (Assert::array($flow['flowResults'] ?? [], 'Results must be an array.') as $resData) {
             $result = Assert::array($resData, 'Each Result must be an array.');
-            $stubSource = $result['stubSource'] ?? null;
-            $reasons = [...$reasons, ...self::validateClassSource($stubSource, StubInterface::class, 'Result stub source')];
+            $stepSource = $result['stepSource'] ?? null;
+            $reasons = [...$reasons, ...self::validateClassSource($stepSource, StepInterface::class, 'Result step source')];
         }
 
         return $reasons;

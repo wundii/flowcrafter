@@ -23,7 +23,7 @@ use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
-use Wundii\Flowcrafter\Storage\Entity\StubSourceEntity;
+use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
 use Wundii\Flowcrafter\Storage\Service;
 
 /**
@@ -45,13 +45,13 @@ class SeedStorage extends Service
     public function isPrimaryStorageInitialized(): bool { return true; }
     public function registerFlowSchema(FlowSchema $flowSchema): void {}
     public function registerMessageSource(MessageSourceEntity $messageSourceEntity): void {}
-    public function registerStubSource(StubSourceEntity $stubSourceEntity): void {}
+    public function registerStepSource(StepSourceEntity $stepSourceEntity): void {}
     public function registerFlowInstance(Flow $flow): void {}
     public function appendFlowRun(Flow $flow, ?string $queueId = null): void {}
     public function appendFlowMessage(FlowMessage $flowMessage): void {}
     public function appendFlowException(FlowException $flowException): void {}
     public function appendFlowResult(FlowResult $flowResult): void {}
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeStubs = [], ?string $flowSubject = null): void {}
+    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void {}
     public function openQueues(): int { return 0; }
     public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable { return []; }
     public function findAllFlowHashes(): iterable { return []; }
@@ -61,8 +61,8 @@ class SeedStorage extends Service
     public function findFlowInstanceByHash(string $flowHash): ?FlowInstanceEntity { return null; }
     public function findFlowByHash(string $flowHash): ?Flow { return null; }
     public function findFlowByRuntimeHash(string $flowRuntimeHash): ?Flow { return null; }
-    public function findStubSourceByHash(string $stubHash): ?StubSourceEntity { return null; }
-    public function findStubSourcesByStubSource(string $stubSource): iterable { return []; }
+    public function findStepSourceByHash(string $stepHash): ?StepSourceEntity { return null; }
+    public function findStepSourcesByStepSource(string $stepSource): iterable { return []; }
     public function findMessageSourceByMessageSource(string $messageSource): iterable { return []; }
 }
 
@@ -74,11 +74,11 @@ $flowDefs = [
     [
         'source' => 'App\\Flowcrafter\\Flow\\OrderProcessingFlow',
         'type' => 'flow.order-processing.v1',
-        'stubs' => [
-            'App\\Flowcrafter\\Stub\\ValidateOrderStub',
-            'App\\Flowcrafter\\Stub\\ReserveStockStub',
-            'App\\Flowcrafter\\Stub\\ChargeCreditCardStub',
-            'App\\Flowcrafter\\Stub\\SendConfirmationEmailStub',
+        'steps' => [
+            'App\\Flowcrafter\\Step\\ValidateOrderStep',
+            'App\\Flowcrafter\\Step\\ReserveStockStep',
+            'App\\Flowcrafter\\Step\\ChargeCreditCardStep',
+            'App\\Flowcrafter\\Step\\SendConfirmationEmailStep',
         ],
         'subjects' => ['order-1001', 'order-1002', 'order-1003', 'order-2001', 'order-2002'],
         'weight' => 5,
@@ -86,10 +86,10 @@ $flowDefs = [
     [
         'source' => 'App\\Flowcrafter\\Flow\\UserRegistrationFlow',
         'type' => 'flow.user-registration.v2',
-        'stubs' => [
-            'App\\Flowcrafter\\Stub\\CreateUserStub',
-            'App\\Flowcrafter\\Stub\\SendWelcomeEmailStub',
-            'App\\Flowcrafter\\Stub\\AssignDefaultRoleStub',
+        'steps' => [
+            'App\\Flowcrafter\\Step\\CreateUserStep',
+            'App\\Flowcrafter\\Step\\SendWelcomeEmailStep',
+            'App\\Flowcrafter\\Step\\AssignDefaultRoleStep',
         ],
         'subjects' => ['user-5001', 'user-5002', 'user-5003'],
         'weight' => 3,
@@ -97,11 +97,11 @@ $flowDefs = [
     [
         'source' => 'App\\Flowcrafter\\Flow\\InvoiceGenerationFlow',
         'type' => 'flow.invoice-generation.v1',
-        'stubs' => [
-            'App\\Flowcrafter\\Stub\\FetchBillingDataStub',
-            'App\\Flowcrafter\\Stub\\CalculateTaxStub',
-            'App\\Flowcrafter\\Stub\\GeneratePdfStub',
-            'App\\Flowcrafter\\Stub\\StoreInvoiceStub',
+        'steps' => [
+            'App\\Flowcrafter\\Step\\FetchBillingDataStep',
+            'App\\Flowcrafter\\Step\\CalculateTaxStep',
+            'App\\Flowcrafter\\Step\\GeneratePdfStep',
+            'App\\Flowcrafter\\Step\\StoreInvoiceStep',
         ],
         'subjects' => ['invoice-9001', 'invoice-9002'],
         'weight' => 2,
@@ -109,10 +109,10 @@ $flowDefs = [
     [
         'source' => 'App\\Flowcrafter\\Flow\\ReportExportFlow',
         'type' => 'flow.report-export.v3',
-        'stubs' => [
-            'App\\Flowcrafter\\Stub\\FetchReportDataStub',
-            'App\\Flowcrafter\\Stub\\FormatCsvStub',
-            'App\\Flowcrafter\\Stub\\UploadToS3Stub',
+        'steps' => [
+            'App\\Flowcrafter\\Step\\FetchReportDataStep',
+            'App\\Flowcrafter\\Step\\FormatCsvStep',
+            'App\\Flowcrafter\\Step\\UploadToS3Step',
         ],
         'subjects' => ['weekly-sales', 'monthly-kpi', 'daily-summary'],
         'weight' => 2,
@@ -120,10 +120,10 @@ $flowDefs = [
     [
         'source' => 'App\\Flowcrafter\\Flow\\InventorySyncFlow',
         'type' => 'flow.inventory-sync.v1',
-        'stubs' => [
-            'App\\Flowcrafter\\Stub\\FetchExternalInventoryStub',
-            'App\\Flowcrafter\\Stub\\DiffInventoryStub',
-            'App\\Flowcrafter\\Stub\\ApplyInventoryChangesStub',
+        'steps' => [
+            'App\\Flowcrafter\\Step\\FetchExternalInventoryStep',
+            'App\\Flowcrafter\\Step\\DiffInventoryStep',
+            'App\\Flowcrafter\\Step\\ApplyInventoryChangesStep',
         ],
         'subjects' => ['warehouse-a', 'warehouse-b'],
         'weight' => 3,
@@ -234,8 +234,8 @@ $stmtRun = $pdo->prepare(
 );
 
 $stmtExc = $pdo->prepare(
-    'INSERT OR IGNORE INTO flow_exception_list (hash, flow_hash, flow_runtime_hash, flow_type, stub_source, stub_hash, code, message, file, line, trace_string, time) ' .
-    'VALUES (:hash, :flow_hash, :flow_runtime_hash, :flow_type, :stub_source, :stub_hash, :code, :message, :file, :line, :trace_string, :time)'
+    'INSERT OR IGNORE INTO flow_exception_list (hash, flow_hash, flow_runtime_hash, flow_type, step_source, step_hash, code, message, file, line, trace_string, time) ' .
+    'VALUES (:hash, :flow_hash, :flow_runtime_hash, :flow_type, :step_source, :step_hash, :code, :message, :file, :line, :trace_string, :time)'
 );
 
 $stmtSchedExc = $pdo->prepare(
@@ -300,7 +300,7 @@ for ($day = 13; $day >= 0; $day--) {
                 || ($status === 'WARNING' && random_int(1, 20) === 1);
 
             if ($addException) {
-                $excStub = $def['stubs'][array_rand($def['stubs'])];
+                $excStep = $def['steps'][array_rand($def['steps'])];
                 $excMsg = $exceptionMessages[array_rand($exceptionMessages)];
                 $excHash = uuid7($runTime->modify('+1 second'));
 
@@ -309,13 +309,13 @@ for ($day = 13; $day >= 0; $day--) {
                     ':flow_hash' => $flowHash,
                     ':flow_runtime_hash' => $runtimeHash,
                     ':flow_type' => $def['type'],
-                    ':stub_source' => $excStub,
-                    ':stub_hash' => md5($excStub),
+                    ':step_source' => $excStep,
+                    ':step_hash' => md5($excStep),
                     ':code' => random_int(0, 1) === 0 ? 0 : random_int(400, 503),
                     ':message' => $excMsg,
-                    ':file' => '/var/www/flowcrafter/src/' . str_replace(['App\\Flowcrafter\\Stub\\', '\\'], ['Stub/', '/'], $excStub) . '.php',
+                    ':file' => '/var/www/flowcrafter/src/' . str_replace(['App\\Flowcrafter\\Step\\', '\\'], ['Step/', '/'], $excStep) . '.php',
                     ':line' => random_int(30, 120),
-                    ':trace_string' => "#0 /var/www/flowcrafter/src/FlowRunner.php(88): {$excStub}->process()\n#1 /var/www/flowcrafter/src/FlowObserver.php(79): FlowRunner->run()\n{main}",
+                    ':trace_string' => "#0 /var/www/flowcrafter/src/FlowRunner.php(88): {$excStep}->process()\n#1 /var/www/flowcrafter/src/FlowObserver.php(79): FlowRunner->run()\n{main}",
                     ':time' => $runTime->modify('+1 second')->format('Y-m-d H:i:s.u'),
                 ]);
                 $totalExceptions++;

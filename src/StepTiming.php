@@ -8,18 +8,18 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use JsonSerializable;
 
-class StubTiming implements JsonSerializable
+class StepTiming implements JsonSerializable
 {
     public function __construct(
-        private readonly string $stubSource,
+        private readonly string $stepSource,
         private readonly DateTimeImmutable $started,
         private readonly DateTimeImmutable $ended,
     ) {
     }
 
-    public function getStubSource(): string
+    public function getStepSource(): string
     {
-        return $this->stubSource;
+        return $this->stepSource;
     }
 
     public function getStarted(): DateTimeImmutable
@@ -46,7 +46,7 @@ class StubTiming implements JsonSerializable
     public function jsonSerialize(): array
     {
         return [
-            'stubSource' => $this->stubSource,
+            'stepSource' => $this->stepSource,
             'started' => $this->started->format(DateTimeInterface::RFC3339_EXTENDED),
             'ended' => $this->ended->format(DateTimeInterface::RFC3339_EXTENDED),
             'duration' => $this->getDuration(),

@@ -18,7 +18,7 @@ class WorkflowInterfaceBindingMock implements FlowInterface
             MessageReturnMock::class,
         );
 
-        $flowBuilder->addStub(InterfaceBindingStubMock::class);
+        $flowBuilder->addStep(InterfaceBindingStepMock::class);
 
         return $flowBuilder->build();
     }

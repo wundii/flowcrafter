@@ -47,8 +47,8 @@ final class Routes
         $router->add('/api/flow/flow-type-stats', MethodEnum::GET, $flowController->types(...));
 
         $router->add('/api/flow/schema-list', MethodEnum::GET, $schemaController->list(...));
-        $router->add('/api/flow/stub-source', MethodEnum::GET, $schemaController->stubSource(...));
-        $router->add('/api/flow/stub-source-list', MethodEnum::GET, $schemaController->stubSources(...));
+        $router->add('/api/flow/step-source', MethodEnum::GET, $schemaController->stepSource(...));
+        $router->add('/api/flow/step-source-list', MethodEnum::GET, $schemaController->stepSources(...));
         $router->add('/api/flow/message-source-list', MethodEnum::GET, $schemaController->messageSources(...));
 
         $router->add('/api/schedule/schedule-list', MethodEnum::GET, $scheduleController->list(...));

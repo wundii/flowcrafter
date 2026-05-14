@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Tests\MockClass;
 
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
-class PostStubMock implements StubInterface
+class PostStepMock implements StepInterface
 {
     public function __construct(
         private readonly MessageDataMock $messageDataMock,

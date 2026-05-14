@@ -64,8 +64,8 @@ final class FlowObserverEsdbTest extends TestCase
         $flowExceptionEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.exception.v1" PROJECT INTO e');
         $this->assertCount(0, iterator_to_array($flowExceptionEvents));
 
-        $flowStubSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.stub.v1" PROJECT INTO e');
-        $this->assertCount(4, iterator_to_array($flowStubSourceEvents));
+        $flowStepSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.step.v1" PROJECT INTO e');
+        $this->assertCount(4, iterator_to_array($flowStepSourceEvents));
 
         $flowMessageSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.message.v1" PROJECT INTO e');
         $this->assertCount(4, iterator_to_array($flowMessageSourceEvents));
@@ -103,8 +103,8 @@ final class FlowObserverEsdbTest extends TestCase
         $flowExceptionEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.exception.v1" PROJECT INTO e');
         $this->assertCount(0, iterator_to_array($flowExceptionEvents));
 
-        $flowStubSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.stub.v1" PROJECT INTO e');
-        $this->assertCount(1, iterator_to_array($flowStubSourceEvents));
+        $flowStepSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.step.v1" PROJECT INTO e');
+        $this->assertCount(1, iterator_to_array($flowStepSourceEvents));
 
         $flowMessageSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.message.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowMessageSourceEvents));

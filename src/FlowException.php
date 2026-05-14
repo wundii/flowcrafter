@@ -7,19 +7,19 @@ namespace Wundii\Flowcrafter;
 use DateTimeImmutable;
 use DateTimeInterface;
 use JsonSerializable;
-use Wundii\Flowcrafter\Interface\StubInterface;
+use Wundii\Flowcrafter\Interface\StepInterface;
 
 class FlowException implements JsonSerializable
 {
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
     public function __construct(
         private readonly string $flowHash,
         private readonly string $flowRuntimeHash,
         private readonly string $flowType,
-        private readonly string $stubSource,
-        private readonly string $stubHash,
+        private readonly string $stepSource,
+        private readonly string $stepHash,
         private readonly int $code,
         private readonly string $message,
         private readonly string $file,
@@ -31,22 +31,22 @@ class FlowException implements JsonSerializable
     ) {
         if (!$skipClassValidation) {
             Assert::classString(
-                $stubSource,
-                StubInterface::class,
-                sprintf('Message source class "%s" does not implement StubInterface.', $stubSource)
+                $stepSource,
+                StepInterface::class,
+                sprintf('Message source class "%s" does not implement StepInterface.', $stepSource)
             );
         }
     }
 
     /**
-     * @param class-string<StubInterface> $stubSource
+     * @param class-string<StepInterface> $stepSource
      */
     public static function create(
         string $flowHash,
         string $flowRuntimeHash,
         string $flowType,
-        string $stubSource,
-        string $stubHash,
+        string $stepSource,
+        string $stepHash,
         int $code,
         string $message,
         string $file,
@@ -59,8 +59,8 @@ class FlowException implements JsonSerializable
             flowHash: $flowHash,
             flowRuntimeHash: $flowRuntimeHash,
             flowType: $flowType,
-            stubSource: $stubSource,
-            stubHash: $stubHash,
+            stepSource: $stepSource,
+            stepHash: $stepHash,
             code: $code,
             message: $message,
             file: $file,
@@ -86,14 +86,14 @@ class FlowException implements JsonSerializable
         return $this->flowType;
     }
 
-    public function getStubSource(): string
+    public function getStepSource(): string
     {
-        return $this->stubSource;
+        return $this->stepSource;
     }
 
-    public function getStubHash(): string
+    public function getStepHash(): string
     {
-        return $this->stubHash;
+        return $this->stepHash;
     }
 
     public function getCode(): int
@@ -140,8 +140,8 @@ class FlowException implements JsonSerializable
             'flowHash' => $this->flowHash,
             'flowRuntimeHash' => $this->flowRuntimeHash,
             'flowType' => $this->flowType,
-            'stubSource' => $this->stubSource,
-            'stubHash' => $this->stubHash,
+            'stepSource' => $this->stepSource,
+            'stepHash' => $this->stepHash,
             'code' => $this->code,
             'message' => $this->message,
             'file' => $this->file,
