@@ -518,7 +518,7 @@ class Redis extends Service implements StorageInterface
         $events = self::fetchData($result);
 
         if ($events !== []) {
-            throw new InvalidArgumentException('The flow type "' . $flowSchema->type() . '" already exists.');
+            throw new InvalidArgumentException('The flow hash has not yet been registered, but the flow type "' . $flowSchema->type() . '" already exists.');
         }
 
         $flowSchema = array_merge(

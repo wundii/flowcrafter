@@ -50,8 +50,8 @@ class FlowBuilder
 
     /**
      * @param class-string<StepInterface> $step
-     * @param int<0, max> $retries
-     * @param positive-int $delay in milliseconds
+     * @param int<0, max> $retries retries after failure
+     * @param int<0, max> $delay in milliseconds
      */
     public function addStep(string $step, int $retries = Step::DEFAULT_RETRIES, int $delay = Step::DEFAULT_DELAY): void
     {

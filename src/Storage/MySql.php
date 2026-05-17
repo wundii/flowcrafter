@@ -330,7 +330,7 @@ class MySql extends Service implements StorageInterface
         }
 
         if ($stmt->fetch() !== false) {
-            throw new InvalidArgumentException('The flow type "' . $flowSchema->type() . '" already exists.');
+            throw new InvalidArgumentException('The flow hash has not yet been registered, but the flow type "' . $flowSchema->type() . '" already exists.');
         }
 
         $stmt = $this->client->prepare(

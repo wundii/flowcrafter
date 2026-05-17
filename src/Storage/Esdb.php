@@ -6,6 +6,7 @@ namespace Wundii\Flowcrafter\Storage;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use InvalidArgumentException;
 use RuntimeException;
 use Thenativeweb\Eventsourcingdb\Bound;
 use Thenativeweb\Eventsourcingdb\BoundType;
@@ -557,20 +558,24 @@ class Esdb extends Service
             data: $flowSchema->jsonSerialize(),
         );
 
-        $this->client->writeEvents(
-            [
-                $eventCandidate,
-            ],
-            [
-                new IsSubjectPristine($subject),
-                new IsEventQlQueryTrue(
-                    'FROM e IN events ' .
-                    'WHERE e.data.type == "' . $flowSchema->type() . '" ' .
-                    'AND e.type == "' . self::TYPE_SCHEMA . '" ' .
-                    'PROJECT INTO COUNT() == 0'
-                ),
-            ]
-        );
+        try {
+            $this->client->writeEvents(
+                [
+                    $eventCandidate,
+                ],
+                [
+                    new IsSubjectPristine($subject),
+                    new IsEventQlQueryTrue(
+                        'FROM e IN events ' .
+                        'WHERE e.data.type == "' . $flowSchema->type() . '" ' .
+                        'AND e.type == "' . self::TYPE_SCHEMA . '" ' .
+                        'PROJECT INTO COUNT() == 0'
+                    ),
+                ]
+            );
+        } catch (Throwable) {
+            throw new InvalidArgumentException('The flow hash has not yet been registered, but the flow type "' . $flowSchema->type() . '" already exists.');
+        }
     }
 
     public function registerMessageSource(MessageSourceEntity $messageSourceEntity): void

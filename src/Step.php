@@ -182,13 +182,21 @@ class Step implements JsonSerializable
      */
     public function jsonSerialize(): array
     {
-        return [
+        $return = [
             'source' => $this->source,
             'messageEnum' => $this->messageEnum->value,
             'messages' => $this->messages,
             'returnTypes' => $this->getReturnTypes(),
-            'retries' => $this->retries,
-            'delay' => $this->delay,
         ];
+
+        if ($this->retries !== self::DEFAULT_RETRIES) {
+            $return['retries'] = $this->retries;
+        }
+
+        if ($this->delay !== self::DEFAULT_DELAY) {
+            $return['delay'] = $this->delay;
+        }
+
+        return $return;
     }
 }
