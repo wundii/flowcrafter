@@ -114,6 +114,40 @@ Der Scheduler trackt pro Schedule die letzte Ausführungsminute und
 verhindert so Doppelausführungen innerhalb derselben Minute (relevant
 im Dev-Modus, wo `tick()` häufiger aufgerufen wird).
 
+## Step Retry
+
+Steps können bei transienten Fehlern automatisch wiederholt werden.
+Die Konfiguration erfolgt über `addStep()` im `FlowBuilder`:
+
+```php
+$builder->addStep(ExternalApiStep::class, retries: 3, delay: 500);
+```
+
+| Parameter | Default | Beschreibung |
+|---|---|---|
+| `retries` | `0` | Zusätzliche Versuche nach dem Erstversuch |
+| `delay` | `200` | Fixer Delay in ms zwischen den Versuchen |
+
+**Verhalten:**
+- Bei einer Exception im `process()`-Aufruf wartet der Runner den
+  konfigurierten Delay ab und versucht es erneut
+- Bei jedem Versuch wird eine neue Step-Instanz erzeugt (frisches
+  Autowiring)
+- Sind alle Versuche erschöpft, wird die letzte Exception wie gewohnt
+  als `FlowException` persistiert und erneut geworfen
+- Output-Buffering wird bei fehlgeschlagenen Versuchen korrekt
+  aufgeräumt
+
+**Schema-Hash:**
+`retries` und `delay` sind Laufzeit-Konfiguration und beeinflussen
+den Schema-Hash **nicht**. Eine Änderung der Retry-Config erzeugt
+keinen neuen Schema-Eintrag im Storage.
+
+**Storage-Kompatibilität:**
+Die Felder werden in `Step::jsonSerialize()` persistiert. Beim
+Deserialisieren älterer Schemas ohne diese Felder greift der
+Fallback-Default (0/200) — keine Migration nötig.
+
 ## Step-Source-Snapshotting
 
 Bei jeder Flow-Ausführung wird der Quellcode der beteiligten Steps als

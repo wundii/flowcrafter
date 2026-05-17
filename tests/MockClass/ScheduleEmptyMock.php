@@ -11,8 +11,6 @@ use Wundii\Flowcrafter\Schedule\AbstractSchedule;
 #[FlowSchedule('*/5 * * * *', name: 'test-empty-schedule', active: false)]
 class ScheduleEmptyMock extends AbstractSchedule
 {
-    public bool $executed = false;
-
     public function process(): void
     {
         $this->enqueue(

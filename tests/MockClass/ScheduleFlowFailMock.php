@@ -10,12 +10,8 @@ use Wundii\Flowcrafter\Schedule\AbstractSchedule;
 #[FlowSchedule('*/5 * * * *', name: 'test-fail-schedule', active: false)]
 class ScheduleFlowFailMock extends AbstractSchedule
 {
-    public bool $executed = false;
-
     public function process(): void
     {
-        $this->executed = true;
-
         $animals = [
             'Kalb',
             'Lamm',

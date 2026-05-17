@@ -172,6 +172,8 @@ final class Converter
             Assert::array($stepArray['messages'] ?? null, 'Each Messages must be an array.'),
             /** @phpstan-ignore-next-line */
             Assert::array($stepArray['returnTypes'] ?? null, 'Each ReturnTypes must be an array.'),
+            Assert::int($stepArray['retries'] ?? 0, 'Each retries must be an integer.'),
+            Assert::int($stepArray['delay'] ?? 200, 'Each delay must be an integer.'),
             MessageEnum::from(Assert::string($stepArray['messageEnum'] ?? null, 'Each MessageEnum must have a string messageEnum.')),
             $readOnly,
         );
@@ -314,7 +316,7 @@ final class Converter
                 $liveFlowType = $flowSource::schema()->type();
                 if (is_string($storedFlowType) && $storedFlowType !== $liveFlowType) {
                     $reasons[] = sprintf(
-                        "flowType '%s' does not match current flowSource type '%s'",
+                        "flowType '%s' does not match current flowSource local type '%s'",
                         $storedFlowType,
                         $liveFlowType,
                     );
@@ -365,6 +367,6 @@ final class Converter
             $reasons = [...$reasons, ...self::validateClassSource($stepSource, StepInterface::class, 'Result step source')];
         }
 
-        return $reasons;
+        return array_unique($reasons);
     }
 }

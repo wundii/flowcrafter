@@ -139,11 +139,11 @@ final class FlowSchemaTest extends TestCase
         $flowSchema->stepBySource(NextStepMock::class);
     }
 
-    public function testGetMessageToSubsMap(): void
+    public function testGetMessageToStepsMap(): void
     {
         $flowSchema = $this->createSchema();
 
-        $map = $flowSchema->getMessageToSubsMap();
+        $map = $flowSchema->getMessageToStepsMap();
 
         $this->assertArrayHasKey(MessageInitMock::class, $map);
         $this->assertArrayHasKey(MessageDataMock::class, $map);

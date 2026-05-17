@@ -79,7 +79,7 @@ final class FlowControllerTest extends TestCase
 
     public function testSearchReturnsEmptyForBlankSubject(): void
     {
-        $storage = $this->createStep(StorageInterface::class);
+        $storage = $this->createStub(StorageInterface::class);
 
         $request = Request::create('/api/flow/flow-search', 'GET', [
             'subject' => '',
@@ -116,7 +116,7 @@ final class FlowControllerTest extends TestCase
 
     public function testDetailReturns400WhenNoParam(): void
     {
-        $storage = $this->createStep(StorageInterface::class);
+        $storage = $this->createStub(StorageInterface::class);
 
         $jsonResponse = $this->makeController($storage)->detail(Request::create('/api/flow/flow-details'));
 
@@ -146,7 +146,7 @@ final class FlowControllerTest extends TestCase
 
     public function testRunRejects400WhenMessageIsEmptyAndNotEmptyInitMessage(): void
     {
-        $storage = $this->createStep(StorageInterface::class);
+        $storage = $this->createStub(StorageInterface::class);
 
         $request = Request::create('/api/flow/flow-run', 'POST', [], [], [], [], json_encode([
             'flowHash' => 'some-hash',
@@ -165,7 +165,7 @@ final class FlowControllerTest extends TestCase
 
     public function testRunAcceptsEmptyMessageForEmptyInitMessage(): void
     {
-        $storage = $this->createStep(StorageInterface::class);
+        $storage = $this->createStub(StorageInterface::class);
 
         $request = Request::create('/api/flow/flow-run', 'POST', [], [], [], [], json_encode([
             'flowHash' => 'some-hash',

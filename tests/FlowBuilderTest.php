@@ -269,4 +269,54 @@ final class FlowBuilderTest extends TestCase
 
         $flowBuilder->build();
     }
+
+    public function testAddStepWithRetryConfig(): void
+    {
+        $flowBuilder = new FlowBuilder(
+            'flow.test.v1',
+            MessageInitMock::class,
+            MessageReturnMock::class,
+        );
+
+        $flowBuilder->addStep(StepMock::class, retries: 3, delay: 500);
+        $flowBuilder->addStep(NextStepMock::class);
+        $flowBuilder->addStep(OtherStepMock::class);
+        $flowBuilder->addStep(PostStepMock::class);
+
+        $flowSchema = $flowBuilder->build();
+        $steps = $flowSchema->steps();
+
+        $this->assertSame(3, $steps[0]->getRetries());
+        $this->assertSame(500, $steps[0]->getDelay());
+        $this->assertSame(0, $steps[1]->getRetries());
+        $this->assertSame(200, $steps[1]->getDelay());
+    }
+
+    public function testRetryConfigDoesNotAffectSchemaHash(): void
+    {
+        $flowBuilder1 = new FlowBuilder(
+            'flow.test.v1',
+            MessageInitMock::class,
+            MessageReturnMock::class,
+        );
+        $flowBuilder1->addStep(StepMock::class);
+        $flowBuilder1->addStep(NextStepMock::class);
+        $flowBuilder1->addStep(OtherStepMock::class);
+        $flowBuilder1->addStep(PostStepMock::class);
+
+        $flowBuilder2 = new FlowBuilder(
+            'flow.test.v1',
+            MessageInitMock::class,
+            MessageReturnMock::class,
+        );
+        $flowBuilder2->addStep(StepMock::class, retries: 5, delay: 1000);
+        $flowBuilder2->addStep(NextStepMock::class);
+        $flowBuilder2->addStep(OtherStepMock::class);
+        $flowBuilder2->addStep(PostStepMock::class);
+
+        $this->assertSame(
+            $flowBuilder1->build()->getHash(),
+            $flowBuilder2->build()->getHash(),
+        );
+    }
 }

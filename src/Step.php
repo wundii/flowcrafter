@@ -28,6 +28,8 @@ class Step implements JsonSerializable
         private readonly string $source,
         private readonly array $messages,
         private readonly array $returnTypes,
+        private readonly int $retries = 0,
+        private readonly int $delay = 200,
         ?MessageEnum $messageEnum = null,
         bool $skipClassValidation = false,
     ) {
@@ -76,6 +78,8 @@ class Step implements JsonSerializable
      */
     public static function create(
         string $source,
+        int $retries = 0,
+        int $delay = 200,
     ): self {
         $reflectionClass = new ReflectionClass($source);
 
@@ -114,6 +118,8 @@ class Step implements JsonSerializable
             source: $source,
             messages: $messages,
             returnTypes: $returnTypes,
+            retries: max($retries, 0),
+            delay: max($delay, 0),
         );
     }
 
@@ -157,6 +163,16 @@ class Step implements JsonSerializable
         return $this->returnTypes;
     }
 
+    public function getRetries(): int
+    {
+        return $this->retries;
+    }
+
+    public function getDelay(): int
+    {
+        return $this->delay;
+    }
+
     /**
      * @return array<string, string|mixed>
      */
@@ -167,6 +183,8 @@ class Step implements JsonSerializable
             'messageEnum' => $this->messageEnum->value,
             'messages' => $this->messages,
             'returnTypes' => $this->getReturnTypes(),
+            'retries' => $this->retries,
+            'delay' => $this->delay,
         ];
     }
 }

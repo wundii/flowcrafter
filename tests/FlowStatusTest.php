@@ -328,7 +328,7 @@ final class FlowStatusTest extends TestCase
                     ],
                 ],
             ],
-            'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
+            'flowSchemaHash' => '6965a3cf349abc9d9889c574826b3df5',
             'flowHash' => $flowHash,
             'time' => '2026-03-31T06:39:57.000+00:00',
             'flowMessages' => [

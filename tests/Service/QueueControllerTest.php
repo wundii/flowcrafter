@@ -131,7 +131,7 @@ final class QueueControllerTest extends TestCase
 
     private function makeController(): QueueController
     {
-        return new QueueController($this->createStep(StorageInterface::class), new FlowPreflight());
+        return new QueueController($this->createStub(StorageInterface::class), new FlowPreflight());
     }
 
     /**

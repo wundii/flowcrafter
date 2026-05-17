@@ -225,7 +225,7 @@ final class DevControllerTest extends TestCase
     {
         putenv($devMode ? 'FLOWCRAFTER_DEV=1' : 'FLOWCRAFTER_DEV=0');
 
-        $storage = $this->createStep(StorageInterface::class);
+        $storage = $this->createStub(StorageInterface::class);
 
         return new DevController(new FlowcrafterConfig(), $storage);
     }

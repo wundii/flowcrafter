@@ -170,7 +170,7 @@ final class AssertTest extends TestCase
 
     public function testObjectPasses(): void
     {
-        $messageStep = $this->createStep(MessageInitInterface::class);
+        $messageStep = $this->createStub(MessageInitInterface::class);
         $this->assertSame($messageStep, Assert::object($messageStep, MessageInitInterface::class));
     }
 

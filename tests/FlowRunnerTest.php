@@ -16,10 +16,12 @@ use Tests\MockClass\MessageReturnMock;
 use Tests\MockClass\NextStepMock;
 use Tests\MockClass\OtherStepMock;
 use Tests\MockClass\PostStepMock;
+use Tests\MockClass\RetryStepMock;
 use Tests\MockClass\StepMock;
 use Tests\MockClass\WorkflowBoolMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
+use Tests\MockClass\WorkflowRetryMock;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
@@ -315,5 +317,48 @@ final class FlowRunnerTest extends TestCase
         $this->assertCount(1, $flow->getFlowResults());
         $this->assertTrue($flow->getFlowResults()[0]->getResult());
         $this->assertTrue($result);
+    }
+
+    public function testRunRetrySuccess(): void
+    {
+        RetryStepMock::configure(failUntil: 2);
+
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.retry.v1',
+            flowSource: WorkflowRetryMock::class,
+        );
+        $result = $flowRunner->run(new MessageInitMock('test data'));
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertCount(0, $flow->getFlowExceptions());
+        $this->assertInstanceOf(MessageReturnInterface::class, $result);
+        $this->assertSame(3, RetryStepMock::getCallCount());
+
+        RetryStepMock::reset();
+    }
+
+    public function testRunRetryExhausted(): void
+    {
+        RetryStepMock::configure(failUntil: 10);
+
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.retry.v1',
+            flowSource: WorkflowRetryMock::class,
+        );
+
+        try {
+            $flowRunner->run(new MessageInitMock('test data'));
+        } catch (Exception $exception) {
+            $this->assertInstanceOf(RuntimeException::class, $exception);
+            $this->assertSame('Retry attempt 4', $exception->getMessage());
+        }
+
+        $flow = $flowRunner->getFlow();
+        $this->assertCount(1, $flow->getFlowExceptions());
+        $this->assertSame(RetryStepMock::class, $flow->getFlowExceptions()[0]->getStepSource());
+        $this->assertSame(4, RetryStepMock::getCallCount());
+
+        RetryStepMock::reset();
     }
 }

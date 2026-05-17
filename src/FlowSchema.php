@@ -138,7 +138,17 @@ class FlowSchema implements JsonSerializable
             return $this->hash;
         }
 
-        $json = json_encode($this->jsonSerialize());
+        $hashData = [
+            'type' => $this->type,
+            'steps' => array_map(static fn (Step $step): array => [
+                'source' => $step->getSource(),
+                'messageEnum' => $step->getMessageEnum()->value,
+                'messages' => $step->getMessages(),
+                'returnTypes' => $step->getReturnTypes(),
+            ], $this->steps),
+        ];
+
+        $json = json_encode($hashData);
         if ($json === false) {
             throw new RuntimeException('Failed to encode flow schema to JSON.');
         }

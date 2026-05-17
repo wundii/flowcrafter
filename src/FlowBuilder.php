@@ -50,8 +50,10 @@ class FlowBuilder
 
     /**
      * @param class-string<StepInterface> $step
+     * @param int<0, max> $retries
+     * @param positive-int $delay in milliseconds
      */
-    public function addStep(string $step): void
+    public function addStep(string $step, int $retries = 0, int $delay = 200): void
     {
         Assert::classString(
             $step,
@@ -68,7 +70,7 @@ class FlowBuilder
             }
         }
 
-        $this->steps[] = Step::create($step);
+        $this->steps[] = Step::create($step, $retries, $delay);
     }
 
     public function build(): FlowSchema

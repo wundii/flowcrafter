@@ -258,7 +258,7 @@ class OrderFlow implements FlowInterface
     {
         $builder = new FlowBuilder('flow.order.v1', OrderInit::class, OrderCompleted::class);
         $builder->addStep(ValidateStep::class);
-        $builder->addStep(CompleteOrderStep::class);
+        $builder->addStep(CompleteOrderStep::class, retries: 3, delay: 500);
         $builder->addStep(AuditStep::class);
         return $builder->build();
     }
@@ -279,6 +279,25 @@ ValidateStep-->CompleteOrderStep: OrderValidated
 ValidateStep-->AuditStep: OrderValidated
 CompleteOrderStep-->[*]: OrderCompleted
 ```
+
+### Step Retry
+
+Steps können bei transienten Fehlern (z. B. externe API nicht erreichbar) automatisch wiederholt werden. Die Konfiguration erfolgt pro Step über `addStep()`:
+
+```php
+$builder->addStep(ValidateStep::class);                            // kein Retry (default)
+$builder->addStep(ExternalApiStep::class, retries: 3);             // 3 zusätzliche Versuche, 200ms Delay
+$builder->addStep(SlowServiceStep::class, retries: 5, delay: 500); // 5 zusätzliche Versuche, 500ms Delay
+```
+
+| Parameter | Typ | Default | Beschreibung |
+|---|---|---|---|
+| `retries` | `int` | `0` | Anzahl **zusätzlicher** Versuche nach dem Erstversuch |
+| `delay` | `int` | `200` | Fixer Delay in Millisekunden zwischen den Versuchen |
+
+- `retries: 3` bedeutet: 1 Erstversuch + 3 Wiederholungen = max. 4 Ausführungen
+- Retry-Konfiguration beeinflusst **nicht** den Schema-Hash — sie ist Laufzeit-Konfiguration
+- Bei Erschöpfung aller Versuche wird die letzte Exception wie gewohnt als `FlowException` persistiert
 
 ### Flow auslösen
 Zwei Wege: **synchron** im eigenen Code via `FlowRunner` oder **asynchron** über die Queue (vom `FlowObserver` abgearbeitet).

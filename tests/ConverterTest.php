@@ -68,7 +68,7 @@ final class ConverterTest extends TestCase
                     Step::create(PostStepMock::class),
                 ],
             ],
-            'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
+            'flowSchemaHash' => '6965a3cf349abc9d9889c574826b3df5',
             'flowHash' => $flow->getHash(),
             'flowMessages' => [],
             'flowExceptions' => [],
@@ -162,7 +162,7 @@ final class ConverterTest extends TestCase
                     Step::create(PostStepMock::class),
                 ],
             ],
-            'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
+            'flowSchemaHash' => '6965a3cf349abc9d9889c574826b3df5',
             'flowHash' => $flow->getHash(),
             'flowMessages' => [
                 [
@@ -252,7 +252,7 @@ final class ConverterTest extends TestCase
             'flowSource' => WorkflowMock::class,
             'flowSubject' => '/workflow/1',
             'flowType' => 'flow.workflow.v1',
-            'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
+            'flowSchemaHash' => '6965a3cf349abc9d9889c574826b3df5',
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
                 'steps' => [
@@ -310,7 +310,7 @@ final class ConverterTest extends TestCase
             flowType: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowSchema: FlowSchema::create(WorkflowMock::class),
-            flowSchemaHash: '03ff7ff98280189b9a356e81cb9b362c',
+            flowSchemaHash: '6965a3cf349abc9d9889c574826b3df5',
             time: $flow->getTime(),
             flowHash: $hash,
             flowSubject: '/workflow/1',
@@ -391,7 +391,7 @@ final class ConverterTest extends TestCase
                     ],
                 ],
             ],
-            'flowSchemaHash' => '03ff7ff98280189b9a356e81cb9b362c',
+            'flowSchemaHash' => '6965a3cf349abc9d9889c574826b3df5',
             'flowMessages' => [
                 [
                     'flowHash' => $hash,
@@ -418,7 +418,7 @@ final class ConverterTest extends TestCase
             flowType: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowSchema: FlowSchema::create(WorkflowMock::class),
-            flowSchemaHash: '03ff7ff98280189b9a356e81cb9b362c',
+            flowSchemaHash: '6965a3cf349abc9d9889c574826b3df5',
             time: $flow->getTime(),
             flowHash: $hash,
             flowSubject: '/workflow/1',

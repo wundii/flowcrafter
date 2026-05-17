@@ -34,6 +34,7 @@ final class ExceptionStatsEntityTest extends TestCase
             'date' => '2025-06-01',
             'flow' => 5,
             'schedule' => 2,
+            'observer' => 0,
         ], $exceptionStatsEntity->jsonSerialize());
     }
 }

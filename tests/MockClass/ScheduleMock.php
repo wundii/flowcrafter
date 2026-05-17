@@ -10,12 +10,8 @@ use Wundii\Flowcrafter\Schedule\AbstractSchedule;
 #[FlowSchedule('*/5 * * * *', name: 'test-schedule', active: false)]
 class ScheduleMock extends AbstractSchedule
 {
-    public bool $executed = false;
-
     public function process(): void
     {
-        $this->executed = true;
-
         $animals = [
             'Aal',
             'Ente',

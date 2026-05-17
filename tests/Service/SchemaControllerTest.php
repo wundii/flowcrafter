@@ -42,7 +42,7 @@ final class SchemaControllerTest extends TestCase
 
     public function testStepSourceReturnsCurrent(): void
     {
-        $storage = $this->createStep(StorageInterface::class);
+        $storage = $this->createStub(StorageInterface::class);
         $schemaController = new SchemaController($storage);
 
         $request = Request::create('/api/flow/step-source', 'GET', [
@@ -61,7 +61,7 @@ final class SchemaControllerTest extends TestCase
 
     public function testStepSourceReturns400ForNonStepClass(): void
     {
-        $storage = $this->createStep(StorageInterface::class);
+        $storage = $this->createStub(StorageInterface::class);
         $schemaController = new SchemaController($storage);
 
         $request = Request::create('/api/flow/step-source', 'GET', [

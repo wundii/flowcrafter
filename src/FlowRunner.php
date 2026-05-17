@@ -367,19 +367,35 @@ class FlowRunner
 
             $this->storage?->registerStepSource($stepSource);
 
-            try {
-                $stepInstance = $this->createInstance($stepSource->stepSource, $flowMessages);
-                ob_start();
-                $processResult = $stepInstance->process();
-                $stepOutput = ob_get_clean();
-                if ($stepOutput !== '' && $stepOutput !== false) {
-                    $this->outputLog[] = FlowOutput::create($stepSource->stepSource, $stepOutput);
-                }
-            } catch (Throwable $exception) {
-                if (ob_get_level() > 0) {
-                    ob_end_clean();
-                }
+            $maxAttempts = $step->getRetries() + 1;
+            $lastException = null;
+            $processResult = false;
 
+            for ($attempt = 1; $attempt <= $maxAttempts; ++$attempt) {
+                try {
+                    $stepInstance = $this->createInstance($stepSource->stepSource, $flowMessages);
+                    ob_start();
+                    $processResult = $stepInstance->process();
+                    $stepOutput = ob_get_clean();
+                    if ($stepOutput !== '' && $stepOutput !== false) {
+                        $this->outputLog[] = FlowOutput::create($stepSource->stepSource, $stepOutput);
+                    }
+
+                    $lastException = null;
+                    break;
+                } catch (Throwable $exception) {
+                    if (ob_get_level() > 0) {
+                        ob_end_clean();
+                    }
+
+                    $lastException = $exception;
+                    if ($attempt < $maxAttempts) {
+                        usleep($step->getDelay() * 1000);
+                    }
+                }
+            }
+
+            if ($lastException instanceof Throwable) {
                 foreach ($flowMessages as $flowMessage) {
                     $flowMessage->setFinish();
                     $this->storage?->appendFlowMessage($flowMessage);
@@ -391,18 +407,18 @@ class FlowRunner
                     flowType: $flow->getType(),
                     stepSource: $stepSource->stepSource,
                     stepHash: $stepSource->stepHash,
-                    code: $exception->getCode(),
-                    message: $exception->getMessage(),
-                    file: $exception->getFile(),
-                    line: $exception->getLine(),
-                    traceString: $exception->getTraceAsString(),
+                    code: $lastException->getCode(),
+                    message: $lastException->getMessage(),
+                    file: $lastException->getFile(),
+                    line: $lastException->getLine(),
+                    traceString: $lastException->getTraceAsString(),
                 );
 
                 $flow->addException($flowException);
                 $this->storage?->appendFlowException($flowException);
                 $this->storage?->appendFlow($flow);
 
-                throw $exception;
+                throw $lastException;
             }
 
             foreach ($flowMessages as $flowMessage) {
