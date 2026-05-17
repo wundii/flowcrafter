@@ -292,7 +292,7 @@ final class FlowBuilderTest extends TestCase
         $this->assertSame(200, $steps[1]->getDelay());
     }
 
-    public function testRetryConfigDoesNotAffectSchemaHash(): void
+    public function testRetryConfigAffectsSchemaHash(): void
     {
         $flowBuilder1 = new FlowBuilder(
             'flow.test.v1',
@@ -314,7 +314,7 @@ final class FlowBuilderTest extends TestCase
         $flowBuilder2->addStep(OtherStepMock::class);
         $flowBuilder2->addStep(PostStepMock::class);
 
-        $this->assertSame(
+        $this->assertNotSame(
             $flowBuilder1->build()->getHash(),
             $flowBuilder2->build()->getHash(),
         );

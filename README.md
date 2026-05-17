@@ -296,7 +296,7 @@ $builder->addStep(SlowServiceStep::class, retries: 5, delay: 500); // 5 zusätzl
 | `delay` | `int` | `200` | Fixer Delay in Millisekunden zwischen den Versuchen |
 
 - `retries: 3` bedeutet: 1 Erstversuch + 3 Wiederholungen = max. 4 Ausführungen
-- Retry-Konfiguration beeinflusst **nicht** den Schema-Hash — sie ist Laufzeit-Konfiguration
+- Retry-Konfiguration beeinflusst den Schema-Hash — eine Änderung erzeugt eine neue Schema-Version
 - Bei Erschöpfung aller Versuche wird die letzte Exception wie gewohnt als `FlowException` persistiert
 
 ### Flow auslösen

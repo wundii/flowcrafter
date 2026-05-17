@@ -343,7 +343,7 @@ final class FlowRunnerTest extends TestCase
         RetryStepMock::configure(failUntil: 10);
 
         $flowRunner = new FlowRunner(
-            type: 'flow.workflow.retry.v1',
+            type: 'flow.workflow.retry.v2',
             flowSource: WorkflowRetryMock::class,
         );
 

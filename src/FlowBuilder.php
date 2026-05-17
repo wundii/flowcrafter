@@ -53,7 +53,7 @@ class FlowBuilder
      * @param int<0, max> $retries
      * @param positive-int $delay in milliseconds
      */
-    public function addStep(string $step, int $retries = 0, int $delay = 200): void
+    public function addStep(string $step, int $retries = Step::DEFAULT_RETRIES, int $delay = Step::DEFAULT_DELAY): void
     {
         Assert::classString(
             $step,

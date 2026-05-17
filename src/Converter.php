@@ -172,8 +172,8 @@ final class Converter
             Assert::array($stepArray['messages'] ?? null, 'Each Messages must be an array.'),
             /** @phpstan-ignore-next-line */
             Assert::array($stepArray['returnTypes'] ?? null, 'Each ReturnTypes must be an array.'),
-            Assert::int($stepArray['retries'] ?? 0, 'Each retries must be an integer.'),
-            Assert::int($stepArray['delay'] ?? 200, 'Each delay must be an integer.'),
+            Assert::int($stepArray['retries'] ?? Step::DEFAULT_RETRIES, 'Each retries must be an integer.'),
+            Assert::int($stepArray['delay'] ?? Step::DEFAULT_DELAY, 'Each delay must be an integer.'),
             MessageEnum::from(Assert::string($stepArray['messageEnum'] ?? null, 'Each MessageEnum must have a string messageEnum.')),
             $readOnly,
         );

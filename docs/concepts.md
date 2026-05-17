@@ -139,9 +139,8 @@ $builder->addStep(ExternalApiStep::class, retries: 3, delay: 500);
   aufgeräumt
 
 **Schema-Hash:**
-`retries` und `delay` sind Laufzeit-Konfiguration und beeinflussen
-den Schema-Hash **nicht**. Eine Änderung der Retry-Config erzeugt
-keinen neuen Schema-Eintrag im Storage.
+`retries` und `delay` fließen in den Schema-Hash ein. Eine Änderung
+der Retry-Config erzeugt einen neuen Schema-Eintrag im Storage.
 
 **Storage-Kompatibilität:**
 Die Felder werden in `Step::jsonSerialize()` persistiert. Beim

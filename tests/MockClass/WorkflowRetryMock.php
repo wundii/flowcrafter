@@ -15,7 +15,7 @@ class WorkflowRetryMock implements FlowInterface
     public static function schema(): FlowSchema
     {
         $flowBuilder = new FlowBuilder(
-            'flow.workflow.retry.v1',
+            'flow.workflow.retry.v2',
             MessageInitMock::class,
             MessageReturnMock::class,
         );

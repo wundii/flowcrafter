@@ -17,6 +17,10 @@ use Wundii\Flowcrafter\Interface\StepInterface;
 
 class Step implements JsonSerializable
 {
+    public const DEFAULT_RETRIES = 0;
+
+    public const DEFAULT_DELAY = 200;
+
     private MessageEnum $messageEnum;
 
     /**
@@ -28,8 +32,8 @@ class Step implements JsonSerializable
         private readonly string $source,
         private readonly array $messages,
         private readonly array $returnTypes,
-        private readonly int $retries = 0,
-        private readonly int $delay = 200,
+        private readonly int $retries = self::DEFAULT_RETRIES,
+        private readonly int $delay = self::DEFAULT_DELAY,
         ?MessageEnum $messageEnum = null,
         bool $skipClassValidation = false,
     ) {
@@ -78,8 +82,8 @@ class Step implements JsonSerializable
      */
     public static function create(
         string $source,
-        int $retries = 0,
-        int $delay = 200,
+        int $retries = self::DEFAULT_RETRIES,
+        int $delay = self::DEFAULT_DELAY,
     ): self {
         $reflectionClass = new ReflectionClass($source);
 
