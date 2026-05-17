@@ -31,6 +31,7 @@ class Flow implements JsonSerializable
      * @param FlowException[] $flowExceptions
      * @param FlowRun[] $flowRuns
      * @param FlowResult[] $flowResults
+     * @param FlowRetry[] $flowRetries
      * @param string[] $flowReadOnlyReasons
      */
     public function __construct(
@@ -45,6 +46,7 @@ class Flow implements JsonSerializable
         private array $flowExceptions = [],
         private array $flowRuns = [],
         private array $flowResults = [],
+        private array $flowRetries = [],
         private readonly array $flowReadOnlyReasons = [],
     ) {
         $this->flowReadOnly = $flowReadOnlyReasons !== [];
@@ -187,6 +189,19 @@ class Flow implements JsonSerializable
     public function addResult(FlowResult $flowResult): void
     {
         $this->flowResults[] = $flowResult;
+    }
+
+    /**
+     * @return FlowRetry[]
+     */
+    public function getFlowRetries(): array
+    {
+        return $this->flowRetries;
+    }
+
+    public function addFlowRetry(FlowRetry $flowRetry): void
+    {
+        $this->flowRetries[] = $flowRetry;
     }
 
     /**
@@ -408,7 +423,7 @@ class Flow implements JsonSerializable
     }
 
     /**
-     * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowResult|FlowRun|StepTiming[]|string>|FlowSchema>
+     * @return array<string, null|bool|string|array<FlowMessage|FlowException|FlowResult|FlowRun|FlowRetry|StepTiming[]|string>|FlowSchema>
      */
     public function jsonSerialize(): array
     {
@@ -422,6 +437,7 @@ class Flow implements JsonSerializable
             'flowMessages' => $this->flowMessages,
             'flowExceptions' => $this->flowExceptions,
             'flowResults' => $this->flowResults,
+            'flowRetries' => $this->flowRetries,
             'flowRuns' => $this->runs(),
             'flowStatus' => $this->status()->name,
             'isExecutable' => $this->isExecutable(),

@@ -25,6 +25,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
+use Wundii\Flowcrafter\FlowRetry;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -65,6 +66,8 @@ class Esdb extends Service
     public const TYPE_SOURCE_MESSAGE = 'flowcrafter.flow.source.message.v1';
 
     public const TYPE_SOURCE_STEP = 'flowcrafter.flow.source.step.v1';
+
+    public const TYPE_STEP_RETRY = 'flowcrafter.step.retry.v1';
 
     protected Client $client;
 
@@ -435,6 +438,48 @@ class Esdb extends Service
             $this->client->registerEventSchema($eventType, $registerEventSchema);
         }
 
+        if (!in_array(self::TYPE_STEP_RETRY, $eventTypes, true)) {
+            $eventType = self::TYPE_STEP_RETRY;
+            $registerEventSchema = [
+                'type' => 'object',
+                'properties' => [
+                    'flowHash' => [
+                        'type' => 'string',
+                    ],
+                    'flowRuntimeHash' => [
+                        'type' => 'string',
+                    ],
+                    'stepSource' => [
+                        'type' => 'string',
+                    ],
+                    'attempt' => [
+                        'type' => 'integer',
+                    ],
+                    'message' => [
+                        'type' => 'string',
+                    ],
+                    'time' => [
+                        'type' => 'string',
+                    ],
+                    'hash' => [
+                        'type' => 'string',
+                    ],
+                ],
+                'required' => [
+                    'flowHash',
+                    'flowRuntimeHash',
+                    'stepSource',
+                    'attempt',
+                    'message',
+                    'time',
+                    'hash',
+                ],
+                'additionalProperties' => false,
+            ];
+
+            $this->client->registerEventSchema($eventType, $registerEventSchema);
+        }
+
         if (!in_array(self::TYPE_QUEUE, $eventTypes, true)) {
             $eventType = self::TYPE_QUEUE;
             $registerEventSchema = [
@@ -594,6 +639,7 @@ class Esdb extends Service
         unset($data['flowMessages']);
         unset($data['flowExceptions']);
         unset($data['flowResults']);
+        unset($data['flowRetries']);
         unset($data['flowRuns']);
         unset($data['flowStatus']);
         unset($data['isExecutable']);
@@ -739,6 +785,27 @@ class Esdb extends Service
             subject: $subject,
             type: self::TYPE_RESULT,
             data: $flowResult->jsonSerialize(),
+        );
+
+        $this->client->writeEvents(
+            [
+                $eventCandidate,
+            ],
+            [
+                new IsSubjectPopulated($subjectFlow),
+            ],
+        );
+    }
+
+    public function appendFlowRetry(FlowRetry $flowRetry): void
+    {
+        $subject = '/flow/' . $flowRetry->getFlowHash() . '/step-retry/' . $flowRetry->getHash();
+        $subjectFlow = '/flow/' . $flowRetry->getFlowHash();
+        $eventCandidate = new EventCandidate(
+            source: self::SOURCE,
+            subject: $subject,
+            type: self::TYPE_STEP_RETRY,
+            data: $flowRetry->jsonSerialize(),
         );
 
         $this->client->writeEvents(
@@ -966,6 +1033,10 @@ class Esdb extends Service
 
             if ($flowEvent->type === self::TYPE_RESULT) {
                 $flowArray['flowResults'][] = $flowEvent->data;
+            }
+
+            if ($flowEvent->type === self::TYPE_STEP_RETRY) {
+                $flowArray['flowRetries'][] = $flowEvent->data;
             }
 
             if ($flowEvent->type === self::TYPE_RUN) {

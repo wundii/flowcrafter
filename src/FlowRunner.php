@@ -390,6 +390,16 @@ class FlowRunner
 
                     $lastException = $exception;
                     if ($attempt < $maxAttempts) {
+                        $flowRetry = FlowRetry::create(
+                            flowHash: $flow->getHash(),
+                            flowRuntimeHash: $flow->getRuntimeHash(),
+                            stepSource: $stepSource->stepSource,
+                            attempt: $attempt,
+                            message: $exception->getMessage(),
+                        );
+                        $flow->addFlowRetry($flowRetry);
+                        $this->storage?->appendFlowRetry($flowRetry);
+
                         usleep($step->getDelay() * 1000);
                     }
                 }

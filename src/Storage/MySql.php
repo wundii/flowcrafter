@@ -18,6 +18,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
+use Wundii\Flowcrafter\FlowRetry;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -229,6 +230,24 @@ class MySql extends Service implements StorageInterface
                 `time` DATETIME(3) NOT NULL,
                 INDEX idx_flow_result_flow_hash (flow_hash),
                 INDEX idx_flow_result_flow_runtime_hash (flow_runtime_hash),
+                FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
+                FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash)
+            )
+            SQL
+        );
+
+        $this->client->exec(
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS step_retry (
+                hash VARCHAR(191) NOT NULL PRIMARY KEY,
+                flow_hash VARCHAR(191) NOT NULL,
+                flow_runtime_hash VARCHAR(191) NOT NULL,
+                step_source VARCHAR(255) NOT NULL,
+                attempt INT NOT NULL,
+                message TEXT NOT NULL,
+                `time` DATETIME(3) NOT NULL,
+                INDEX idx_step_retry_flow_hash (flow_hash),
+                INDEX idx_step_retry_flow_runtime_hash (flow_runtime_hash),
                 FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
                 FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash)
             )
@@ -503,6 +522,24 @@ class MySql extends Service implements StorageInterface
             ':step_hash' => $flowResult->getStepHash(),
             ':result' => $flowResult->getResult() ? 1 : 0,
             ':time' => $flowResult->getTime()->format('Y-m-d H:i:s.v'),
+        ]);
+    }
+
+    public function appendFlowRetry(FlowRetry $flowRetry): void
+    {
+        $stmt = $this->client->prepare(
+            'INSERT IGNORE INTO step_retry (hash, flow_hash, flow_runtime_hash, step_source, attempt, message, time) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :step_source, :attempt, :message, :time)'
+        );
+
+        $stmt->execute([
+            ':hash' => $flowRetry->getHash(),
+            ':flow_hash' => $flowRetry->getFlowHash(),
+            ':flow_runtime_hash' => $flowRetry->getFlowRuntimeHash(),
+            ':step_source' => $flowRetry->getStepSource(),
+            ':attempt' => $flowRetry->getAttempt(),
+            ':message' => $flowRetry->getMessage(),
+            ':time' => $flowRetry->getTime()->format('Y-m-d H:i:s.v'),
         ]);
     }
 
@@ -862,6 +899,30 @@ class MySql extends Service implements StorageInterface
                 'stepHash' => $result['step_hash'],
                 'result' => (bool) $result['result'],
                 'time' => $result['time'],
+            ];
+        }
+
+        $stmt = $this->client->prepare(
+            'SELECT * FROM step_retry ' .
+            'WHERE flow_hash = :flow_hash ' .
+            'ORDER BY time ASC'
+        );
+        $stmt->execute([
+            ':flow_hash' => $flowHash,
+        ]);
+
+        $stmt->setFetchMode(Client::FETCH_ASSOC);
+
+        foreach ($stmt as $retry) {
+            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, step_source: string, attempt: int|string, message: string, time: string} $retry */
+            $flowArray['flowRetries'][] = [
+                'hash' => $retry['hash'],
+                'flowHash' => $retry['flow_hash'],
+                'flowRuntimeHash' => $retry['flow_runtime_hash'],
+                'stepSource' => $retry['step_source'],
+                'attempt' => (int) $retry['attempt'],
+                'message' => $retry['message'],
+                'time' => $retry['time'],
             ];
         }
 

@@ -87,6 +87,7 @@ final class Converter
             array_map(static fn (mixed $a): FlowException => self::mapFlowException($a, $readOnly), Assert::array($flow['flowExceptions'] ?? [], 'Exceptions must be an array.')),
             array_map(static fn (mixed $a): FlowRun => self::mapFlowRun($a), Assert::array($flow['flowRuns'] ?? [], 'Runs must be an array.')),
             array_map(static fn (mixed $a): FlowResult => self::mapFlowResult($a, $readOnly), Assert::array($flow['flowResults'] ?? [], 'Results must be an array.')),
+            array_map(static fn (mixed $a): FlowRetry => self::mapFlowRetry($a), Assert::array($flow['flowRetries'] ?? [], 'FlowRetries must be an array.')),
             $readOnlyReasons,
         );
     }
@@ -268,6 +269,21 @@ final class Converter
         );
     }
 
+    private static function mapFlowRetry(mixed $array): FlowRetry
+    {
+        $retry = Assert::array($array, 'Each FlowRetry must be an array.');
+
+        return new FlowRetry(
+            Assert::string($retry['flowHash'] ?? null, 'Each FlowRetry must have a string flowHash.'),
+            Assert::string($retry['flowRuntimeHash'] ?? null, 'Each FlowRetry must have a string flowRuntimeHash.'),
+            Assert::string($retry['stepSource'] ?? null, 'Each FlowRetry must have a string stepSource.'),
+            Assert::int($retry['attempt'] ?? null, 'Each FlowRetry must have an integer attempt.'),
+            Assert::string($retry['message'] ?? null, 'Each FlowRetry must have a string message.'),
+            Assert::datetimeImmutable($retry['time'] ?? null, 'Each FlowRetry must have a valid time.'),
+            Assert::string($retry['hash'] ?? null, 'Each FlowRetry must have a string hash.'),
+        );
+    }
+
     private static function displayValue(mixed $value): string
     {
         return is_string($value) ? $value : gettype($value);
@@ -365,6 +381,12 @@ final class Converter
             $result = Assert::array($resData, 'Each Result must be an array.');
             $stepSource = $result['stepSource'] ?? null;
             $reasons = [...$reasons, ...self::validateClassSource($stepSource, StepInterface::class, 'Result step source')];
+        }
+
+        foreach (Assert::array($flow['flowRetries'] ?? [], 'Retries must be an array.') as $retryData) {
+            $retry = Assert::array($retryData, 'Each Retry must be an array.');
+            $stepSource = $retry['stepSource'] ?? null;
+            $reasons = [...$reasons, ...self::validateClassSource($stepSource, StepInterface::class, 'Retry step source')];
         }
 
         return array_unique($reasons);

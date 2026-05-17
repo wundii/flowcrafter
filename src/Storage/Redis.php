@@ -17,6 +17,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
+use Wundii\Flowcrafter\FlowRetry;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -50,6 +51,8 @@ class Redis extends Service implements StorageInterface
 
     public const PREFIX_TYPE_SOURCE_STEP = 'flow:source:step:';
 
+    public const PREFIX_TYPE_STEP_RETRY = 'step:retry:';
+
     private const INDEX_INSTANCE = 'idx:flow';
 
     private const INDEX_MESSAGE = 'idx:flow:message';
@@ -61,6 +64,8 @@ class Redis extends Service implements StorageInterface
     private const INDEX_RUN = 'idx:flow:run';
 
     private const INDEX_SCHEMA = 'idx:flow:schema';
+
+    private const INDEX_STEP_RETRY = 'idx:step:retry';
 
     private const INDEX_SOURCE_MESSAGE = 'idx:flow:source:message';
 
@@ -460,6 +465,42 @@ class Redis extends Service implements StorageInterface
             'hash',
             'TAG',
         );
+
+        if ($this->existIndex(self::INDEX_STEP_RETRY)) {
+            $this->client->rawCommand('FT.DROPINDEX', self::INDEX_STEP_RETRY);
+        }
+
+        $this->client->rawCommand(
+            'FT.CREATE',
+            self::INDEX_STEP_RETRY,
+            'ON',
+            'JSON',
+            'PREFIX',
+            '1',
+            self::PREFIX_TYPE_STEP_RETRY,
+            'SCHEMA',
+            '$.flowHash',
+            'AS',
+            'flowHash',
+            'TAG',
+            '$.flowRuntimeHash',
+            'AS',
+            'flowRuntimeHash',
+            'TAG',
+            '$.stepSource',
+            'AS',
+            'stepSource',
+            'TAG',
+            '$.time',
+            'AS',
+            'time',
+            'NUMERIC',
+            'SORTABLE',
+            '$.hash',
+            'AS',
+            'hash',
+            'TAG',
+        );
     }
 
     public function registerFlowSchema(FlowSchema $flowSchema): void
@@ -614,6 +655,19 @@ class Redis extends Service implements StorageInterface
         $data = $flowResult->jsonSerialize();
         $data['time'] = $flowResult->getTime()->getTimestamp();
         $data['result'] = (int) $flowResult->getResult();
+
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
+    }
+
+    public function appendFlowRetry(FlowRetry $flowRetry): void
+    {
+        $key = self::PREFIX_TYPE_STEP_RETRY . $flowRetry->getHash();
+        if ($this->client->exists($key)) {
+            return;
+        }
+
+        $data = $flowRetry->jsonSerialize();
+        $data['time'] = $flowRetry->getTime()->getTimestamp();
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
     }
@@ -844,6 +898,15 @@ class Redis extends Service implements StorageInterface
         }
 
         $flowArray['flowResults'] = $flowResults;
+
+        $flowRetries = [];
+        $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_STEP_RETRY, '@flowHash:{' . $flowHash . '}', 'SORTBY', 'time', 'ASC', 'LIMIT', '0', '10000', 'RETURN', '1', '$');
+        foreach (self::fetchData($result) as $retryEvent) {
+            $retryEvent['time'] = $this->timestampToRFC3339Extended($retryEvent['time'] ?? 0);
+            $flowRetries[] = $retryEvent;
+        }
+
+        $flowArray['flowRetries'] = $flowRetries;
 
         $flowRuns = [];
         $result = $this->client->rawCommand('FT.SEARCH', self::INDEX_RUN, '@flowHash:{' . $flowHash . '}', 'SORTBY', 'time', 'ASC', 'LIMIT', '0', '10000', 'RETURN', '1', '$');

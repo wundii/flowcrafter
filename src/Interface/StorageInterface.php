@@ -9,6 +9,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
+use Wundii\Flowcrafter\FlowRetry;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\ObserverException;
@@ -43,6 +44,8 @@ interface StorageInterface extends ServiceInterface
     public function appendObserverException(ObserverException $observerException): void;
 
     public function appendFlowResult(FlowResult $flowResult): void;
+
+    public function appendFlowRetry(FlowRetry $flowRetry): void;
 
     /**
      * @param class-string $flowSource

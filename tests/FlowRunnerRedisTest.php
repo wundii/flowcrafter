@@ -14,15 +14,18 @@ use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageSubDataMock;
 use Tests\MockClass\PostStepMock;
+use Tests\MockClass\RetryStepMock;
 use Tests\MockClass\WorkflowEmptyMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
+use Tests\MockClass\WorkflowRetryMock;
 use Tests\Trait\RedisClientTestTrait;
 use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
+use Wundii\Flowcrafter\FlowRetry;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 
@@ -219,5 +222,81 @@ final class FlowRunnerRedisTest extends TestCase
             static fn (FlowMessage $flowMessage): bool => $flowMessage->getMessageSource() === MessageDataMock::class,
         ));
         $this->assertCount(1, $injected);
+    }
+
+    public function testRunRetrySuccessPersistedToStorage(): void
+    {
+        RetryStepMock::configure(failUntil: 2);
+
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.retry.v2',
+            flowSource: WorkflowRetryMock::class,
+            storage: $storage,
+        );
+        $result = $flowRunner->run(new MessageInitMock('test data'));
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertCount(0, $flow->getFlowExceptions());
+        $this->assertInstanceOf(MessageReturnInterface::class, $result);
+        $this->assertSame(3, RetryStepMock::getCallCount());
+
+        $flowRetries = $flow->getFlowRetries();
+        $this->assertCount(2, $flowRetries);
+        $this->assertSame(1, $flowRetries[0]->getAttempt());
+        $this->assertSame('Retry attempt 1', $flowRetries[0]->getMessage());
+        $this->assertSame(RetryStepMock::class, $flowRetries[0]->getStepSource());
+        $this->assertSame(2, $flowRetries[1]->getAttempt());
+        $this->assertSame('Retry attempt 2', $flowRetries[1]->getMessage());
+
+        $flowRetryKeys = $this->client->keys('step:retry:*');
+        $this->assertCount(2, $flowRetryKeys);
+
+        $reloadedFlow = $storage->findFlowByHash($flow->getHash());
+        $this->assertInstanceOf(Flow::class, $reloadedFlow);
+        $reloadedRetries = $reloadedFlow->getFlowRetries();
+        $this->assertCount(2, $reloadedRetries);
+        $this->assertInstanceOf(FlowRetry::class, $reloadedRetries[0]);
+        $this->assertSame(1, $reloadedRetries[0]->getAttempt());
+        $this->assertSame(2, $reloadedRetries[1]->getAttempt());
+        $this->assertSame($flow->getHash(), $reloadedRetries[0]->getFlowHash());
+        $this->assertSame($flow->getRuntimeHash(), $reloadedRetries[0]->getFlowRuntimeHash());
+
+        RetryStepMock::reset();
+    }
+
+    public function testRunRetryExhaustedPersistedToStorage(): void
+    {
+        RetryStepMock::configure(failUntil: 10);
+
+        $storage = $this->storage();
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.retry.v2',
+            flowSource: WorkflowRetryMock::class,
+            storage: $storage,
+        );
+
+        try {
+            $flowRunner->run(new MessageInitMock('test data'));
+        } catch (\Exception $exception) {
+            $this->assertInstanceOf(\RuntimeException::class, $exception);
+        }
+
+        $flow = $flowRunner->getFlow();
+        $this->assertCount(1, $flow->getFlowExceptions());
+        $this->assertSame(4, RetryStepMock::getCallCount());
+
+        $flowRetries = $flow->getFlowRetries();
+        $this->assertCount(3, $flowRetries);
+
+        $flowRetryKeys = $this->client->keys('step:retry:*');
+        $this->assertCount(3, $flowRetryKeys);
+
+        $reloadedFlow = $storage->findFlowByHash($flow->getHash());
+        $this->assertInstanceOf(Flow::class, $reloadedFlow);
+        $this->assertCount(3, $reloadedFlow->getFlowRetries());
+
+        RetryStepMock::reset();
     }
 }

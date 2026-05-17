@@ -324,7 +324,7 @@ final class FlowRunnerTest extends TestCase
         RetryStepMock::configure(failUntil: 2);
 
         $flowRunner = new FlowRunner(
-            type: 'flow.workflow.retry.v1',
+            type: 'flow.workflow.retry.v2',
             flowSource: WorkflowRetryMock::class,
         );
         $result = $flowRunner->run(new MessageInitMock('test data'));
@@ -334,6 +334,14 @@ final class FlowRunnerTest extends TestCase
         $this->assertCount(0, $flow->getFlowExceptions());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
         $this->assertSame(3, RetryStepMock::getCallCount());
+
+        $flowRetries = $flow->getFlowRetries();
+        $this->assertCount(2, $flowRetries);
+        $this->assertSame(1, $flowRetries[0]->getAttempt());
+        $this->assertSame('Retry attempt 1', $flowRetries[0]->getMessage());
+        $this->assertSame(RetryStepMock::class, $flowRetries[0]->getStepSource());
+        $this->assertSame(2, $flowRetries[1]->getAttempt());
+        $this->assertSame('Retry attempt 2', $flowRetries[1]->getMessage());
 
         RetryStepMock::reset();
     }
@@ -358,6 +366,12 @@ final class FlowRunnerTest extends TestCase
         $this->assertCount(1, $flow->getFlowExceptions());
         $this->assertSame(RetryStepMock::class, $flow->getFlowExceptions()[0]->getStepSource());
         $this->assertSame(4, RetryStepMock::getCallCount());
+
+        $flowRetries = $flow->getFlowRetries();
+        $this->assertCount(3, $flowRetries);
+        $this->assertSame(1, $flowRetries[0]->getAttempt());
+        $this->assertSame(2, $flowRetries[1]->getAttempt());
+        $this->assertSame(3, $flowRetries[2]->getAttempt());
 
         RetryStepMock::reset();
     }

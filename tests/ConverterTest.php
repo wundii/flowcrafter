@@ -73,6 +73,7 @@ final class ConverterTest extends TestCase
             'flowMessages' => [],
             'flowExceptions' => [],
             'flowResults' => [],
+            'flowRetries' => [],
             'flowRuns' => [],
             'flowStatus' => 'IN_PROGRESS',
             'isExecutable' => true,
@@ -208,6 +209,7 @@ final class ConverterTest extends TestCase
                     'hash' => Uuid::uuid7($flow->getTime())->toString(),
                 ],
             ],
+            'flowRetries' => [],
             'flowRuns' => [
                 [
                     'flowHash' => $flow->getHash(),
