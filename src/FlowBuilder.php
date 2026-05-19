@@ -53,8 +53,12 @@ class FlowBuilder
      * @param int<0, max> $retries retries after failure
      * @param int<0, max> $delay in milliseconds
      */
-    public function addStep(string $step, int $retries = Step::DEFAULT_RETRIES, int $delay = Step::DEFAULT_DELAY): void
-    {
+    public function addStep(
+        string $step,
+        int $retries = Step::DEFAULT_RETRIES,
+        int $delay = Step::DEFAULT_DELAY,
+        bool $runOnce = false,
+    ): void {
         Assert::classString(
             $step,
             StepInterface::class,
@@ -70,7 +74,7 @@ class FlowBuilder
             }
         }
 
-        $this->steps[] = Step::create($step, $retries, $delay);
+        $this->steps[] = Step::create($step, $retries, $delay, $runOnce);
     }
 
     public function build(): FlowSchema

@@ -175,6 +175,7 @@ final class Converter
             Assert::array($stepArray['returnTypes'] ?? null, 'Each ReturnTypes must be an array.'),
             Assert::int($stepArray['retries'] ?? Step::DEFAULT_RETRIES, 'Each retries must be an integer.'),
             Assert::int($stepArray['delay'] ?? Step::DEFAULT_DELAY, 'Each delay must be an integer.'),
+            Assert::bool($stepArray['runOnce'] ?? false, 'Each runOnce must be a boolean.'),
             MessageEnum::from(Assert::string($stepArray['messageEnum'] ?? null, 'Each MessageEnum must have a string messageEnum.')),
             $readOnly,
         );

@@ -17,11 +17,13 @@ use Tests\MockClass\NextStepMock;
 use Tests\MockClass\OtherStepMock;
 use Tests\MockClass\PostStepMock;
 use Tests\MockClass\RetryStepMock;
+use Tests\MockClass\RunOnceStepMock;
 use Tests\MockClass\StepMock;
 use Tests\MockClass\WorkflowBoolMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\MockClass\WorkflowRetryMock;
+use Tests\MockClass\WorkflowRunOnceMock;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
@@ -374,5 +376,24 @@ final class FlowRunnerTest extends TestCase
         $this->assertSame(3, $flowRetries[2]->getAttempt());
 
         RetryStepMock::reset();
+    }
+
+    public function testRunOnceWithoutStorageExecutesNormally(): void
+    {
+        RunOnceStepMock::reset();
+
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.runonce.v1',
+            flowSource: WorkflowRunOnceMock::class,
+        );
+        $result = $flowRunner->run(new MessageInitMock('test data'));
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertCount(0, $flow->getFlowExceptions());
+        $this->assertInstanceOf(MessageReturnInterface::class, $result);
+        $this->assertSame(1, RunOnceStepMock::getCallCount());
+
+        RunOnceStepMock::reset();
     }
 }

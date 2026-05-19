@@ -34,6 +34,7 @@ class Step implements JsonSerializable
         private readonly array $returnTypes,
         private readonly int $retries = self::DEFAULT_RETRIES,
         private readonly int $delay = self::DEFAULT_DELAY,
+        private readonly bool $runOnce = false,
         ?MessageEnum $messageEnum = null,
         bool $skipClassValidation = false,
     ) {
@@ -84,6 +85,7 @@ class Step implements JsonSerializable
         string $source,
         int $retries = self::DEFAULT_RETRIES,
         int $delay = self::DEFAULT_DELAY,
+        bool $runOnce = false,
     ): self {
         $reflectionClass = new ReflectionClass($source);
 
@@ -124,6 +126,7 @@ class Step implements JsonSerializable
             returnTypes: $returnTypes,
             retries: max($retries, 0),
             delay: max($delay, 0),
+            runOnce: $runOnce,
         );
     }
 
@@ -177,6 +180,11 @@ class Step implements JsonSerializable
         return $this->delay;
     }
 
+    public function isRunOnce(): bool
+    {
+        return $this->runOnce;
+    }
+
     /**
      * @return array<string, string|mixed>
      */
@@ -195,6 +203,10 @@ class Step implements JsonSerializable
 
         if ($this->delay !== self::DEFAULT_DELAY) {
             $return['delay'] = $this->delay;
+        }
+
+        if ($this->runOnce) {
+            $return['runOnce'] = true;
         }
 
         return $return;

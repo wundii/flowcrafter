@@ -21,6 +21,8 @@ class FlowRunner
 {
     private ?Flow $flow = null;
 
+    private ?Flow $historicalFlow = null;
+
     private ?ContainerBuilder $container = null;
 
     /**
@@ -78,6 +80,7 @@ class FlowRunner
 
     /**
      * @param class-string[] $includeSteps
+     * @throws Throwable
      */
     public function run(
         MessageInterface $message,
@@ -117,7 +120,11 @@ class FlowRunner
         $this->messageToStepsMap = $flowSchema->getMessageToStepsMap();
         $this->includeSteps = $this->expandIncludeSteps($includeSteps, $flowSchema);
 
-        $this->injectHistoricalMessages($flow, $message, $flowHash);
+        $this->historicalFlow = $this->storage instanceof StorageInterface && $flowHash !== null
+            ? $this->storage->findFlowByHash($flowHash)
+            : null;
+
+        $this->injectHistoricalMessages($flow, $message);
 
         $this->executeStepsRecursive($flow, $message);
 
@@ -150,9 +157,9 @@ class FlowRunner
         return $stepInstance;
     }
 
-    private function injectHistoricalMessages(Flow $flow, MessageInterface $entryMessage, ?string $flowHash): void
+    private function injectHistoricalMessages(Flow $flow, MessageInterface $entryMessage): void
     {
-        if (!$this->storage instanceof StorageInterface || $flowHash === null) {
+        if (!$this->historicalFlow instanceof Flow) {
             return;
         }
 
@@ -216,14 +223,9 @@ class FlowRunner
             return;
         }
 
-        $historicalFlow = $this->storage->findFlowByHash($flowHash);
-        if (!$historicalFlow instanceof Flow) {
-            return;
-        }
-
         /** @var array<class-string<StepInterface>, array<class-string<MessageInterface>, FlowMessage>> $latestByPair */
         $latestByPair = [];
-        foreach ($historicalFlow->getFlowMessages() as $flowMessage) {
+        foreach ($this->historicalFlow->getFlowMessages() as $flowMessage) {
             $hStep = $flowMessage->getStepSource();
             $hMsg = $flowMessage->getMessageSource();
             if (!isset($missingPairs[$hStep][$hMsg])) {
@@ -367,40 +369,44 @@ class FlowRunner
 
             $this->storage?->registerStepSource($stepSource);
 
-            $maxAttempts = $step->getRetries() + 1;
+            $processResult = $this->resolveRunOnceResult($step);
             $lastException = null;
-            $processResult = false;
 
-            for ($attempt = 1; $attempt <= $maxAttempts; ++$attempt) {
-                try {
-                    $stepInstance = $this->createInstance($stepSource->stepSource, $flowMessages);
-                    ob_start();
-                    $processResult = $stepInstance->process();
-                    $stepOutput = ob_get_clean();
-                    if ($stepOutput !== '' && $stepOutput !== false) {
-                        $this->outputLog[] = FlowOutput::create($stepSource->stepSource, $stepOutput);
-                    }
+            if ($processResult === null) {
+                $processResult = false;
+                $maxAttempts = $step->getRetries() + 1;
 
-                    $lastException = null;
-                    break;
-                } catch (Throwable $exception) {
-                    if (ob_get_level() > 0) {
-                        ob_end_clean();
-                    }
+                for ($attempt = 1; $attempt <= $maxAttempts; ++$attempt) {
+                    try {
+                        $stepInstance = $this->createInstance($stepSource->stepSource, $flowMessages);
+                        ob_start();
+                        $processResult = $stepInstance->process();
+                        $stepOutput = ob_get_clean();
+                        if ($stepOutput !== '' && $stepOutput !== false) {
+                            $this->outputLog[] = FlowOutput::create($stepSource->stepSource, $stepOutput);
+                        }
 
-                    $lastException = $exception;
-                    if ($attempt < $maxAttempts) {
-                        $flowRetry = FlowRetry::create(
-                            flowHash: $flow->getHash(),
-                            flowRuntimeHash: $flow->getRuntimeHash(),
-                            stepSource: $stepSource->stepSource,
-                            attempt: $attempt,
-                            message: $exception->getMessage(),
-                        );
-                        $flow->addFlowRetry($flowRetry);
-                        $this->storage?->appendFlowRetry($flowRetry);
+                        $lastException = null;
+                        break;
+                    } catch (Throwable $exception) {
+                        if (ob_get_level() > 0) {
+                            ob_end_clean();
+                        }
 
-                        usleep($step->getDelay() * 1000);
+                        $lastException = $exception;
+                        if ($attempt < $maxAttempts) {
+                            $flowRetry = FlowRetry::create(
+                                flowHash: $flow->getHash(),
+                                flowRuntimeHash: $flow->getRuntimeHash(),
+                                stepSource: $stepSource->stepSource,
+                                attempt: $attempt,
+                                message: $exception->getMessage(),
+                            );
+                            $flow->addFlowRetry($flowRetry);
+                            $this->storage?->appendFlowRetry($flowRetry);
+
+                            usleep($step->getDelay() * 1000);
+                        }
                     }
                 }
             }
@@ -476,5 +482,32 @@ class FlowRunner
                 $this->storage?->appendFlowMessage($returnFlowMessage);
             }
         }
+    }
+
+    private function resolveRunOnceResult(Step $step): bool|MessageInterface|null
+    {
+        if (!$step->isRunOnce() || !$this->historicalFlow instanceof Flow) {
+            return null;
+        }
+
+        foreach ($this->historicalFlow->getFlowMessages() as $flowMessage) {
+            if (!in_array($flowMessage->getMessageSource(), $step->getReturnTypes(), true)) {
+                continue;
+            }
+
+            if ($flowMessage->getMessage() instanceof FlowMessageReadOnly) {
+                continue;
+            }
+
+            return $flowMessage->getMessage();
+        }
+
+        foreach ($this->historicalFlow->getFlowResults() as $flowResult) {
+            if ($flowResult->getStepSource() === $step->getSource()) {
+                return $flowResult->getResult();
+            }
+        }
+
+        return null;
     }
 }

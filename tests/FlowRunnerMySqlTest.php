@@ -15,10 +15,12 @@ use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageSubDataMock;
 use Tests\MockClass\PostStepMock;
 use Tests\MockClass\RetryStepMock;
+use Tests\MockClass\RunOnceStepMock;
 use Tests\MockClass\WorkflowEmptyMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\MockClass\WorkflowRetryMock;
+use Tests\MockClass\WorkflowRunOnceMock;
 use Tests\Trait\MySqlClientTestTrait;
 use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\Enum\StatusEnum;
@@ -289,5 +291,53 @@ final class FlowRunnerMySqlTest extends TestCase
         $this->assertCount(3, $reloadedFlow->getFlowRetries());
 
         RetryStepMock::reset();
+    }
+
+    public function testRunOnceSkipsStepOnSecondRun(): void
+    {
+        RunOnceStepMock::reset();
+        $storage = $this->storage();
+
+        $runner1 = new FlowRunner(
+            type: 'flow.workflow.runonce.v1',
+            flowSource: WorkflowRunOnceMock::class,
+            storage: $storage,
+        );
+        $result1 = $runner1->run(new MessageInitMock('first run'));
+
+        $this->assertInstanceOf(MessageReturnInterface::class, $result1);
+        $this->assertSame(1, RunOnceStepMock::getCallCount());
+        $flowHash = $runner1->getFlow()->getHash();
+
+        $runner2 = new FlowRunner(
+            type: 'flow.workflow.runonce.v1',
+            flowSource: WorkflowRunOnceMock::class,
+            storage: $storage,
+        );
+        $result2 = $runner2->run(new MessageInitMock('second run'), flowHash: $flowHash);
+
+        $this->assertInstanceOf(MessageReturnInterface::class, $result2);
+        $this->assertSame(1, RunOnceStepMock::getCallCount());
+        $this->assertSame($result1->getData(), $result2->getData());
+
+        RunOnceStepMock::reset();
+    }
+
+    public function testRunOnceExecutesWithoutFlowHash(): void
+    {
+        RunOnceStepMock::reset();
+        $storage = $this->storage();
+
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.runonce.v1',
+            flowSource: WorkflowRunOnceMock::class,
+            storage: $storage,
+        );
+        $result = $flowRunner->run(new MessageInitMock('fresh run'));
+
+        $this->assertInstanceOf(MessageReturnInterface::class, $result);
+        $this->assertSame(1, RunOnceStepMock::getCallCount());
+
+        RunOnceStepMock::reset();
     }
 }
