@@ -71,6 +71,22 @@ final class FlowContainerFactoryTest extends TestCase
         );
     }
 
+    public function testBuildWithSameClassAsKeyAndValue(): void
+    {
+        $dependencyInterfaceImplMock = new DependencyInterfaceImplMock();
+
+        $containerBuilder = FlowContainerFactory::build(
+            autowireClasses: [],
+            syntheticServices: [],
+            dependencies: [
+                DependencyInterfaceImplMock::class => $dependencyInterfaceImplMock,
+            ],
+        );
+
+        $this->assertTrue($containerBuilder->has(DependencyInterfaceImplMock::class));
+        $this->assertSame($dependencyInterfaceImplMock, $containerBuilder->get(DependencyInterfaceImplMock::class));
+    }
+
     public function testFlowRunnerWithInterfaceBinding(): void
     {
         $flowRunner = new FlowRunner(

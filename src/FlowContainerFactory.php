@@ -51,7 +51,9 @@ final class FlowContainerFactory
                 $definition->setSynthetic(true);
                 $definition->setPublic(true);
                 $containerBuilder->setDefinition($className, $definition);
-                $containerBuilder->setAlias($key, $className)->setPublic(true);
+                if ($key !== $className) {
+                    $containerBuilder->setAlias($key, $className)->setPublic(true);
+                }
             } else {
                 $className = is_object($dependency)
                     ? get_class($dependency)
