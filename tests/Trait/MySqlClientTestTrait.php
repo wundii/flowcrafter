@@ -79,6 +79,7 @@ trait MySqlClientTestTrait
                 self::USERNAME,
                 self::PASSWORD,
             ),
+            ':memory:',
         );
         $mySql->initializeDatabase();
         $mySql->truncateFlowList();

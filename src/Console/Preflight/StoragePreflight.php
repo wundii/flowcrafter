@@ -69,15 +69,22 @@ final readonly class StoragePreflight
         }
 
         $backendName = (new ReflectionClass($storage))->getShortName();
-        $serviceStorageFile = $this->flowcrafterConfig->getServerStorage() ?? ':memory:';
+        $serviceStorageFile = $this->flowcrafterConfig->getServerStorage();
+        $serviceEnabled = $serviceStorageFile !== null;
 
-        $serviceOk = $storage->isServiceStorageInitialized();
         $primaryOk = $storage->isPrimaryStorageInitialized();
 
-        $this->renderRow($flowSymfonyStyle, 'Service DB', $serviceOk, sprintf('SQLite (%s)', $serviceStorageFile));
+        if ($serviceEnabled) {
+            $serviceOk = $storage->isServiceStorageInitialized();
+            $this->renderRow($flowSymfonyStyle, 'Service DB', $serviceOk, sprintf('SQLite (%s)', $serviceStorageFile));
+        } else {
+            $serviceOk = true;
+            $this->renderSkipRow($flowSymfonyStyle, 'Service DB', 'disabled (no setServerStorage)');
+        }
+
         $this->renderRow($flowSymfonyStyle, 'Primary DB', $primaryOk, $backendName);
 
-        $drift = ($serviceOk && $primaryOk) ? $this->detectDrift($storage) : null;
+        $drift = ($serviceEnabled && $serviceOk && $primaryOk) ? $this->detectDrift($storage) : null;
         if ($drift !== null) {
             $this->renderWarnRow($flowSymfonyStyle, 'Sync drift', sprintf(
                 'service: %d / primary: %d flows',
@@ -115,15 +122,17 @@ final readonly class StoragePreflight
             return false;
         }
 
-        $drift = $this->detectDrift($storage);
-        if ($drift !== null) {
-            $this->renderWarnRow($flowSymfonyStyle, 'Sync drift', sprintf(
-                'service: %d / primary: %d flows',
-                $drift['service'],
-                $drift['primary'],
-            ));
-            $flowSymfonyStyle->writeln('');
-            $this->offerRebuild($flowSymfonyStyle, $storage);
+        if ($serviceEnabled) {
+            $drift = $this->detectDrift($storage);
+            if ($drift !== null) {
+                $this->renderWarnRow($flowSymfonyStyle, 'Sync drift', sprintf(
+                    'service: %d / primary: %d flows',
+                    $drift['service'],
+                    $drift['primary'],
+                ));
+                $flowSymfonyStyle->writeln('');
+                $this->offerRebuild($flowSymfonyStyle, $storage);
+            }
         }
 
         $flowSymfonyStyle->writeln('');
@@ -186,6 +195,13 @@ final readonly class StoragePreflight
         $icon = $ok
             ? sprintf('<fg=%s>[ OK ]</>', OutputColorEnum::GREEN->value)
             : sprintf('<fg=%s>[MISS]</>', OutputColorEnum::RED->value);
+
+        $flowSymfonyStyle->writeln(sprintf('  %s  %-12s %s', $icon, $label, $detail));
+    }
+
+    private function renderSkipRow(FlowSymfonyStyle $flowSymfonyStyle, string $label, string $detail): void
+    {
+        $icon = sprintf('<fg=%s>[SKIP]</>', OutputColorEnum::DEFAULT->value);
 
         $flowSymfonyStyle->writeln(sprintf('  %s  %-12s %s', $icon, $label, $detail));
     }

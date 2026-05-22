@@ -64,6 +64,7 @@ trait RedisClientTestTrait
                 self::$container->getHost(),
                 self::$container->getMappedPort(self::PORT),
             ),
+            ':memory:',
         );
         $redis->initializeDatabase();
         $redis->truncateFlowList();

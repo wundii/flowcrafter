@@ -38,6 +38,14 @@ final class FlowStorageRebuildCommand extends Command
         $output = new FlowSymfonyStyle($input, $output);
         $output->startApplication(FlowConsole::vendorVersion());
 
+        if ($this->flowcrafterConfig->getServerStorage() === null) {
+            $output->writeln(sprintf(
+                '<fg=%s>No service storage configured. Set setServerStorage() in your flowcrafter.php to enable the SQLite index.</>',
+                OutputColorEnum::YELLOW->value,
+            ));
+            return Command::SUCCESS;
+        }
+
         $storage = $this->flowcrafterConfig->initializeStorage($output);
 
         $clear = (bool) $input->getOption('clear');

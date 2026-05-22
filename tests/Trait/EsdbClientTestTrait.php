@@ -45,6 +45,7 @@ trait EsdbClientTestTrait
                 $this->container->getBaseUrl(),
                 $this->container->getApiToken(),
             ),
+            ':memory:',
         );
         $esdb->initializeDatabase();
         $esdb->truncateFlowList();

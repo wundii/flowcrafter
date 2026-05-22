@@ -24,24 +24,23 @@ use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
 
 abstract class Service implements StorageInterface
 {
-    private Client $client;
+    private ?Client $client;
 
     public function __construct(?string $file = null)
     {
-        $dns = 'sqlite::memory:?cache=shared';
+        if ($file === null) {
+            $this->client = null;
+            return;
+        }
 
-        if ($file !== null) {
-            $directory = dirname($file);
-            if (!is_dir($directory)) {
-                $fileSystem = new Filesystem();
-                $fileSystem->mkdir($directory, 0775);
-            }
-
-            $dns = 'sqlite:' . $file;
+        $directory = dirname($file);
+        if (!is_dir($directory)) {
+            $fileSystem = new Filesystem();
+            $fileSystem->mkdir($directory, 0775);
         }
 
         $this->client = new Client(
-            dsn: $dns,
+            dsn: 'sqlite:' . $file,
             options: [
                 Client::ATTR_ERRMODE => Client::ERRMODE_EXCEPTION,
             ],
@@ -50,6 +49,10 @@ abstract class Service implements StorageInterface
 
     public function initializeDatabase(): void
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         $this->client->exec('PRAGMA journal_mode = WAL;');
         $this->client->exec('PRAGMA synchronous = NORMAL;');
         $this->client->exec('PRAGMA temp_store = MEMORY;');
@@ -136,6 +139,10 @@ abstract class Service implements StorageInterface
 
     public function isServiceStorageInitialized(): bool
     {
+        if (!$this->client instanceof Client) {
+            return false;
+        }
+
         try {
             $stmt = $this->client->query(
                 "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' " .
@@ -153,6 +160,10 @@ abstract class Service implements StorageInterface
 
     public function appendFlow(Flow $flow): void
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         $stmt = $this->client->prepare(
             'INSERT INTO flow_list (flow_hash, flow_type, flow_source, flow_subject, flow_time, last_term, status) ' .
             'VALUES (:flow_hash, :flow_type, :flow_source, :flow_subject, :flow_time, :last_term, :status) ' .
@@ -217,6 +228,10 @@ abstract class Service implements StorageInterface
 
     public function appendScheduleException(ScheduleException $scheduleException): void
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         $stmt = $this->client->prepare(
             'INSERT OR IGNORE INTO schedule_exception_list ' .
             '(hash, schedule_class, schedule_name, schedule_expression, code, message, file, line, trace_string, time) ' .
@@ -239,6 +254,10 @@ abstract class Service implements StorageInterface
 
     public function appendObserverException(ObserverException $observerException): void
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         $stmt = $this->client->prepare(
             'INSERT OR IGNORE INTO observer_exception_list ' .
             '(hash, flow_source, message_source, queue_id, code, message, file, line, trace_string, time) ' .
@@ -261,8 +280,11 @@ abstract class Service implements StorageInterface
 
     public function countExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int
     {
-        [$where, $params] = $this->buildDateFilter($from, $to, 'fel.time');
+        if (!$this->client instanceof Client) {
+            return 0;
+        }
 
+        [$where, $params] = $this->buildDateFilter($from, $to, 'fel.time');
         [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
         $stmt = $this->client->prepare(
@@ -276,6 +298,10 @@ abstract class Service implements StorageInterface
 
     public function countScheduleExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
     {
+        if (!$this->client instanceof Client) {
+            return 0;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to, 'time');
 
         $stmt = $this->client->prepare('SELECT COUNT(*) FROM schedule_exception_list' . $where);
@@ -286,6 +312,10 @@ abstract class Service implements StorageInterface
 
     public function countObserverExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
     {
+        if (!$this->client instanceof Client) {
+            return 0;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to, 'time');
 
         $stmt = $this->client->prepare('SELECT COUNT(*) FROM observer_exception_list' . $where);
@@ -296,6 +326,10 @@ abstract class Service implements StorageInterface
 
     public function countFlows(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int
     {
+        if (!$this->client instanceof Client) {
+            return 0;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to);
         [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
@@ -307,6 +341,10 @@ abstract class Service implements StorageInterface
 
     public function countFlowsBySource(string $flowSource, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int
     {
+        if (!$this->client instanceof Client) {
+            return 0;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to);
         [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
@@ -323,6 +361,10 @@ abstract class Service implements StorageInterface
 
     public function countFlowsByType(string $flowType, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int
     {
+        if (!$this->client instanceof Client) {
+            return 0;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to);
         [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
@@ -339,6 +381,10 @@ abstract class Service implements StorageInterface
 
     public function countFlowsBySubject(string $flowSubject, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
     {
+        if (!$this->client instanceof Client) {
+            return 0;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to);
 
         $where = $where === ''
@@ -357,6 +403,10 @@ abstract class Service implements StorageInterface
      */
     public function findAllExceptions(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         $params = [];
         $flowWhere = '';
         $scheduleWhere = '';
@@ -462,6 +512,10 @@ abstract class Service implements StorageInterface
      */
     public function findAllFlows(SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to);
         [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
@@ -495,6 +549,10 @@ abstract class Service implements StorageInterface
      */
     public function findFlowsBySource(string $flowSource, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to);
         [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
@@ -533,6 +591,10 @@ abstract class Service implements StorageInterface
      */
     public function findFlowsByType(string $flowType, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): iterable
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to);
         [$where, $params] = $this->applyStatusFilter($where, $params, $status);
 
@@ -571,6 +633,10 @@ abstract class Service implements StorageInterface
      */
     public function findFlowsBySubject(string $flowSubject, SortEnum $sortEnum = SortEnum::DESC, int $top = 1000, int $skip = 0, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to);
 
         $where = $where === '' ? ' WHERE flow_subject LIKE :flow_subject' : $where . ' AND flow_subject LIKE :flow_subject';
@@ -609,6 +675,10 @@ abstract class Service implements StorageInterface
      */
     public function findFlowStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $flowType = null): iterable
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         $where = '1=1';
         $params = [];
 
@@ -666,6 +736,10 @@ abstract class Service implements StorageInterface
      */
     public function findFlowTypeStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to, 'last_term');
 
         $sql = <<<'SQL'
@@ -730,6 +804,10 @@ abstract class Service implements StorageInterface
      */
     public function findExceptionStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         [$where, $params] = $this->buildDateFilter($from, $to, 'time');
 
         $flowCounts = [];
@@ -780,6 +858,10 @@ abstract class Service implements StorageInterface
 
     public function truncateFlowList(): void
     {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
         $this->client->exec('DELETE FROM flow_list');
         $this->client->exec('DELETE FROM flow_run_list');
         $this->client->exec('DELETE FROM flow_exception_list');
@@ -787,7 +869,7 @@ abstract class Service implements StorageInterface
         $this->client->exec('DELETE FROM observer_exception_list');
     }
 
-    protected function getServiceClient(): Client
+    protected function getServiceClient(): ?Client
     {
         return $this->client;
     }

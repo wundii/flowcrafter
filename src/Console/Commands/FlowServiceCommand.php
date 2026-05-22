@@ -92,7 +92,7 @@ final class FlowServiceCommand extends Command
         $output->writeln(sprintf(
             '<fg=%s>Service Storage: %s</>',
             OutputColorEnum::DEFAULT->value,
-            $this->flowcrafterConfig->getServerStorage(),
+            $this->flowcrafterConfig->getServerStorage() ?? '(disabled)',
         ));
 
         $serverProcess = new Process(
