@@ -13,17 +13,19 @@ use Symfony\Component\Process\Process;
 use Throwable;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\Console\FileWatcher;
 use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Heartbeat;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\Console\Preflight\StoragePreflight;
-use Wundii\Flowcrafter\FlowObserver;
 use Wundii\Flowcrafter\FlowScheduler;
 
 final class FlowDevCommand extends Command
 {
     private ?Process $serverProcess = null;
+
+    private ?Process $observerProcess = null;
 
     private ?Heartbeat $heartbeat = null;
 
@@ -97,15 +99,16 @@ final class FlowDevCommand extends Command
         });
 
         $output->writeln(sprintf(
-            '<fg=%s>starting observer</>',
+            '<fg=%s>starting observer (subprocess)</>',
             OutputColorEnum::BLUE->value,
         ));
+
+        $this->observerProcess = $this->startObserverProcess($env, $output);
 
         $this->heartbeat = new Heartbeat();
 
         $storage = $this->flowcrafterConfig->getStorage();
         $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
-        $flowObserver = new FlowObserver($storage, $dependencyInjections);
 
         $flowScheduler = new FlowScheduler($storage, $dependencyInjections);
         $scheduleCount = count($flowScheduler->getScheduleAttributes());
@@ -119,6 +122,8 @@ final class FlowDevCommand extends Command
             $this->schedulerHeartbeat->touch();
         }
 
+        $fileWatcher = new FileWatcher(FileWatcher::resolveProjectDirectories());
+
         $output->writeln('');
 
         $logger = static function (string $message) use ($output): void {
@@ -129,11 +134,22 @@ final class FlowDevCommand extends Command
 
         /** @phpstan-ignore while.alwaysTrue */
         while ($serverProcess->isRunning()) {
-            try {
-                $flowObserver->run(maxExecutionTimeInSeconds: 5.0, logger: $logger, heartbeat: $this->heartbeat);
-            } catch (Throwable $e) {
-                $output->writeln('[Observer] error: ' . $e->getMessage());
-                sleep(2);
+            if ($fileWatcher->hasChanges()) {
+                $output->writeln(sprintf(
+                    '<fg=%s>file changes detected, restarting observer...</>',
+                    OutputColorEnum::YELLOW->value,
+                ));
+                $this->observerProcess->stop();
+                $this->observerProcess = $this->startObserverProcess($env, $output);
+                $fileWatcher->reset();
+            }
+
+            if (!$this->observerProcess->isRunning()) {
+                $output->writeln(sprintf(
+                    '<fg=%s>observer stopped, restarting...</>',
+                    OutputColorEnum::YELLOW->value,
+                ));
+                $this->observerProcess = $this->startObserverProcess($env, $output);
             }
 
             try {
@@ -144,6 +160,8 @@ final class FlowDevCommand extends Command
 
             $this->heartbeat->touch();
             $this->schedulerHeartbeat?->touch();
+
+            sleep(1);
         }
 
         /** @phpstan-ignore deadCode.unreachable */
@@ -152,8 +170,32 @@ final class FlowDevCommand extends Command
         return Command::FAILURE;
     }
 
+    /**
+     * @param array<string, string>|null $env
+     */
+    private function startObserverProcess(?array $env, FlowSymfonyStyle $output): Process
+    {
+        $flowcrafterScript = dirname(__DIR__, 3) . '/bin/flowcrafter.php';
+
+        $process = new Process(
+            [PHP_BINARY, $flowcrafterScript, 'observer', '--workers', '1'],
+            null,
+            $env,
+        );
+        $process->setTimeout(null);
+        $process->start(function (string $type, string $data) use ($output): void {
+            $output->write($data);
+        });
+
+        return $process;
+    }
+
     private function cleanup(): void
     {
+        if ($this->observerProcess?->isRunning()) {
+            $this->observerProcess->stop();
+        }
+
         if ($this->serverProcess?->isRunning()) {
             $this->serverProcess->stop();
         }

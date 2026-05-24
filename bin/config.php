@@ -21,6 +21,7 @@ return static function (ContainerConfigurator $container) {
     ;
 
     $services->load('Wundii\\Flowcrafter\\Console\\', dirname(__DIR__) . '/src/Console/')
+        ->exclude([dirname(__DIR__) . '/src/Console/FileWatcher.php'])
         ->public()
         ->autowire();
 
