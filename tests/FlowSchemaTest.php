@@ -19,6 +19,8 @@ use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Enum\MessageEnum;
 use Wundii\Flowcrafter\FlowBuilder;
 use Wundii\Flowcrafter\FlowSchema;
+use Wundii\Flowcrafter\Source;
+use Wundii\Flowcrafter\Step;
 
 final class FlowSchemaTest extends TestCase
 {
@@ -202,6 +204,48 @@ final class FlowSchemaTest extends TestCase
         $this->assertArrayHasKey('steps', $data);
         $this->assertSame('flow.workflow.v1', $data['type']);
         $this->assertCount(4, $data['steps']);
+    }
+
+    public function testStepJsonSerializeIncludesMessageHashes(): void
+    {
+        $step = Step::create(StepMock::class);
+        $json = $step->jsonSerialize();
+
+        $this->assertArrayHasKey('messageHashes', $json);
+        $this->assertArrayHasKey(MessageInitMock::class, $json['messageHashes']);
+        $this->assertArrayHasKey(MessageDataMock::class, $json['messageHashes']);
+
+        $this->assertSame(
+            Source::message(MessageInitMock::class)->messageHash,
+            $json['messageHashes'][MessageInitMock::class],
+        );
+        $this->assertSame(
+            Source::message(MessageDataMock::class)->messageHash,
+            $json['messageHashes'][MessageDataMock::class],
+        );
+    }
+
+    public function testSchemaHashIncludesMessageStructure(): void
+    {
+        $flowSchema = $this->createSchema();
+        $flowSchema->getHash();
+
+        $stepWithAlteredHash = new Step(
+            source: StepMock::class,
+            messages: [MessageInitMock::class],
+            returnTypes: [MessageDataMock::class],
+            messageEnum: MessageEnum::INIT,
+            skipClassValidation: true,
+        );
+
+        $alteredJson = $stepWithAlteredHash->jsonSerialize();
+        $this->assertArrayHasKey('messageHashes', $alteredJson);
+
+        $originalStep = Step::create(StepMock::class);
+        $this->assertSame(
+            $originalStep->jsonSerialize()['messageHashes'],
+            $alteredJson['messageHashes'],
+        );
     }
 
     private function createSchema(): FlowSchema

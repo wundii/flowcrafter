@@ -68,7 +68,7 @@ final class ConverterTest extends TestCase
                     Step::create(PostStepMock::class),
                 ],
             ],
-            'flowSchemaHash' => '6965a3cf349abc9d9889c574826b3df5',
+            'flowSchemaHash' => FlowSchema::create(WorkflowMock::class)->getHash(),
             'flowHash' => $flow->getHash(),
             'flowMessages' => [],
             'flowExceptions' => [],
@@ -163,7 +163,7 @@ final class ConverterTest extends TestCase
                     Step::create(PostStepMock::class),
                 ],
             ],
-            'flowSchemaHash' => '6965a3cf349abc9d9889c574826b3df5',
+            'flowSchemaHash' => FlowSchema::create(WorkflowMock::class)->getHash(),
             'flowHash' => $flow->getHash(),
             'flowMessages' => [
                 [
@@ -254,7 +254,7 @@ final class ConverterTest extends TestCase
             'flowSource' => WorkflowMock::class,
             'flowSubject' => '/workflow/1',
             'flowType' => 'flow.workflow.v1',
-            'flowSchemaHash' => '6965a3cf349abc9d9889c574826b3df5',
+            'flowSchemaHash' => FlowSchema::create(WorkflowMock::class)->getHash(),
             'flowSchema' => [
                 'type' => 'flow.workflow.v1',
                 'steps' => [
@@ -393,7 +393,7 @@ final class ConverterTest extends TestCase
                     ],
                 ],
             ],
-            'flowSchemaHash' => '6965a3cf349abc9d9889c574826b3df5',
+            'flowSchemaHash' => FlowSchema::create(WorkflowMock::class)->getHash(),
             'flowMessages' => [
                 [
                     'flowHash' => $hash,

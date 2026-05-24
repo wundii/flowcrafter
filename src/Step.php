@@ -197,6 +197,11 @@ class Step implements JsonSerializable
             'returnTypes' => $this->getReturnTypes(),
         ];
 
+        $messageHashes = $this->resolveMessageHashes();
+        if ($messageHashes !== []) {
+            $return['messageHashes'] = $messageHashes;
+        }
+
         if ($this->retries !== self::DEFAULT_RETRIES) {
             $return['retries'] = $this->retries;
         }
@@ -210,5 +215,25 @@ class Step implements JsonSerializable
         }
 
         return $return;
+    }
+
+    /**
+     * @return array<class-string, string>
+     */
+    private function resolveMessageHashes(): array
+    {
+        $messageHashes = [];
+
+        foreach (array_merge($this->messages, $this->returnTypes) as $messageClass) {
+            if (!class_exists($messageClass) || !is_subclass_of($messageClass, AbstractMessage::class)) {
+                continue;
+            }
+
+            $messageHashes[$messageClass] = Source::message($messageClass)->messageHash;
+        }
+
+        ksort($messageHashes);
+
+        return $messageHashes;
     }
 }
