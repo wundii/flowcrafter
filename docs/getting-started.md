@@ -22,14 +22,14 @@ SQLite-Tabellen (`flow_list`, `flow_run_list`) an.
 > Start automatisch auf — ein manuelles `storage:init` ist nur beim ersten
 > Setup oder nach manuellen Schema-Änderungen nötig.
 
-## 3. Entwicklung: API-Server + Observer starten
+## 3. Entwicklung: API-Server + Observer + Scheduler starten
 
 ```bash
 vendor/bin/flowcrafter dev
 ```
 
-Startet den PHP-Built-in-Server und den Observer zusammen in einem
-Kommando. Ctrl+C beendet beide Prozesse. Nur für Entwicklung gedacht.
+Startet den PHP-Built-in-Server, den Observer und den Scheduler zusammen
+in einem Kommando. Ctrl+C beendet alle Prozesse. Nur für Entwicklung gedacht.
 
 | Option   | Default   | Beschreibung |
 | -------- | --------- | ------------ |

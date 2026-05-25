@@ -404,10 +404,14 @@ $result = $flowRunner->run(new OrderInit('sku-42'));
 
 ```php
 // Test mit Interface-Binding in FlowAssertTrait
-$this->setDependenciesInjection([
-    HttpClientInterface::class => new CurlHttpClientMock(),
-]);
-$this->runFlow('flow.order.v1', OrderFlow::class, new OrderInit('sku-42'));
+$this->runFlow(
+    flowType: 'flow.order.v1',
+    flowSource: OrderFlow::class,
+    initMessage: new OrderInit('sku-42'),
+    dependencies: [
+        HttpClientInterface::class => new CurlHttpClientMock(),
+    ],
+);
 ```
 
 ### Test

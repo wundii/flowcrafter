@@ -20,6 +20,7 @@ return static function (FlowcrafterConfig $flowcrafterConfig): void {
     $flowcrafterConfig->setServerHttps(false);
     $flowcrafterConfig->setServerSecret();
     $flowcrafterConfig->setServerDescription();
+    $flowcrafterConfig->setServerStorage(__DIR__ . '/data/flowcrafter-ui.sqlite');
     $flowcrafterConfig->setDependenciesInjection();
 };
 ```
@@ -36,10 +37,10 @@ Das Storage-Backend wird über typisierte Config-Objekte konfiguriert:
 
 Alle drei Backends erben von `Storage\Service` und führen neben dem
 primären Backend automatisch eine SQLite-Datenbank (`flow_list`,
-`flow_run_list`) als schnellen Lese-Cache für API-Anfragen. Die
-SQLite-Datei liegt standardmäßig unter `data/database.sqlite` im
-Projektverzeichnis und kann über einen optionalen `sqliteFile`-Parameter
-in der Config überschrieben werden.
+`flow_run_list`, `flow_exception_list`, `schedule_exception_list`) als
+schnellen Lese-Cache für API-Anfragen. Die SQLite-Datei liegt
+standardmäßig unter `data/flowcrafter-ui.sqlite` im Projektverzeichnis
+und kann über `setServerStorage()` in der Config überschrieben werden.
 
 > **Docker:** Im mitgelieferten `docker-compose.yml` teilen sich `service`
 > und `observer` denselben SQLite-Pfad über ein gemeinsames Volume
@@ -69,7 +70,9 @@ $flowcrafterConfig->setStorageConfig(
 | `setServerHost()`              | Server-Host (Default: `0.0.0.0`)                                                     |
 | `setServerPort()`              | Server-Port (Default: `8000`)                                                        |
 | `setServerWorkers()`           | Anzahl FrankenPHP-Worker (Default: `4`)                                              |
+| `setServerNumThreads()`        | FrankenPHP Thread-Pool-Größe (Default: `workers × 2`). Muss `> workers` sein         |
 | `setServerHttps()`             | HTTPS aktivieren für FrankenPHP (Default: `false`)                                   |
 | `setServerSecret()`            | Bearer-Token für die API-Authentifizierung (ohne Secret sind alle Routen öffentlich) |
 | `setServerDescription()`       | Beschreibung, die über `/api/info` und `/metrics` exponiert wird                     |
+| `setServerStorage()`           | Pfad zur SQLite-Datei für den Service-Index (Default: `data/flowcrafter-ui.sqlite`)  |
 | `setDependenciesInjection()`   | Service-Instanzen, die in Step-Konstruktoren injiziert werden                        |

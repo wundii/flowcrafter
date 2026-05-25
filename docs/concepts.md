@@ -69,8 +69,8 @@ welche Steps ausgeführt werden:
   Die Status-Berechnung berücksichtigt nur Leaf-Steps, die im letzten Run
   tatsächlich Messages empfangen haben — alle anderen werden ignoriert
 
-Dies gilt sowohl für synchrone Ausführung (`/api/flows/run`) als auch
-für die Queue (`/api/queue`).
+Dies gilt sowohl für synchrone Ausführung (`/api/flow/flow-run`) als auch
+für die Queue (`/api/queue/enqueue`).
 
 ## Observer (asynchrone Verarbeitung)
 
