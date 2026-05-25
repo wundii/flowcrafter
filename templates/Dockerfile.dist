@@ -9,7 +9,7 @@ RUN install-php-extensions {{EXTENSIONS}}
 WORKDIR /app
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN composer install --no-dev --no-interaction
 
 COPY . .
 
