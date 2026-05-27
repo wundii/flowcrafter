@@ -154,6 +154,7 @@ final class FlowController
             }
 
             $decoded['isReadOnly'] = true;
+            $decoded['isExecutable'] = false;
             $reasons = $decoded['readOnlyReasons'] ?? [];
             if (is_array($reasons)) {
                 $reasons[] = 'ephemeral flow — no primary storage data';
