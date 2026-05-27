@@ -9,6 +9,7 @@ use DateTimeInterface;
 use PDO as Client;
 use Symfony\Component\Filesystem\Filesystem;
 use Throwable;
+use Wundii\Flowcrafter\Converter;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
@@ -133,6 +134,16 @@ abstract class Service implements StorageInterface
             );
 
             CREATE INDEX IF NOT EXISTS observer_exception_list_time ON observer_exception_list(time);
+
+            CREATE TABLE IF NOT EXISTS flow_ephemeral_list (
+                flow_hash TEXT PRIMARY KEY,
+                flow_runtime_hash TEXT NOT NULL,
+                flow_json TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                time TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS flow_ephemeral_list_expires ON flow_ephemeral_list(expires_at);
             SQL
         );
     }
@@ -146,19 +157,19 @@ abstract class Service implements StorageInterface
         try {
             $stmt = $this->client->query(
                 "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' " .
-                "AND name IN ('flow_list', 'flow_run_list', 'flow_exception_list', 'schedule_exception_list', 'observer_exception_list')"
+                "AND name IN ('flow_list', 'flow_run_list', 'flow_exception_list', 'schedule_exception_list', 'observer_exception_list', 'flow_ephemeral_list')"
             );
             if ($stmt === false) {
                 return false;
             }
 
-            return (int) $stmt->fetchColumn() === 5;
+            return (int) $stmt->fetchColumn() === 6;
         } catch (Throwable) {
             return false;
         }
     }
 
-    public function appendFlow(Flow $flow): void
+    public function appendFlow(Flow $flow, bool $ephemeral = false, int $ephemeralExpiryDays = 14): void
     {
         if (!$this->client instanceof Client) {
             return;
@@ -224,6 +235,30 @@ abstract class Service implements StorageInterface
                 ':time' => $flowException->getTime()->format('Y-m-d H:i:s.u'),
             ]);
         }
+
+        if (!$ephemeral) {
+            return;
+        }
+
+        $expiresAt = new DateTimeImmutable(sprintf('+%d days', $ephemeralExpiryDays));
+        $flowJson = Converter::flowToJson($flow);
+
+        $stmt = $this->client->prepare(
+            'INSERT INTO flow_ephemeral_list (flow_hash, flow_runtime_hash, flow_json, expires_at, time) ' .
+            'VALUES (:flow_hash, :flow_runtime_hash, :flow_json, :expires_at, :time) ' .
+            'ON CONFLICT(flow_hash) DO UPDATE SET ' .
+            'flow_runtime_hash = excluded.flow_runtime_hash, ' .
+            'flow_json = excluded.flow_json, ' .
+            'expires_at = excluded.expires_at'
+        );
+
+        $stmt->execute([
+            ':flow_hash' => $flow->getHash(),
+            ':flow_runtime_hash' => $lastRun->getFlowRuntimeHash(),
+            ':flow_json' => $flowJson,
+            ':expires_at' => $expiresAt->format('Y-m-d H:i:s.u'),
+            ':time' => $flow->getTime()->format('Y-m-d H:i:s.u'),
+        ]);
     }
 
     public function appendScheduleException(ScheduleException $scheduleException): void
@@ -854,6 +889,75 @@ abstract class Service implements StorageInterface
                 observer: $observerCounts[$date] ?? 0,
             );
         }
+    }
+
+    public function findEphemeralFlowJson(string $flowHash): ?string
+    {
+        if (!$this->client instanceof Client) {
+            return null;
+        }
+
+        $stmt = $this->client->prepare(
+            'SELECT flow_json FROM flow_ephemeral_list WHERE flow_hash = :flow_hash AND expires_at > :now'
+        );
+
+        $stmt->execute([
+            ':flow_hash' => $flowHash,
+            ':now' => (new DateTimeImmutable())->format('Y-m-d H:i:s.u'),
+        ]);
+
+        $result = $stmt->fetchColumn();
+
+        return is_string($result) ? $result : null;
+    }
+
+    public function findEphemeralFlowJsonByRuntimeHash(string $flowRuntimeHash): ?string
+    {
+        if (!$this->client instanceof Client) {
+            return null;
+        }
+
+        $stmt = $this->client->prepare(
+            'SELECT flow_json FROM flow_ephemeral_list WHERE flow_runtime_hash = :flow_runtime_hash AND expires_at > :now'
+        );
+
+        $stmt->execute([
+            ':flow_runtime_hash' => $flowRuntimeHash,
+            ':now' => (new DateTimeImmutable())->format('Y-m-d H:i:s.u'),
+        ]);
+
+        $result = $stmt->fetchColumn();
+
+        return is_string($result) ? $result : null;
+    }
+
+    public function cleanupEphemeral(): void
+    {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
+        $now = (new DateTimeImmutable())->format('Y-m-d H:i:s.u');
+
+        $stmt = $this->client->prepare(
+            'SELECT flow_hash FROM flow_ephemeral_list WHERE expires_at <= :now'
+        );
+        $stmt->execute([
+            ':now' => $now,
+        ]);
+
+        $expiredHashes = $stmt->fetchAll(Client::FETCH_COLUMN);
+
+        if ($expiredHashes === []) {
+            return;
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($expiredHashes), '?'));
+
+        $this->client->prepare(sprintf('DELETE FROM flow_ephemeral_list WHERE flow_hash IN (%s)', $placeholders))->execute($expiredHashes);
+        $this->client->prepare(sprintf('DELETE FROM flow_exception_list WHERE flow_hash IN (%s)', $placeholders))->execute($expiredHashes);
+        $this->client->prepare(sprintf('DELETE FROM flow_run_list WHERE flow_hash IN (%s)', $placeholders))->execute($expiredHashes);
+        $this->client->prepare(sprintf('DELETE FROM flow_list WHERE flow_hash IN (%s)', $placeholders))->execute($expiredHashes);
     }
 
     public function truncateFlowList(): void

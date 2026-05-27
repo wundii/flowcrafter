@@ -173,7 +173,7 @@ final class FlowDevCommand extends Command
     /**
      * @param array<string, string>|null $env
      */
-    private function startObserverProcess(?array $env, FlowSymfonyStyle $output): Process
+    private function startObserverProcess(?array $env, FlowSymfonyStyle $flowSymfonyStyle): Process
     {
         $flowcrafterScript = dirname(__DIR__, 3) . '/bin/flowcrafter.php';
 
@@ -183,8 +183,8 @@ final class FlowDevCommand extends Command
             $env,
         );
         $process->setTimeout(null);
-        $process->start(function (string $type, string $data) use ($output): void {
-            $output->write($data);
+        $process->start(function (string $type, string $data) use ($flowSymfonyStyle): void {
+            $flowSymfonyStyle->write($data);
         });
 
         return $process;

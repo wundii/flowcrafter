@@ -230,7 +230,7 @@ final class FlowSchemaTest extends TestCase
         $flowSchema = $this->createSchema();
         $flowSchema->getHash();
 
-        $stepWithAlteredHash = new Step(
+        $step = new Step(
             source: StepMock::class,
             messages: [MessageInitMock::class],
             returnTypes: [MessageDataMock::class],
@@ -238,7 +238,7 @@ final class FlowSchemaTest extends TestCase
             skipClassValidation: true,
         );
 
-        $alteredJson = $stepWithAlteredHash->jsonSerialize();
+        $alteredJson = $step->jsonSerialize();
         $this->assertArrayHasKey('messageHashes', $alteredJson);
 
         $originalStep = Step::create(StepMock::class);

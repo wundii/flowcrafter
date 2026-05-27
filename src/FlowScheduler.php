@@ -57,6 +57,8 @@ final class FlowScheduler
         $now = new DateTimeImmutable();
         $currentMinute = $now->format('Y-m-d H:i');
 
+        $this->storage->cleanupEphemeral();
+
         foreach ($this->scheduleAttributes as $scheduleClass => $attribute) {
             if (($this->lastExecutedMinute[$scheduleClass] ?? '') === $currentMinute) {
                 continue;

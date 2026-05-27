@@ -143,6 +143,26 @@ final class FlowController
             ], 400);
         }
 
+        $ephemeralJson = $hash > ''
+            ? $this->storage->findEphemeralFlowJson($hash)
+            : $this->storage->findEphemeralFlowJsonByRuntimeHash($runtimeHash);
+
+        if ($ephemeralJson !== null) {
+            $decoded = json_decode($ephemeralJson, true);
+            if (!is_array($decoded)) {
+                throw new InvalidArgumentException('Invalid ephemeral Flow JSON');
+            }
+
+            $decoded['isReadOnly'] = true;
+            $reasons = $decoded['readOnlyReasons'] ?? [];
+            if (is_array($reasons)) {
+                $reasons[] = 'ephemeral flow — no primary storage data';
+                $decoded['readOnlyReasons'] = $reasons;
+            }
+
+            return new JsonResponse($decoded);
+        }
+
         $flow = $hash > ''
             ? $this->storage->findFlowByHash($hash)
             : $this->storage->findFlowByRuntimeHash($runtimeHash);

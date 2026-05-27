@@ -6,9 +6,12 @@ namespace Wundii\Flowcrafter;
 
 use Exception;
 use InvalidArgumentException;
+use ReflectionClass;
+use ReflectionException;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Throwable;
+use Wundii\Flowcrafter\Attribute\FlowEphemeral;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -47,9 +50,14 @@ class FlowRunner
      */
     private array $outputLog = [];
 
+    private bool $ephemeral = false;
+
+    private int $ephemeralExpiryDays = 0;
+
     /**
      * @param class-string<FlowInterface> $flowSource
      * @param array<int|class-string, class-string|object> $dependenciesInjection
+     * @throws ReflectionException
      */
     public function __construct(
         private readonly string $type,
@@ -63,6 +71,12 @@ class FlowRunner
             FlowInterface::class,
             'The flow must be a class implementing FlowInterface'
         );
+
+        $attributes = (new ReflectionClass($flowSource))->getAttributes(FlowEphemeral::class);
+        if ($attributes !== []) {
+            $this->ephemeral = true;
+            $this->ephemeralExpiryDays = $attributes[0]->newInstance()->expiryDays;
+        }
     }
 
     public function getFlow(): ?Flow
@@ -112,9 +126,12 @@ class FlowRunner
 
         $flowSchema = $flow->getSchema();
 
-        $this->storage?->registerFlowSchema($flowSchema);
-        $this->storage?->registerFlowInstance($flow);
-        $this->storage?->appendFlowRun($flow, $queueId); #start to run the flow
+        if (!$this->ephemeral) {
+            $this->storage?->registerFlowSchema($flowSchema);
+            $this->storage?->registerFlowInstance($flow);
+            $this->storage?->appendFlowRun($flow, $queueId);
+        }
+
         $this->container = $this->buildContainer($flowSchema);
         $this->executedStepKey = [];
         $this->messageToStepsMap = $flowSchema->getMessageToStepsMap();
@@ -128,7 +145,7 @@ class FlowRunner
 
         $this->executeStepsRecursive($flow, $message);
 
-        $this->storage?->appendFlow($flow);
+        $this->storage?->appendFlow($flow, $this->ephemeral, $this->ephemeralExpiryDays);
 
         return $this->messageReturn ?: false;
     }
@@ -345,7 +362,9 @@ class FlowRunner
             }
 
             $messageSource = Source::message($messageClass);
-            $this->storage?->registerMessageSource($messageSource);
+            if (!$this->ephemeral) {
+                $this->storage?->registerMessageSource($messageSource);
+            }
 
             $flowMessageWait = FlowMessage::create(
                 flowHash: $flow->getHash(),
@@ -367,7 +386,9 @@ class FlowRunner
 
             $this->executedStepKey[] = $stepKey;
 
-            $this->storage?->registerStepSource($stepSource);
+            if (!$this->ephemeral) {
+                $this->storage?->registerStepSource($stepSource);
+            }
 
             $processResult = $this->resolveRunOnceResult($step);
             $lastException = null;
@@ -403,7 +424,9 @@ class FlowRunner
                                 message: $exception->getMessage(),
                             );
                             $flow->addFlowRetry($flowRetry);
-                            $this->storage?->appendFlowRetry($flowRetry);
+                            if (!$this->ephemeral) {
+                                $this->storage?->appendFlowRetry($flowRetry);
+                            }
 
                             usleep($step->getDelay() * 1000);
                         }
@@ -414,7 +437,9 @@ class FlowRunner
             if ($lastException instanceof Throwable) {
                 foreach ($flowMessages as $flowMessage) {
                     $flowMessage->setFinish();
-                    $this->storage?->appendFlowMessage($flowMessage);
+                    if (!$this->ephemeral) {
+                        $this->storage?->appendFlowMessage($flowMessage);
+                    }
                 }
 
                 $flowException = FlowException::create(
@@ -431,15 +456,20 @@ class FlowRunner
                 );
 
                 $flow->addException($flowException);
-                $this->storage?->appendFlowException($flowException);
-                $this->storage?->appendFlow($flow);
+                if (!$this->ephemeral) {
+                    $this->storage?->appendFlowException($flowException);
+                }
+
+                $this->storage?->appendFlow($flow, $this->ephemeral, $this->ephemeralExpiryDays);
 
                 throw $lastException;
             }
 
             foreach ($flowMessages as $flowMessage) {
                 $flowMessage->setFinish();
-                $this->storage?->appendFlowMessage($flowMessage);
+                if (!$this->ephemeral) {
+                    $this->storage?->appendFlowMessage($flowMessage);
+                }
             }
 
             if ($processResult instanceof MessageInterface && !$processResult instanceof MessageReturnInterface) {
@@ -462,12 +492,17 @@ class FlowRunner
                     result: $processResult,
                 );
                 $flow->addResult($flowResult);
-                $this->storage?->appendFlowResult($flowResult);
+                if (!$this->ephemeral) {
+                    $this->storage?->appendFlowResult($flowResult);
+                }
             }
 
             if ($processResult instanceof MessageReturnInterface) {
                 $messageSource = Source::message(get_class($processResult));
-                $this->storage?->registerMessageSource($messageSource);
+                if (!$this->ephemeral) {
+                    $this->storage?->registerMessageSource($messageSource);
+                }
+
                 $returnFlowMessage = FlowMessage::create(
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
@@ -479,7 +514,9 @@ class FlowRunner
                     predecessorHash: $flowMessageWait->getHash(),
                 );
                 $flow->addMessage($returnFlowMessage);
-                $this->storage?->appendFlowMessage($returnFlowMessage);
+                if (!$this->ephemeral) {
+                    $this->storage?->appendFlowMessage($returnFlowMessage);
+                }
             }
         }
     }

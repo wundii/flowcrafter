@@ -19,7 +19,7 @@ interface ServiceInterface
 {
     public function isServiceStorageInitialized(): bool;
 
-    public function appendFlow(Flow $flow): void;
+    public function appendFlow(Flow $flow, bool $ephemeral = false, int $ephemeralExpiryDays = 14): void;
 
     public function appendScheduleException(ScheduleException $scheduleException): void;
 
@@ -80,4 +80,10 @@ interface ServiceInterface
     public function findFlowTypeStats(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): iterable;
 
     public function truncateFlowList(): void;
+
+    public function findEphemeralFlowJson(string $flowHash): ?string;
+
+    public function findEphemeralFlowJsonByRuntimeHash(string $flowRuntimeHash): ?string;
+
+    public function cleanupEphemeral(): void;
 }

@@ -125,7 +125,11 @@ final class FileWatcherTest extends TestCase
         }
 
         foreach ($items as $item) {
-            if ($item === '.' || $item === '..') {
+            if ($item === '.') {
+                continue;
+            }
+
+            if ($item === '..') {
                 continue;
             }
 

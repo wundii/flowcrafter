@@ -225,7 +225,11 @@ class Step implements JsonSerializable
         $messageHashes = [];
 
         foreach (array_merge($this->messages, $this->returnTypes) as $messageClass) {
-            if (!class_exists($messageClass) || !is_subclass_of($messageClass, AbstractMessage::class)) {
+            if (!class_exists($messageClass)) {
+                continue;
+            }
+
+            if (!is_subclass_of($messageClass, AbstractMessage::class)) {
                 continue;
             }
 
