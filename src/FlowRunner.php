@@ -385,9 +385,7 @@ class FlowRunner
 
             $this->executedStepKey[] = $stepKey;
 
-            if (!$this->ephemeral) {
-                $this->storage?->registerStepSource($stepSource);
-            }
+            $this->storage?->registerStepSource($stepSource);
 
             $processResult = $this->resolveRunOnceResult($step);
             $lastException = null;
