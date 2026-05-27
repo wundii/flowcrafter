@@ -126,8 +126,9 @@ class FlowRunner
 
         $flowSchema = $flow->getSchema();
 
+        $this->storage?->registerFlowSchema($flowSchema);
+
         if (!$this->ephemeral) {
-            $this->storage?->registerFlowSchema($flowSchema);
             $this->storage?->registerFlowInstance($flow);
             $this->storage?->appendFlowRun($flow, $queueId);
         }
@@ -362,9 +363,7 @@ class FlowRunner
             }
 
             $messageSource = Source::message($messageClass);
-            if (!$this->ephemeral) {
-                $this->storage?->registerMessageSource($messageSource);
-            }
+            $this->storage?->registerMessageSource($messageSource);
 
             $flowMessageWait = FlowMessage::create(
                 flowHash: $flow->getHash(),
