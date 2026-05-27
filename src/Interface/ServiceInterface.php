@@ -85,5 +85,7 @@ interface ServiceInterface
 
     public function findEphemeralFlowJsonByRuntimeHash(string $flowRuntimeHash): ?string;
 
+    public function countEphemeralFlows(): int;
+
     public function cleanupEphemeral(): void;
 }

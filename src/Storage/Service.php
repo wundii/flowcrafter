@@ -931,6 +931,22 @@ abstract class Service implements StorageInterface
         return is_string($result) ? $result : null;
     }
 
+    public function countEphemeralFlows(): int
+    {
+        if (!$this->client instanceof Client) {
+            return 0;
+        }
+
+        $now = (new DateTimeImmutable())->format('Y-m-d H:i:s.u');
+
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_ephemeral_list WHERE expires_at > :now');
+        $stmt->execute([
+            ':now' => $now,
+        ]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
     public function cleanupEphemeral(): void
     {
         if (!$this->client instanceof Client) {

@@ -218,7 +218,7 @@ final readonly class StoragePreflight
      */
     private function detectDrift(StorageInterface $storage): ?array
     {
-        $serviceCount = $storage->countFlows();
+        $serviceCount = $storage->countFlows() - $storage->countEphemeralFlows();
         $primaryCount = iterator_count($storage->findAllFlowHashes());
 
         if ($serviceCount === $primaryCount) {
