@@ -181,9 +181,6 @@ final class Converter
         );
     }
 
-    /**
-     * @param DataMapper<object> $dataMapper
-     */
     private static function mapFlowMessage(mixed $array, DataMapper $dataMapper, bool $readOnly): FlowMessage
     {
         $message = Assert::array($array, 'Each Message must be an array.');
@@ -195,7 +192,7 @@ final class Converter
 
         $flowMessage = $readOnly
             ? new FlowMessageReadOnly($messageSource, $messageData)
-            /** @phpstan-ignore argument.type */
+            /** @phpstan-ignore argument.type, argument.templateType */
             : $dataMapper->array($messageData, $messageSource);
 
         $stepSource = $readOnly

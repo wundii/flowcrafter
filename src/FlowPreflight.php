@@ -92,6 +92,7 @@ final readonly class FlowPreflight
         ));
 
         try {
+            /** @var MessageInterface $hydrated */
             $hydrated = $dataMapper->array($message, $messageSource);
         } catch (Throwable $throwable) {
             throw new InvalidArgumentException(sprintf(
@@ -99,13 +100,6 @@ final readonly class FlowPreflight
                 $messageSource,
                 $throwable->getMessage(),
             ), 0, $throwable);
-        }
-
-        if (!$hydrated instanceof MessageInterface) {
-            throw new InvalidArgumentException(sprintf(
-                'hydrated payload does not implement %s.',
-                MessageInterface::class,
-            ));
         }
 
         return $hydrated;

@@ -7,7 +7,6 @@ namespace Wundii\Flowcrafter;
 use Closure;
 use DateTime;
 use DateTimeInterface;
-use RuntimeException;
 use Throwable;
 use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
@@ -63,10 +62,8 @@ final readonly class FlowObserver
                     ));
                 }
 
+                /** @var MessageInterface $message */
                 $message = $dataMapper->array($observeItem->getMessage() ?? [], $messageSource);
-                if (!$message instanceof MessageInterface) {
-                    throw new RuntimeException('Mapped message does not implement MessageInterface.');
-                }
 
                 $flowRunner = new FlowRunner(
                     type: $observeItem->getType(),

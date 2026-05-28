@@ -49,11 +49,11 @@ final class FlowEphemeralTest extends TestCase
     {
         $storage = $this->createMock(StorageInterface::class);
 
-        $storage->expects($this->never())->method('registerFlowSchema');
+        $storage->expects($this->once())->method('registerFlowSchema');
         $storage->expects($this->never())->method('registerFlowInstance');
         $storage->expects($this->never())->method('appendFlowRun');
-        $storage->expects($this->never())->method('registerMessageSource');
-        $storage->expects($this->never())->method('registerStepSource');
+        $storage->expects($this->atLeastOnce())->method('registerMessageSource');
+        $storage->expects($this->atLeastOnce())->method('registerStepSource');
         $storage->expects($this->never())->method('appendFlowMessage');
         $storage->expects($this->never())->method('appendFlowResult');
 

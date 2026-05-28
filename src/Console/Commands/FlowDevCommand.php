@@ -152,7 +152,7 @@ final class FlowDevCommand extends Command
                 $this->observerProcess = $this->startObserverProcess($env, $output);
             }
 
-            if ($this->schedulerHeartbeat instanceof \Wundii\Flowcrafter\Console\Heartbeat) {
+            if ($this->schedulerHeartbeat instanceof Heartbeat) {
                 try {
                     $flowScheduler->tick($logger);
                 } catch (Throwable $e) {
