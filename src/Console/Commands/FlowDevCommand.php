@@ -112,7 +112,7 @@ final class FlowDevCommand extends Command
 
         $flowScheduler = new FlowScheduler($storage, $dependencyInjections);
         $scheduleCount = count($flowScheduler->getScheduleAttributes());
-        if ($scheduleCount > 0) {
+        if ($scheduleCount > 0 && $output->confirm(sprintf('Start scheduler? (%d schedule(s) found)', $scheduleCount), false)) {
             $output->writeln(sprintf(
                 '<fg=%s>starting scheduler with %d schedule(s)</>',
                 OutputColorEnum::BLUE->value,
@@ -152,10 +152,12 @@ final class FlowDevCommand extends Command
                 $this->observerProcess = $this->startObserverProcess($env, $output);
             }
 
-            try {
-                $flowScheduler->tick($logger);
-            } catch (Throwable $e) {
-                $output->writeln('[Scheduler] error: ' . $e->getMessage());
+            if ($this->schedulerHeartbeat instanceof \Wundii\Flowcrafter\Console\Heartbeat) {
+                try {
+                    $flowScheduler->tick($logger);
+                } catch (Throwable $e) {
+                    $output->writeln('[Scheduler] error: ' . $e->getMessage());
+                }
             }
 
             $this->heartbeat->touch();
