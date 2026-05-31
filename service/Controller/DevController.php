@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Throwable;
 use Wundii\Flowcrafter\Assert;
+use Wundii\Flowcrafter\Attribute\FlowEphemeral;
 use Wundii\Flowcrafter\Attribute\FlowGroup;
 use Wundii\Flowcrafter\ClassResolver;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
@@ -109,6 +110,10 @@ final class DevController
             $hash = $schema->getHash();
             $type = $schema->type();
 
+            $reflectionClass = new ReflectionClass($resolvedClassName);
+            $ephemeralAttributes = $reflectionClass->getAttributes(FlowEphemeral::class);
+            $ephemeral = $ephemeralAttributes !== [] ? $ephemeralAttributes[0]->newInstance()->expiryDays : null;
+
             $storedHash = null;
             $storedSteps = null;
             foreach ($this->storage->findAllSchemas() as $storedSchema) {
@@ -200,6 +205,7 @@ final class DevController
                 'messageSchemas' => $messageSchemas,
                 'initMessageSchema' => $initMessageSchema,
                 'initMessageTypes' => $initMessageTypes,
+                'ephemeral' => $ephemeral,
             ]);
         } catch (Throwable $throwable) {
             return new JsonResponse([
