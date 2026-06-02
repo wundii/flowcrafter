@@ -31,6 +31,7 @@ class ExceptionListEntity implements JsonSerializable
         public ?string $observerFlowSource = null,
         public ?string $observerMessageSource = null,
         public ?string $observerQueueId = null,
+        public ?string $projectionHandlerClass = null,
     ) {
     }
 
@@ -69,6 +70,12 @@ class ExceptionListEntity implements JsonSerializable
             $data['observerFlowSource'] = $this->observerFlowSource;
             $data['observerMessageSource'] = $this->observerMessageSource;
             $data['observerQueueId'] = $this->observerQueueId;
+        }
+
+        if ($this->type === 'projection') {
+            $data['flowHash'] = $this->flowHash;
+            $data['flowType'] = $this->flowType;
+            $data['projectionHandlerClass'] = $this->projectionHandlerClass;
         }
 
         return $data;

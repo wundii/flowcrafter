@@ -11,8 +11,10 @@ use RuntimeException;
 use Throwable;
 use Wundii\Flowcrafter\Attribute\FlowSchedule;
 use Wundii\Flowcrafter\Console\Heartbeat;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\ScheduleInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Projection\ProjectionHandlerMeta;
 use Wundii\Flowcrafter\Schedule\AbstractSchedule;
 use Wundii\Flowcrafter\Schedule\ScheduleDiscovery;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
@@ -32,11 +34,14 @@ final class FlowScheduler
     /**
      * @param array<int|class-string, class-string|object> $dependenciesInjection
      * @param array<class-string<ScheduleInterface>, FlowSchedule>|null $scheduleAttributes
+     * @param ProjectionHandlerMeta[] $projectionHandlerMetas
      */
     public function __construct(
         private readonly StorageInterface $storage,
+        private readonly QueueInterface $queue,
         private readonly array $dependenciesInjection,
         ?array $scheduleAttributes = null,
+        private readonly array $projectionHandlerMetas = [],
     ) {
         $this->scheduleAttributes = $scheduleAttributes ?? ScheduleDiscovery::discover();
     }
@@ -89,7 +94,7 @@ final class FlowScheduler
                     ));
                 }
 
-                $schedule->setContext($this->storage, $this->dependenciesInjection);
+                $schedule->setContext($this->storage, $this->queue, $this->dependenciesInjection, $this->projectionHandlerMetas);
 
                 if ($logger instanceof Closure) {
                     $logger(sprintf(

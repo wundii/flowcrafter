@@ -8,9 +8,12 @@ use Redis;
 use Testcontainers\Container\GenericContainer;
 use Testcontainers\Container\StartedGenericContainer;
 use Testcontainers\Wait\WaitForHostPort;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
-use Wundii\Flowcrafter\Storage\Config\RedisConfig;
-use Wundii\Flowcrafter\Storage\Redis as RedisStorage;
+use Wundii\Flowcrafter\Queue\Config\RedisQueueConfig;
+use Wundii\Flowcrafter\Queue\RedisQueue;
+use Wundii\Flowcrafter\Storage\Config\RedisStorageConfig;
+use Wundii\Flowcrafter\Storage\RedisStorage;
 
 trait RedisClientTestTrait
 {
@@ -59,16 +62,33 @@ trait RedisClientTestTrait
             self::fail('Redis container was not started');
         }
 
-        $redis = new RedisStorage(
-            new RedisConfig(
+        $redisStorage = new RedisStorage(
+            new RedisStorageConfig(
                 self::$container->getHost(),
                 self::$container->getMappedPort(self::PORT),
             ),
             ':memory:',
         );
-        $redis->initializeDatabase();
-        $redis->truncateFlowList();
+        $redisStorage->initializeDatabase();
+        $redisStorage->truncateFlowList();
 
-        return $redis;
+        return $redisStorage;
+    }
+
+    protected function queue(): QueueInterface
+    {
+        if (!self::$container instanceof StartedGenericContainer) {
+            self::fail('Redis container was not started');
+        }
+
+        $redisQueue = new RedisQueue(
+            new RedisQueueConfig(
+                self::$container->getHost(),
+                self::$container->getMappedPort(self::PORT),
+            ),
+        );
+        $redisQueue->initializeQueue();
+
+        return $redisQueue;
     }
 }

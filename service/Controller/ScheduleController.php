@@ -12,6 +12,7 @@ use Throwable;
 use Wundii\Flowcrafter\Attribute\FlowSchedule;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\FlowContainerFactory;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Schedule\AbstractSchedule;
 use Wundii\Flowcrafter\Schedule\ScheduleDiscovery;
@@ -22,6 +23,7 @@ final class ScheduleController
     public function __construct(
         private readonly FlowcrafterConfig $flowcrafterConfig,
         private readonly StorageInterface $storage,
+        private readonly QueueInterface $queue,
     ) {
     }
 
@@ -141,7 +143,7 @@ final class ScheduleController
                 ], 500);
             }
 
-            $schedule->setContext($this->storage, $dependenciesInjection);
+            $schedule->setContext($this->storage, $this->queue, $dependenciesInjection);
 
             ob_start();
             $schedule->process();

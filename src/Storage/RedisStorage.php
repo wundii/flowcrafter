@@ -10,9 +10,7 @@ use InvalidArgumentException;
 use Redis as Client;
 use RuntimeException;
 use Throwable;
-use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
-use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
@@ -22,18 +20,16 @@ use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StepInterface;
-use Wundii\Flowcrafter\Interface\StorageInterface;
-use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\ObserverException;
+use Wundii\Flowcrafter\Projection\ProjectionException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
-use Wundii\Flowcrafter\Storage\Config\RedisConfig;
+use Wundii\Flowcrafter\Storage\Config\RedisStorageConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
-use Wundii\Flowcrafter\Uuid;
 
-class Redis extends Service implements StorageInterface
+class RedisStorage extends ServiceStorage
 {
     public const PREFIX_TYPE_INSTANCE = 'flow:instance:';
 
@@ -73,12 +69,15 @@ class Redis extends Service implements StorageInterface
 
     protected Client $client;
 
-    public function __construct(RedisConfig $redisConfig, ?string $sqliteFile = null)
+    public function __construct(RedisStorageConfig $redisStorageConfig, ?string $sqliteFile = null)
     {
         parent::__construct($sqliteFile);
 
         $this->client = new Client();
-        $this->client->connect($redisConfig->getHost(), $redisConfig->getPort());
+        $this->client->connect($redisStorageConfig->getHost(), $redisStorageConfig->getPort());
+        if ($redisStorageConfig->getPassword() !== null) {
+            $this->client->auth($redisStorageConfig->getPassword());
+        }
     }
 
     public static function escapeValue(string $value): string
@@ -346,6 +345,10 @@ class Redis extends Service implements StorageInterface
             '$.messageSource',
             'AS',
             'messageSource',
+            'TAG',
+            '$.flowType',
+            'AS',
+            'flowType',
             'TAG',
             '$.hash',
             'AS',
@@ -645,6 +648,21 @@ class Redis extends Service implements StorageInterface
         parent::appendObserverException($observerException);
     }
 
+    public function appendProjectionException(ProjectionException $projectionException): void
+    {
+        $key = 'projection:exception:' . $projectionException->getHash();
+        if ($this->client->exists($key)) {
+            return;
+        }
+
+        $data = $projectionException->jsonSerialize();
+        $data['time'] = $projectionException->getTime()->getTimestamp();
+
+        $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
+
+        parent::appendProjectionException($projectionException);
+    }
+
     public function appendFlowResult(FlowResult $flowResult): void
     {
         $key = self::PREFIX_TYPE_RESULT . $flowResult->getHash();
@@ -670,75 +688,6 @@ class Redis extends Service implements StorageInterface
         $data['time'] = $flowRetry->getTime()->getTimestamp();
 
         $this->client->rawCommand('JSON.SET', $key, '$', json_encode($data));
-    }
-
-    /**
-     * @param class-string $flowSource
-     * @param class-string $messageSource
-     * @param array<mixed> $message
-     */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void
-    {
-        Assert::classString($flowSource, FlowInterface::class);
-        Assert::classString($messageSource, MessageInterface::class);
-
-        $data = [
-            'type' => $type,
-            'flowSource' => $flowSource,
-            'flowHash' => $flowHash,
-            'messageSource' => $messageSource,
-            'message' => $message,
-            'includeSteps' => $includeSteps,
-            'flowSubject' => $flowSubject,
-        ];
-
-        $this->client->lPush('flow:queue', json_encode($data));
-    }
-
-    /**
-     * @return iterable<ObserveItem>
-     */
-    public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable
-    {
-        $startExecutionTime = microtime(true);
-
-        while (true) {
-            if ($maxExecutionTimeInSeconds > 0.0 && (microtime(true) - $startExecutionTime) >= $maxExecutionTimeInSeconds) {
-                break;
-            }
-
-            $result = $this->client->brPop('flow:queue', 1);
-            if (!is_array($result)) {
-                continue;
-            }
-
-            if (!array_key_exists(1, $result)) {
-                continue;
-            }
-
-            $payload = json_decode($result[1], true);
-            if (!is_array($payload)) {
-                throw new RuntimeException('The flow message payload must be a valid JSON object.');
-            }
-
-            /** @var array{type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeSteps?: class-string[], flowSubject?: ?string} $payload */
-            yield new ObserveItem(
-                queueId: Uuid::uuid7(new DateTimeImmutable())->toString(),
-                type: $payload['type'],
-                flowSubject: $payload['flowSubject'] ?? null,
-                flowSource: $payload['flowSource'],
-                flowHash: $payload['flowHash'],
-                messageSource: $payload['messageSource'],
-                message: $payload['message'],
-                includeSteps: $payload['includeSteps'] ?? [],
-            );
-        }
-    }
-
-    public function openQueues(): int
-    {
-        $len = $this->client->lLen('flow:queue');
-        return $len === false ? 0 : (int) $len;
     }
 
     /**
@@ -789,44 +738,6 @@ class Redis extends Service implements StorageInterface
         }
     }
 
-    /**
-     * @return iterable<ObserveItem>
-     */
-    public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable
-    {
-        $items = $this->client->lRange('flow:queue', 0, -1);
-        if ($items === false || $items === []) {
-            return;
-        }
-
-        if ($sortEnum === SortEnum::ASC) {
-            $items = array_reverse($items);
-        }
-
-        foreach ($items as $item) {
-            if (!is_string($item)) {
-                continue;
-            }
-
-            $payload = json_decode($item, true);
-            if (!is_array($payload)) {
-                continue;
-            }
-
-            /** @var array{queueId: string, type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: null|array<mixed>, includeSteps?: class-string[], flowSubject?: ?string} $payload */
-            yield new ObserveItem(
-                queueId: $payload['queueId'],
-                type: $payload['type'],
-                flowSubject: $payload['flowSubject'] ?? null,
-                flowSource: $payload['flowSource'],
-                flowHash: $payload['flowHash'],
-                messageSource: $payload['messageSource'],
-                message: $payload['message'],
-                includeSteps: $payload['includeSteps'] ?? [],
-            );
-        }
-    }
-
     public function findFlowInstanceByHash(string $flowHash): ?FlowInstanceEntity
     {
         if ($flowHash === '' || $flowHash === '*') {
@@ -842,7 +753,7 @@ class Redis extends Service implements StorageInterface
             return null;
         }
 
-        /** @var class-string<\Wundii\Flowcrafter\Interface\FlowInterface> $flowSource */
+        /** @var class-string<FlowInterface> $flowSource */
         $flowSource = is_string($flowArray['flowSource'] ?? null) ? $flowArray['flowSource'] : '';
 
         return new FlowInstanceEntity(

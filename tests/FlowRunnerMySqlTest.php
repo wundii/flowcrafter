@@ -30,7 +30,7 @@ use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowRetry;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
-use Wundii\Flowcrafter\Storage\MySql;
+use Wundii\Flowcrafter\Storage\MySqlStorage;
 
 final class FlowRunnerMySqlTest extends TestCase
 {
@@ -47,25 +47,25 @@ final class FlowRunnerMySqlTest extends TestCase
 
         $this->assertCount(6, $flowRunner->getFlow()->getFlowMessages());
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SCHEMA);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_SCHEMA);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_INSTANCE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_INSTANCE);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_RUN);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_RUN);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_MESSAGE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_MESSAGE);
         $this->assertCount(6, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_RESULT);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_RESULT);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_STEP);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_SOURCE_STEP);
         $this->assertCount(4, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_MESSAGE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_SOURCE_MESSAGE);
         $this->assertCount(4, iterator_to_array($stmt->fetchAll()));
     }
 
@@ -127,7 +127,7 @@ final class FlowRunnerMySqlTest extends TestCase
         $this->assertCount(1, $flow->getFlowMessages());
         $this->assertSame(StatusEnum::OK, $flow->status());
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_MESSAGE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_MESSAGE);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
     }
 
@@ -176,7 +176,7 @@ final class FlowRunnerMySqlTest extends TestCase
         $this->assertCount(1, $injected);
 
         // Run 2 soll 3 neue FlowMessages in Storage persistiert haben (Run 1 hatte 6)
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_MESSAGE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_MESSAGE);
         $this->assertCount(9, iterator_to_array($stmt->fetchAll()));
     }
 

@@ -12,6 +12,7 @@ use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\FlowPreflight;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 
@@ -19,6 +20,7 @@ final class QueueController
 {
     public function __construct(
         private readonly StorageInterface $storage,
+        private readonly QueueInterface $queue,
         private readonly FlowPreflight $flowPreflight,
     ) {
     }
@@ -27,7 +29,7 @@ final class QueueController
     {
         $sort = $request->query->get('sort', 'desc') === 'asc' ? SortEnum::ASC : SortEnum::DESC;
 
-        $queueItems = $this->storage->findAllQueues($sort);
+        $queueItems = $this->queue->findAllQueues($sort);
 
         return new JsonResponse(iterator_to_array($queueItems));
     }
@@ -35,7 +37,7 @@ final class QueueController
     public function count(): JsonResponse
     {
         return new JsonResponse([
-            'count' => $this->storage->openQueues(),
+            'count' => $this->queue->openQueues(),
         ]);
     }
 
@@ -87,7 +89,7 @@ final class QueueController
         }
 
         try {
-            $this->storage->appendObserveItem(
+            $this->queue->appendObserveItem(
                 type: $flowType,
                 flowSource: $flowSource,
                 flowHash: $flowHash,

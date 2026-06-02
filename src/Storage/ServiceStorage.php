@@ -16,6 +16,7 @@ use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRun;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\ObserverException;
+use Wundii\Flowcrafter\Projection\ProjectionException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Entity\ExceptionListEntity;
 use Wundii\Flowcrafter\Storage\Entity\ExceptionStatsEntity;
@@ -23,7 +24,7 @@ use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
 
-abstract class Service implements StorageInterface
+abstract class ServiceStorage implements StorageInterface
 {
     private ?Client $client;
 
@@ -135,6 +136,21 @@ abstract class Service implements StorageInterface
 
             CREATE INDEX IF NOT EXISTS observer_exception_list_time ON observer_exception_list(time);
 
+            CREATE TABLE IF NOT EXISTS projection_exception_list (
+                hash TEXT PRIMARY KEY,
+                flow_hash TEXT NOT NULL,
+                flow_type TEXT NOT NULL,
+                projection_handler_class TEXT NOT NULL,
+                code INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                file TEXT NOT NULL,
+                line INTEGER NOT NULL,
+                trace_string TEXT NOT NULL,
+                time TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS projection_exception_list_time ON projection_exception_list(time);
+
             CREATE TABLE IF NOT EXISTS flow_ephemeral_list (
                 flow_hash TEXT PRIMARY KEY,
                 flow_runtime_hash TEXT NOT NULL,
@@ -157,13 +173,13 @@ abstract class Service implements StorageInterface
         try {
             $stmt = $this->client->query(
                 "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' " .
-                "AND name IN ('flow_list', 'flow_run_list', 'flow_exception_list', 'schedule_exception_list', 'observer_exception_list', 'flow_ephemeral_list')"
+                "AND name IN ('flow_list', 'flow_run_list', 'flow_exception_list', 'schedule_exception_list', 'observer_exception_list', 'projection_exception_list', 'flow_ephemeral_list')"
             );
             if ($stmt === false) {
                 return false;
             }
 
-            return (int) $stmt->fetchColumn() === 6;
+            return (int) $stmt->fetchColumn() === 7;
         } catch (Throwable) {
             return false;
         }
@@ -359,6 +375,46 @@ abstract class Service implements StorageInterface
         return (int) $stmt->fetchColumn();
     }
 
+    public function appendProjectionException(ProjectionException $projectionException): void
+    {
+        if (!$this->client instanceof Client) {
+            return;
+        }
+
+        $stmt = $this->client->prepare(
+            'INSERT OR IGNORE INTO projection_exception_list ' .
+            '(hash, flow_hash, flow_type, projection_handler_class, code, message, file, line, trace_string, time) ' .
+            'VALUES (:hash, :flow_hash, :flow_type, :projection_handler_class, :code, :message, :file, :line, :trace_string, :time)'
+        );
+
+        $stmt->execute([
+            ':hash' => $projectionException->getHash(),
+            ':flow_hash' => $projectionException->getFlowHash(),
+            ':flow_type' => $projectionException->getFlowType(),
+            ':projection_handler_class' => $projectionException->getProjectionHandlerClass(),
+            ':code' => $projectionException->getCode(),
+            ':message' => $projectionException->getMessage(),
+            ':file' => $projectionException->getFile(),
+            ':line' => $projectionException->getLine(),
+            ':trace_string' => $projectionException->getTraceString(),
+            ':time' => $projectionException->getTime()->format('Y-m-d H:i:s.u'),
+        ]);
+    }
+
+    public function countProjectionExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int
+    {
+        if (!$this->client instanceof Client) {
+            return 0;
+        }
+
+        [$where, $params] = $this->buildDateFilter($from, $to, 'time');
+
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM projection_exception_list' . $where);
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
+    }
+
     public function countFlows(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int
     {
         if (!$this->client instanceof Client) {
@@ -480,13 +536,27 @@ abstract class Service implements StorageInterface
             $params[':to3'] = $to->format('Y-m-d H:i:s.u');
         }
 
+        $projectionWhere = '';
+        if ($from instanceof DateTimeInterface && $to instanceof DateTimeInterface) {
+            $projectionWhere = ' WHERE time BETWEEN :from4 AND :to4';
+            $params[':from4'] = $from->format('Y-m-d H:i:s.u');
+            $params[':to4'] = $to->format('Y-m-d H:i:s.u');
+        } elseif ($from instanceof DateTimeInterface) {
+            $projectionWhere = ' WHERE time >= :from4';
+            $params[':from4'] = $from->format('Y-m-d H:i:s.u');
+        } elseif ($to instanceof DateTimeInterface) {
+            $projectionWhere = ' WHERE time <= :to4';
+            $params[':to4'] = $to->format('Y-m-d H:i:s.u');
+        }
+
         $sql =
             "SELECT 'flow' AS exception_type," .
             ' fel.hash, fel.code, fel.message, fel.file, fel.line, fel.trace_string, fel.time,' .
             ' fel.flow_hash, fel.flow_runtime_hash, fel.flow_type, fel.step_source, fel.step_hash,' .
             ' fl.status AS flow_status,' .
             ' NULL AS schedule_class, NULL AS schedule_name, NULL AS schedule_expression,' .
-            ' NULL AS observer_flow_source, NULL AS observer_message_source, NULL AS observer_queue_id' .
+            ' NULL AS observer_flow_source, NULL AS observer_message_source, NULL AS observer_queue_id,' .
+            ' NULL AS projection_handler_class' .
             ' FROM flow_exception_list fel' .
             ' JOIN flow_list fl ON fel.flow_hash = fl.flow_hash' . $flowWhere .
             ' UNION ALL' .
@@ -495,7 +565,8 @@ abstract class Service implements StorageInterface
             ' NULL, NULL, NULL, NULL, NULL,' .
             ' NULL AS flow_status,' .
             ' schedule_class, schedule_name, schedule_expression,' .
-            ' NULL, NULL, NULL' .
+            ' NULL, NULL, NULL,' .
+            ' NULL' .
             ' FROM schedule_exception_list' . $scheduleWhere .
             ' UNION ALL' .
             " SELECT 'observer' AS exception_type," .
@@ -503,8 +574,18 @@ abstract class Service implements StorageInterface
             ' NULL, NULL, NULL, NULL, NULL,' .
             ' NULL AS flow_status,' .
             ' NULL, NULL, NULL,' .
-            ' flow_source, message_source, queue_id' .
+            ' flow_source, message_source, queue_id,' .
+            ' NULL' .
             ' FROM observer_exception_list' . $observerWhere .
+            ' UNION ALL' .
+            " SELECT 'projection' AS exception_type," .
+            ' hash, code, message, file, line, trace_string, time,' .
+            ' flow_hash, NULL, flow_type, NULL, NULL,' .
+            ' NULL AS flow_status,' .
+            ' NULL, NULL, NULL,' .
+            ' NULL, NULL, NULL,' .
+            ' projection_handler_class' .
+            ' FROM projection_exception_list' . $projectionWhere .
             ' ORDER BY time ' . $sortEnum->name .
             ' LIMIT :top OFFSET :skip';
 
@@ -516,7 +597,7 @@ abstract class Service implements StorageInterface
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $row) {
-            /** @var array{exception_type: string, hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_hash: string|null, flow_runtime_hash: string|null, flow_type: string|null, step_source: string|null, step_hash: string|null, flow_status: string|null, schedule_class: string|null, schedule_name: string|null, schedule_expression: string|null, observer_flow_source: string|null, observer_message_source: string|null, observer_queue_id: string|null} $row */
+            /** @var array{exception_type: string, hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_hash: string|null, flow_runtime_hash: string|null, flow_type: string|null, step_source: string|null, step_hash: string|null, flow_status: string|null, schedule_class: string|null, schedule_name: string|null, schedule_expression: string|null, observer_flow_source: string|null, observer_message_source: string|null, observer_queue_id: string|null, projection_handler_class: string|null} $row */
             yield new ExceptionListEntity(
                 type: $row['exception_type'],
                 hash: $row['hash'],
@@ -538,6 +619,7 @@ abstract class Service implements StorageInterface
                 observerFlowSource: $row['observer_flow_source'],
                 observerMessageSource: $row['observer_message_source'],
                 observerQueueId: $row['observer_queue_id'],
+                projectionHandlerClass: $row['projection_handler_class'],
             );
         }
     }
@@ -878,7 +960,18 @@ abstract class Service implements StorageInterface
             $observerCounts[$row['date']] = (int) $row['count'];
         }
 
-        $dates = array_unique(array_merge(array_keys($flowCounts), array_keys($scheduleCounts), array_keys($observerCounts)));
+        $projectionCounts = [];
+        $stmt = $this->client->prepare(
+            'SELECT DATE(time) AS date, COUNT(*) AS count FROM projection_exception_list' . $where .
+            ' GROUP BY DATE(time) ORDER BY date ASC'
+        );
+        $stmt->execute($params);
+        while ($row = $stmt->fetch(Client::FETCH_ASSOC)) {
+            /** @var array{date: string, count: int|string} $row */
+            $projectionCounts[$row['date']] = (int) $row['count'];
+        }
+
+        $dates = array_unique(array_merge(array_keys($flowCounts), array_keys($scheduleCounts), array_keys($observerCounts), array_keys($projectionCounts)));
         sort($dates);
 
         foreach ($dates as $date) {
@@ -887,6 +980,7 @@ abstract class Service implements StorageInterface
                 flow: $flowCounts[$date] ?? 0,
                 schedule: $scheduleCounts[$date] ?? 0,
                 observer: $observerCounts[$date] ?? 0,
+                projection: $projectionCounts[$date] ?? 0,
             );
         }
     }
@@ -988,6 +1082,7 @@ abstract class Service implements StorageInterface
         $this->client->exec('DELETE FROM flow_ephemeral_list');
         $this->client->exec('DELETE FROM schedule_exception_list');
         $this->client->exec('DELETE FROM observer_exception_list');
+        $this->client->exec('DELETE FROM projection_exception_list');
     }
 
     protected function getServiceClient(): ?Client

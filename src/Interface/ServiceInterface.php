@@ -31,6 +31,8 @@ interface ServiceInterface
 
     public function countObserverExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
 
+    public function countProjectionExceptions(?DateTimeInterface $from = null, ?DateTimeInterface $to = null): int;
+
     public function countFlows(?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int;
 
     public function countFlowsBySource(string $flowSource, ?DateTimeInterface $from = null, ?DateTimeInterface $to = null, ?string $status = null): int;

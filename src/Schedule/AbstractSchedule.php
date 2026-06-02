@@ -9,12 +9,16 @@ use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\ScheduleInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Projection\ProjectionHandlerMeta;
 
 abstract class AbstractSchedule implements ScheduleInterface
 {
     private ?StorageInterface $storage = null;
+
+    private ?QueueInterface $queue = null;
 
     /**
      * @var array<class-string|object>
@@ -22,12 +26,20 @@ abstract class AbstractSchedule implements ScheduleInterface
     private array $dependenciesInjection = [];
 
     /**
-     * @param array<class-string|object> $dependenciesInjection
+     * @var ProjectionHandlerMeta[]
      */
-    public function setContext(StorageInterface $storage, array $dependenciesInjection): void
+    private array $projectionHandlerMetas = [];
+
+    /**
+     * @param array<class-string|object> $dependenciesInjection
+     * @param ProjectionHandlerMeta[] $projectionHandlerMetas
+     */
+    public function setContext(StorageInterface $storage, QueueInterface $queue, array $dependenciesInjection, array $projectionHandlerMetas = []): void
     {
         $this->storage = $storage;
+        $this->queue = $queue;
         $this->dependenciesInjection = $dependenciesInjection;
+        $this->projectionHandlerMetas = $projectionHandlerMetas;
     }
 
     /**
@@ -41,10 +53,10 @@ abstract class AbstractSchedule implements ScheduleInterface
         ?string $flowSubject = null,
         array $includeSteps = [],
     ): void {
-        $storage = $this->requireStorage();
+        $queue = $this->requireQueue();
         $schema = $flowSource::schema();
 
-        $storage->appendObserveItem(
+        $queue->appendObserveItem(
             type: $schema->type(),
             flowSource: $flowSource,
             flowHash: $flowHash,
@@ -71,7 +83,9 @@ abstract class AbstractSchedule implements ScheduleInterface
             flowSource: $flowSource,
             flowSubject: $flowSubject,
             storage: $this->requireStorage(),
+            queue: $this->requireQueue(),
             dependenciesInjection: $this->dependenciesInjection,
+            projectionHandlerMetas: $this->projectionHandlerMetas,
         );
 
         return $flowRunner->run(
@@ -87,5 +101,14 @@ abstract class AbstractSchedule implements ScheduleInterface
         }
 
         return $this->storage;
+    }
+
+    private function requireQueue(): QueueInterface
+    {
+        if (!$this->queue instanceof QueueInterface) {
+            throw new RuntimeException('Schedule context not initialized. Call setContext() before process().');
+        }
+
+        return $this->queue;
     }
 }

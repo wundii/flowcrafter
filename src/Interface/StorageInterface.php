@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Interface;
 
-use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowRetry;
 use Wundii\Flowcrafter\FlowSchema;
-use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\ObserverException;
+use Wundii\Flowcrafter\Projection\ProjectionException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
@@ -43,34 +42,16 @@ interface StorageInterface extends ServiceInterface
 
     public function appendObserverException(ObserverException $observerException): void;
 
+    public function appendProjectionException(ProjectionException $projectionException): void;
+
     public function appendFlowResult(FlowResult $flowResult): void;
 
     public function appendFlowRetry(FlowRetry $flowRetry): void;
 
     /**
-     * @param class-string $flowSource
-     * @param class-string $messageSource
-     * @param array<mixed> $message
-     * @param class-string[] $includeSteps
-     */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void;
-
-    public function openQueues(): int;
-
-    /**
-     * @return iterable<ObserveItem>
-     */
-    public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable;
-
-    /**
      * @return iterable<string>
      */
     public function findAllFlowHashes(): iterable;
-
-    /**
-     * @return iterable<ObserveItem>
-     */
-    public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable;
 
     /**
      * @return iterable<FlowSchemaEntity>

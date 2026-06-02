@@ -68,7 +68,7 @@ final class ApiRouteTest extends TestCase
 
     public function testMetricsEndpointIsPublic(): void
     {
-        $this->storage->method('openQueues')->willReturn(0);
+        $this->queue->method('openQueues')->willReturn(0);
         $this->storage->method('countFlows')->willReturn(0);
         $this->storage->method('countExceptions')->willReturn(0);
 
@@ -130,7 +130,7 @@ final class ApiRouteTest extends TestCase
 
     public function testQueueCountEndpoint(): void
     {
-        $this->storage->method('openQueues')->willReturn(5);
+        $this->queue->method('openQueues')->willReturn(5);
 
         $response = $this->apiRequest('GET', '/api/queue/queue-count');
         $this->assertSame(200, $response->getStatusCode());

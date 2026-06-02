@@ -7,44 +7,35 @@ namespace Wundii\Flowcrafter\Storage;
 use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
-use RuntimeException;
-use Thenativeweb\Eventsourcingdb\Bound;
-use Thenativeweb\Eventsourcingdb\BoundType;
 use Thenativeweb\Eventsourcingdb\Client;
 use Thenativeweb\Eventsourcingdb\EventCandidate;
 use Thenativeweb\Eventsourcingdb\IsEventQlQueryTrue;
 use Thenativeweb\Eventsourcingdb\IsSubjectPopulated;
 use Thenativeweb\Eventsourcingdb\IsSubjectPristine;
-use Thenativeweb\Eventsourcingdb\ObserveEventsOptions;
 use Thenativeweb\Eventsourcingdb\Order;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
 use Throwable;
-use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
-use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowRetry;
 use Wundii\Flowcrafter\FlowSchema;
-use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StepInterface;
-use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\ObserverException;
+use Wundii\Flowcrafter\Projection\ProjectionException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
-use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
+use Wundii\Flowcrafter\Storage\Config\EsdbStorageConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
 
-class Esdb extends Service
+class EsdbStorage extends ServiceStorage
 {
     public const SOURCE = 'https://flowcrafter';
-
-    public const QUEUE_SUBJECT = '/flow/queue';
 
     public const TYPE_INSTANCE = 'flowcrafter.flow.instance.v1';
 
@@ -54,11 +45,9 @@ class Esdb extends Service
 
     public const TYPE_RESULT = 'flowcrafter.flow.result.v1';
 
-    public const TYPE_QUEUE = 'flowcrafter.flow.queue.v1';
-
-    public const TYPE_QUEUE_CLAIM = 'flowcrafter.flow.queue.claim.v1';
-
     public const TYPE_OBSERVER_EXCEPTION = 'flowcrafter.observer.exception.v1';
+
+    public const TYPE_PROJECTION_EXCEPTION = 'flowcrafter.projection.exception.v1';
 
     public const TYPE_RUN = 'flowcrafter.flow.run.v1';
 
@@ -72,13 +61,13 @@ class Esdb extends Service
 
     protected Client $client;
 
-    public function __construct(EsdbConfig $esdbConfig, ?string $sqliteFile = null)
+    public function __construct(EsdbStorageConfig $esdbStorageConfig, ?string $sqliteFile = null)
     {
         parent::__construct($sqliteFile);
 
         $this->client = new Client(
-            $esdbConfig->getUrl(),
-            $esdbConfig->getApiToken(),
+            $esdbStorageConfig->getUrl(),
+            $esdbStorageConfig->getApiToken(),
         );
     }
 
@@ -288,6 +277,9 @@ class Esdb extends Service
                     'flowRuntimeHash' => [
                         'type' => 'string',
                     ],
+                    'flowType' => [
+                        'type' => 'string',
+                    ],
                     'stepSource' => [
                         'type' => 'string',
                     ],
@@ -319,6 +311,7 @@ class Esdb extends Service
                 'required' => [
                     'flowHash',
                     'flowRuntimeHash',
+                    'flowType',
                     'stepSource',
                     'stepHash',
                     'messageHash',
@@ -474,66 +467,6 @@ class Esdb extends Service
                     'message',
                     'time',
                     'hash',
-                ],
-                'additionalProperties' => false,
-            ];
-
-            $this->client->registerEventSchema($eventType, $registerEventSchema);
-        }
-
-        if (!in_array(self::TYPE_QUEUE, $eventTypes, true)) {
-            $eventType = self::TYPE_QUEUE;
-            $registerEventSchema = [
-                'type' => 'object',
-                'properties' => [
-                    'type' => [
-                        'type' => 'string',
-                    ],
-                    'flowSubject' => [
-                        'type' => ['null', 'string'],
-                    ],
-                    'flowSource' => [
-                        'type' => 'string',
-                    ],
-                    'flowHash' => [
-                        'type' => ['null', 'string'],
-                    ],
-                    'messageSource' => [
-                        'type' => 'string',
-                    ],
-                    'message' => [
-                        'type' => ['null', 'array', 'object'],
-                    ],
-                    'includeSteps' => [
-                        'type' => ['array'],
-                    ],
-                ],
-                'required' => [
-                    'type',
-                    'flowSubject',
-                    'flowSource',
-                    'flowHash',
-                    'messageSource',
-                    'message',
-                    'includeSteps',
-                ],
-                'additionalProperties' => false,
-            ];
-
-            $this->client->registerEventSchema($eventType, $registerEventSchema);
-        }
-
-        if (!in_array(self::TYPE_QUEUE_CLAIM, $eventTypes, true)) {
-            $eventType = self::TYPE_QUEUE_CLAIM;
-            $registerEventSchema = [
-                'type' => 'object',
-                'properties' => [
-                    'eventId' => [
-                        'type' => 'string',
-                    ],
-                ],
-                'required' => [
-                    'eventId',
                 ],
                 'additionalProperties' => false,
             ];
@@ -781,6 +714,24 @@ class Esdb extends Service
         parent::appendObserverException($observerException);
     }
 
+    public function appendProjectionException(ProjectionException $projectionException): void
+    {
+        $subject = '/projection/exception/' . $projectionException->getHash();
+        $eventCandidate = new EventCandidate(
+            source: self::SOURCE,
+            subject: $subject,
+            type: self::TYPE_PROJECTION_EXCEPTION,
+            data: $projectionException->jsonSerialize(),
+        );
+
+        $this->client->writeEvents(
+            [$eventCandidate],
+            [new IsSubjectPristine($subject)],
+        );
+
+        parent::appendProjectionException($projectionException);
+    }
+
     public function appendFlowResult(FlowResult $flowResult): void
     {
         $subject = '/flow/' . $flowResult->getFlowHash() . '/result/' . $flowResult->getHash();
@@ -821,80 +772,6 @@ class Esdb extends Service
                 new IsSubjectPopulated($subjectFlow),
             ],
         );
-    }
-
-    /**
-     * @param class-string $flowSource
-     * @param class-string $messageSource
-     * @param array<mixed> $message
-     */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void
-    {
-        Assert::classString($flowSource, FlowInterface::class);
-        Assert::classString($messageSource, MessageInterface::class);
-
-        $this->client->writeEvents([
-            new EventCandidate(
-                source: self::SOURCE,
-                subject: self::QUEUE_SUBJECT,
-                type: self::TYPE_QUEUE,
-                data: [
-                    'type' => $type,
-                    'flowSource' => $flowSource,
-                    'flowHash' => $flowHash,
-                    'messageSource' => $messageSource,
-                    'message' => $message,
-                    'includeSteps' => $includeSteps,
-                    'flowSubject' => $flowSubject,
-                ],
-            ),
-        ]);
-    }
-
-    /**
-     * @return iterable<ObserveItem>
-     */
-    public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable
-    {
-        $this->client->abortIn($maxExecutionTimeInSeconds);
-
-        $lowerBound = $this->resolveQueueLowerBound();
-
-        $observeEventsOptions = new ObserveEventsOptions(
-            recursive: false,
-            lowerBound: $lowerBound,
-        );
-
-        foreach ($this->client->observeEvents(self::QUEUE_SUBJECT, $observeEventsOptions) as $event) {
-            if (!$this->claimQueueItem($event->id)) {
-                continue;
-            }
-
-            yield new ObserveItem(
-                queueId: $event->id,
-                type: $event->data['type'] ?? '',
-                flowSubject: $event->data['flowSubject'] ?? null,
-                flowSource: $event->data['flowSource'] ?? '',
-                flowHash: $event->data['flowHash'] ?? null,
-                messageSource: $event->data['messageSource'] ?? '',
-                message: $event->data['message'] ?? null,
-                includeSteps: $event->data['includeSteps'] ?? [],
-            );
-        }
-    }
-
-    public function openQueues(): int
-    {
-        $lowerBound = $this->resolveQueueLowerBound();
-
-        $events = $this->client->readEvents(
-            self::QUEUE_SUBJECT,
-            new ReadEventsOptions(
-                lowerBound: $lowerBound,
-            ),
-        );
-
-        return count(iterator_to_array($events));
     }
 
     /**
@@ -946,39 +823,6 @@ class Esdb extends Service
                 messageSource: $messageSourceEvent->data['messageSource'],
                 propertyNames: $messageSourceEvent->data['propertyNames'],
                 time: new DateTimeImmutable($messageSourceEvent->data['time'] ?? '' ? $messageSourceEvent->data['time'] : 'now'),
-            );
-        }
-    }
-
-    /**
-     * @return iterable<ObserveItem >
-     */
-    public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable
-    {
-        $lowerBound = $this->resolveQueueLowerBound();
-
-        $events = $this->client->readEvents(
-            self::QUEUE_SUBJECT,
-            new ReadEventsOptions(
-                lowerBound: $lowerBound,
-            ),
-        );
-
-        $allEvents = iterator_to_array($events);
-        if ($sortEnum === SortEnum::DESC) {
-            $allEvents = array_reverse($allEvents);
-        }
-
-        foreach ($allEvents as $allEvent) {
-            yield new ObserveItem(
-                queueId: $allEvent->id,
-                type: $allEvent->data['type'] ?? '',
-                flowSubject: $allEvent->data['flowSubject'] ?? null,
-                flowSource: $allEvent->data['flowSource'] ?? '',
-                flowHash: $allEvent->data['flowHash'] ?? null,
-                messageSource: $allEvent->data['messageSource'] ?? '',
-                message: $allEvent->data['message'] ?? [],
-                includeSteps: $allEvent->data['includeSteps'] ?? [],
             );
         }
     }
@@ -1163,48 +1007,4 @@ class Esdb extends Service
         }
     }
 
-    private function claimQueueItem(string $eventId): bool
-    {
-        $subject = self::QUEUE_SUBJECT . '/claim/' . $eventId;
-
-        try {
-            $this->client->writeEvents(
-                [
-                    new EventCandidate(
-                        source: self::SOURCE,
-                        subject: $subject,
-                        type: self::TYPE_QUEUE_CLAIM,
-                        data: [
-                            'eventId' => $eventId,
-                        ],
-                    ),
-                ],
-                [
-                    new IsSubjectPristine($subject),
-                ]
-            );
-
-            return true;
-        } catch (RuntimeException) {
-            return false;
-        }
-    }
-
-    private function resolveQueueLowerBound(): ?Bound
-    {
-        $lastFlowRunWithQueueId = $this->client->runEventQlQuery(
-            'FROM e IN events ' .
-            'WHERE e.type == "' . self::TYPE_RUN . '" ' .
-            'AND e.data.queueId != null ' .
-            'ORDER BY e.id DESC ' .
-            'TOP 1 ' .
-            'PROJECT INTO e.data.queueId'
-        );
-        $lastFlowRunEvent = iterator_to_array($lastFlowRunWithQueueId);
-        $lastQueueId = $lastFlowRunEvent[0] ?? null;
-
-        return $lastQueueId !== null
-            ? new Bound(id: $lastQueueId, type: BoundType::EXCLUSIVE)
-            : null;
-    }
 }

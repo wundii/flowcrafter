@@ -20,6 +20,7 @@ use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Projection\ProjectionDiscovery;
 
 final class FlowController
 {
@@ -76,11 +77,18 @@ final class FlowController
 
         $stats = $this->storage->findFlowTypeStats($from, $to);
         $groupMap = FlowDiscovery::discover();
+        $projectionHandlerMap = [];
+        foreach (ProjectionDiscovery::discover() as $projectionHandlerMetum) {
+            foreach ($projectionHandlerMetum->flowTypes as $flowType) {
+                $projectionHandlerMap[$flowType] = $projectionHandlerMetum->handlerClass;
+            }
+        }
 
         $result = [];
         foreach ($stats as $stat) {
             $item = $stat->jsonSerialize();
             $item['group'] = $groupMap[$stat->flowType] ?? null;
+            $item['projectionHandlerClass'] = $projectionHandlerMap[$stat->flowType] ?? null;
             $result[] = $item;
         }
 
@@ -230,6 +238,7 @@ final class FlowController
                 flowSubject: $existingFlow->getSubject(),
                 storage: $this->storage,
                 dependenciesInjection: $this->flowcrafterConfig->getDependencyInjections(),
+                projectionHandlerMetas: ProjectionDiscovery::discover(),
             );
         } catch (Throwable $throwable) {
             return new JsonResponse([

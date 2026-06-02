@@ -7,9 +7,12 @@ namespace Tests\Trait;
 use PDO as Client;
 use Testcontainers\Container\StartedGenericContainer;
 use Testcontainers\Modules\MariaDBContainer;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
-use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
-use Wundii\Flowcrafter\Storage\MySql;
+use Wundii\Flowcrafter\Queue\Config\MySqlQueueConfig;
+use Wundii\Flowcrafter\Queue\MySqlQueue;
+use Wundii\Flowcrafter\Storage\Config\MySqlStorageConfig;
+use Wundii\Flowcrafter\Storage\MySqlStorage;
 
 trait MySqlClientTestTrait
 {
@@ -71,8 +74,8 @@ trait MySqlClientTestTrait
             self::fail('MariaDB container was not started');
         }
 
-        $mySql = new MySql(
-            new MysqlConfig(
+        $mySqlStorage = new MySqlStorage(
+            new MySqlStorageConfig(
                 self::$container->getHost(),
                 self::$container->getMappedPort(self::PORT),
                 self::DATABASE,
@@ -81,10 +84,30 @@ trait MySqlClientTestTrait
             ),
             ':memory:',
         );
-        $mySql->initializeDatabase();
-        $mySql->truncateFlowList();
+        $mySqlStorage->initializeDatabase();
+        $mySqlStorage->truncateFlowList();
 
-        return $mySql;
+        return $mySqlStorage;
+    }
+
+    protected function queue(): QueueInterface
+    {
+        if (!self::$container instanceof StartedGenericContainer) {
+            self::fail('MariaDB container was not started');
+        }
+
+        $mySqlQueue = new MySqlQueue(
+            new MySqlQueueConfig(
+                self::$container->getHost(),
+                self::$container->getMappedPort(self::PORT),
+                self::DATABASE,
+                self::USERNAME,
+                self::PASSWORD,
+            ),
+        );
+        $mySqlQueue->initializeQueue();
+
+        return $mySqlQueue;
     }
 
     private function truncateAllTables(): void

@@ -9,6 +9,7 @@ use stdClass;
 use Symfony\Component\HttpFoundation\Request;
 use Tests\MockClass\ScheduleMock;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Service\Controller\ScheduleController;
 
@@ -70,6 +71,10 @@ final class ScheduleControllerTest extends TestCase
 
     private function createController(): ScheduleController
     {
-        return new ScheduleController(new FlowcrafterConfig(), $this->createStub(StorageInterface::class));
+        return new ScheduleController(
+            new FlowcrafterConfig(),
+            $this->createStub(StorageInterface::class),
+            $this->createStub(QueueInterface::class),
+        );
     }
 }

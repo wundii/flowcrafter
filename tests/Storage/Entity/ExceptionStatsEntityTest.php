@@ -35,6 +35,7 @@ final class ExceptionStatsEntityTest extends TestCase
             'flow' => 5,
             'schedule' => 2,
             'observer' => 0,
+            'projection' => 0,
         ], $exceptionStatsEntity->jsonSerialize());
     }
 }

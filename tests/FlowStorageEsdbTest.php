@@ -201,7 +201,7 @@ final class FlowStorageEsdbTest extends TestCase
         $this->assertSame($flow->getSchemaHash(), $instance->flowSchemaHash);
         $this->assertNotNull($instance->time);
 
-        $this->assertNotInstanceOf(\Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity::class, $storage->findFlowInstanceByHash('nonexistent-hash'));
+        $this->assertNotInstanceOf(FlowInstanceEntity::class, $storage->findFlowInstanceByHash('nonexistent-hash'));
     }
 
     public function testFindFlowByHash(): void

@@ -9,14 +9,18 @@ use RuntimeException;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
+use Wundii\Flowcrafter\Interface\QueueConfigInterface;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageConfigInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Queue\Config\RedisQueueConfig;
 
 final class FlowcrafterConfig extends FlowcrafterConfigParameter
 {
     public function __construct()
     {
         $this->setParameter(OptionEnum::STORAGE_CONFIG, null);
+        $this->setParameter(OptionEnum::QUEUE_CONFIG, null);
         $this->setParameter(OptionEnum::SERVER_HOST, null);
         $this->setParameter(OptionEnum::SERVER_PORT, null);
         $this->setParameter(OptionEnum::SERVER_WORKERS, null);
@@ -36,6 +40,11 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
     public function setStorageConfig(StorageConfigInterface $storageConfig): void
     {
         $this->setParameter(OptionEnum::STORAGE_CONFIG, $storageConfig);
+    }
+
+    public function setQueueConfig(QueueConfigInterface $queueConfig): void
+    {
+        $this->setParameter(OptionEnum::QUEUE_CONFIG, $queueConfig);
     }
 
     public function setServerHost(?string $serverHost = null): void
@@ -179,5 +188,48 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $cachedStorage = $storage;
 
         return $storage;
+    }
+
+    public function initializeQueue(FlowSymfonyStyle $flowSymfonyStyle): QueueInterface
+    {
+        $queue = $this->getQueue();
+        $queueClass = (new ReflectionClass($queue))->getShortName();
+        $queue->initializeQueue();
+        $flowSymfonyStyle->writeln(sprintf(
+            '<fg=%s>%s queue initialized</>',
+            OutputColorEnum::DEFAULT->value,
+            $queueClass,
+        ));
+
+        return $queue;
+    }
+
+    public function getQueue(): QueueInterface
+    {
+        static $cachedQueue = null;
+        if ($cachedQueue instanceof QueueInterface) {
+            return $cachedQueue;
+        }
+
+        $queueConfig = $this->getParameter(OptionEnum::QUEUE_CONFIG);
+        if (!$queueConfig instanceof QueueConfigInterface) {
+            // Redis is the default queue backend.
+            $queueConfig = new RedisQueueConfig('127.0.0.1', 6379);
+        }
+
+        $queueClass = $queueConfig->getQueueClass();
+
+        if (!class_exists($queueClass)) {
+            throw new RuntimeException('The queue class ' . $queueClass . ' does not exist.');
+        }
+
+        $queue = new $queueClass($queueConfig);
+        if (!$queue instanceof QueueInterface) {
+            throw new RuntimeException('The queue class ' . $queueClass . ' does not implement QueueInterface.');
+        }
+
+        $cachedQueue = $queue;
+
+        return $queue;
     }
 }

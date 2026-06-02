@@ -16,8 +16,11 @@ use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\ProjectionHandlerInterface;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StepInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Projection\ProjectionHandlerMeta;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 
 class FlowRunner
@@ -55,8 +58,14 @@ class FlowRunner
     private int $ephemeralExpiryDays = 0;
 
     /**
+     * @var class-string<ProjectionHandlerInterface>[]
+     */
+    private array $projectionHandlerClasses = [];
+
+    /**
      * @param class-string<FlowInterface> $flowSource
      * @param array<int|class-string, class-string|object> $dependenciesInjection
+     * @param ProjectionHandlerMeta[] $projectionHandlerMetas
      * @throws ReflectionException
      */
     public function __construct(
@@ -64,7 +73,9 @@ class FlowRunner
         private readonly string $flowSource,
         private readonly ?string $flowSubject = null,
         private readonly ?StorageInterface $storage = null,
+        private readonly ?QueueInterface $queue = null,
         private readonly array $dependenciesInjection = [],
+        private readonly array $projectionHandlerMetas = [],
     ) {
         Assert::classString(
             $flowSource,
@@ -76,6 +87,12 @@ class FlowRunner
         if ($attributes !== []) {
             $this->ephemeral = true;
             $this->ephemeralExpiryDays = $attributes[0]->newInstance()->expiryDays;
+        }
+
+        foreach ($this->projectionHandlerMetas as $projectionHandlerMeta) {
+            if (in_array($this->type, $projectionHandlerMeta->flowTypes, true)) {
+                $this->projectionHandlerClasses[] = $projectionHandlerMeta->handlerClass;
+            }
         }
     }
 
@@ -250,7 +267,7 @@ class FlowRunner
                 continue;
             }
 
-            if ($flowMessage->getMessage() instanceof FlowMessageReadOnly) {
+            if ($flowMessage->getMessage() instanceof ReadonlyMessage) {
                 continue;
             }
 
@@ -270,6 +287,7 @@ class FlowRunner
                 $flow->addMessage(FlowMessage::create(
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
+                    flowType: $this->type,
                     stepSource: $stepSource,
                     stepHash: $stepSourceObj->stepHash,
                     messageTypeEnum: MessageTypeEnum::WAIT,
@@ -368,6 +386,7 @@ class FlowRunner
             $flowMessageWait = FlowMessage::create(
                 flowHash: $flow->getHash(),
                 flowRuntimeHash: $flow->getRuntimeHash(),
+                flowType: $this->type,
                 stepSource: $stepSource->stepSource,
                 stepHash: $stepSource->stepHash,
                 messageTypeEnum: MessageTypeEnum::WAIT,
@@ -437,6 +456,8 @@ class FlowRunner
                     if (!$this->ephemeral) {
                         $this->storage?->appendFlowMessage($flowMessage);
                     }
+
+                    $this->projectFlowMessage($flowMessage);
                 }
 
                 $flowException = FlowException::create(
@@ -467,6 +488,8 @@ class FlowRunner
                 if (!$this->ephemeral) {
                     $this->storage?->appendFlowMessage($flowMessage);
                 }
+
+                $this->projectFlowMessage($flowMessage);
             }
 
             if ($processResult instanceof MessageInterface && !$processResult instanceof MessageReturnInterface) {
@@ -503,6 +526,7 @@ class FlowRunner
                 $returnFlowMessage = FlowMessage::create(
                     flowHash: $flow->getHash(),
                     flowRuntimeHash: $flow->getRuntimeHash(),
+                    flowType: $this->type,
                     stepSource: $stepSource->stepSource,
                     stepHash: $stepSource->stepHash,
                     messageTypeEnum: MessageTypeEnum::FINISH,
@@ -514,6 +538,8 @@ class FlowRunner
                 if (!$this->ephemeral) {
                     $this->storage?->appendFlowMessage($returnFlowMessage);
                 }
+
+                $this->projectFlowMessage($returnFlowMessage);
             }
         }
     }
@@ -529,7 +555,7 @@ class FlowRunner
                 continue;
             }
 
-            if ($flowMessage->getMessage() instanceof FlowMessageReadOnly) {
+            if ($flowMessage->getMessage() instanceof ReadonlyMessage) {
                 continue;
             }
 
@@ -543,5 +569,24 @@ class FlowRunner
         }
 
         return null;
+    }
+
+    /**
+     * Push a single finalized FlowMessage into the projection queue, once per
+     * handler that subscribes to this flow type. Called incrementally as the
+     * run progresses (on FINISH transition), so projections keep up with the
+     * flow and a run that later throws still projects what already completed.
+     * The projection worker consumes the queue asynchronously (ephemeral and
+     * persistent flows are treated identically here).
+     */
+    private function projectFlowMessage(FlowMessage $flowMessage): void
+    {
+        if (!$this->queue instanceof QueueInterface) {
+            return;
+        }
+
+        foreach ($this->projectionHandlerClasses as $projectionHandlerClass) {
+            $this->queue->appendProjectionQueueItem($flowMessage, $projectionHandlerClass);
+        }
     }
 }

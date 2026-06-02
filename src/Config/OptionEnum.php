@@ -14,6 +14,11 @@ enum OptionEnum: string
     /**
      * @internal
      */
+    case QUEUE_CONFIG = 'queue_config';
+
+    /**
+     * @internal
+     */
     case SERVER_HOST = 'server_host';
 
     /**

@@ -41,7 +41,7 @@ final class FlowControllerTest extends TestCase
     public function testListSetsHasMoreWhenResultExceedsTop(): void
     {
         $items = array_map(
-            fn (int $i): \Wundii\Flowcrafter\Storage\Entity\FlowListEntity => $this->makeFlowListEntity('hash-' . $i),
+            fn (int $i): FlowListEntity => $this->makeFlowListEntity('hash-' . $i),
             range(1, 11),
         );
 

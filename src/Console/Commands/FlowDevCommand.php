@@ -20,6 +20,8 @@ use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\Console\Preflight\StoragePreflight;
 use Wundii\Flowcrafter\FlowScheduler;
+use Wundii\Flowcrafter\Projection\ProjectionDiscovery;
+use Wundii\Flowcrafter\Projection\ProjectionWorker;
 
 final class FlowDevCommand extends Command
 {
@@ -108,9 +110,11 @@ final class FlowDevCommand extends Command
         $this->heartbeat = new Heartbeat();
 
         $storage = $this->flowcrafterConfig->getStorage();
+        $queue = $this->flowcrafterConfig->getQueue();
         $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
+        $projectionHandlerMetas = ProjectionDiscovery::discover();
 
-        $flowScheduler = new FlowScheduler($storage, $dependencyInjections);
+        $flowScheduler = new FlowScheduler($storage, $queue, $dependencyInjections, projectionHandlerMetas: $projectionHandlerMetas);
         $scheduleCount = count($flowScheduler->getScheduleAttributes());
         if ($scheduleCount > 0 && $output->confirm(sprintf('Start scheduler? (%d schedule(s) found)', $scheduleCount), false)) {
             $output->writeln(sprintf(
@@ -120,6 +124,16 @@ final class FlowDevCommand extends Command
             ));
             $this->schedulerHeartbeat = new Heartbeat('scheduler');
             $this->schedulerHeartbeat->touch();
+        }
+
+        $projectionWorker = null;
+        if ($projectionHandlerMetas !== [] && $output->confirm(sprintf('Start projection worker? (%d handler(s) found)', count($projectionHandlerMetas)), false)) {
+            $projectionWorker = new ProjectionWorker($storage, $queue, $projectionHandlerMetas, $dependencyInjections);
+            $output->writeln(sprintf(
+                '<fg=%s>starting projection worker with %d handler(s)</>',
+                OutputColorEnum::BLUE->value,
+                count($projectionHandlerMetas),
+            ));
         }
 
         $fileWatcher = new FileWatcher(FileWatcher::resolveProjectDirectories());
@@ -157,6 +171,14 @@ final class FlowDevCommand extends Command
                     $flowScheduler->tick($logger);
                 } catch (Throwable $e) {
                     $output->writeln('[Scheduler] error: ' . $e->getMessage());
+                }
+            }
+
+            if ($projectionWorker instanceof ProjectionWorker) {
+                try {
+                    $projectionWorker->tick($logger);
+                } catch (Throwable $e) {
+                    $output->writeln('[Projection] error: ' . $e->getMessage());
                 }
             }
 

@@ -14,6 +14,7 @@ use Wundii\Flowcrafter\Console\Heartbeat;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\FlowScheduler;
+use Wundii\Flowcrafter\Projection\ProjectionDiscovery;
 
 final class FlowSchedulerCommand extends Command
 {
@@ -35,10 +36,13 @@ final class FlowSchedulerCommand extends Command
         $output->startApplication(FlowConsole::vendorVersion());
 
         $this->flowcrafterConfig->initializeStorage($output);
+        $this->flowcrafterConfig->initializeQueue($output);
 
         $storage = $this->flowcrafterConfig->getStorage();
+        $queue = $this->flowcrafterConfig->getQueue();
         $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
-        $flowScheduler = new FlowScheduler($storage, $dependencyInjections);
+        $projectionHandlerMetas = ProjectionDiscovery::discover();
+        $flowScheduler = new FlowScheduler($storage, $queue, $dependencyInjections, projectionHandlerMetas: $projectionHandlerMetas);
 
         $scheduleCount = count($flowScheduler->getScheduleAttributes());
 

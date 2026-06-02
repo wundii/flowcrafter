@@ -14,16 +14,21 @@ use Wundii\DataMapper\Enum\ApproachEnum;
 use Wundii\Flowcrafter\Console\Heartbeat;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Projection\ProjectionHandlerMeta;
 
 final readonly class FlowObserver
 {
     /**
      * @param array<class-string|object> $dependenciesInjection
+     * @param ProjectionHandlerMeta[] $projectionHandlerMetas
      */
     public function __construct(
         private StorageInterface $storage,
+        private QueueInterface $queue,
         private array $dependenciesInjection,
+        private array $projectionHandlerMetas = [],
     ) {
     }
 
@@ -49,7 +54,7 @@ final readonly class FlowObserver
         $observeItem = null;
 
         try {
-            foreach ($this->storage->observeQueue($maxExecutionTimeInSeconds) as $observeItem) {
+            foreach ($this->queue->observeQueue($maxExecutionTimeInSeconds) as $observeItem) {
                 $flowSource = Assert::classString($observeItem->getFlowSource(), FlowInterface::class, 'Each Flow must have a string source.');
                 $messageSource = Assert::classString($observeItem->getMessageSource(), MessageInterface::class, 'Each Message must have a string source.');
 
@@ -70,7 +75,9 @@ final readonly class FlowObserver
                     flowSource: $observeItem->getFlowSource(),
                     flowSubject: $observeItem->getFlowSubject(),
                     storage: $this->storage,
+                    queue: $this->queue,
                     dependenciesInjection: $this->dependenciesInjection,
+                    projectionHandlerMetas: $this->projectionHandlerMetas,
                 );
 
                 $flowRunner->run(

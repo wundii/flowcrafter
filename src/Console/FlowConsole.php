@@ -20,6 +20,7 @@ use Wundii\Flowcrafter\Console\Commands\FlowDevCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowDiagramMermaidCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowDockerInitCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowObserverCommand;
+use Wundii\Flowcrafter\Console\Commands\FlowProjectionWorkerCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowSchedulerCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowServiceCommand;
 use Wundii\Flowcrafter\Console\Commands\FlowStorageInitCommand;
@@ -38,6 +39,7 @@ final class FlowConsole extends BaseApplication
         FlowDiagramMermaidCommand $flowDiagramMermaidCommand,
         FlowDockerInitCommand $flowDockerInitCommand,
         FlowObserverCommand $flowObserverCommand,
+        FlowProjectionWorkerCommand $flowProjectionWorkerCommand,
         FlowSchedulerCommand $flowSchedulerCommand,
         FlowServiceCommand $flowServiceCommand,
         FlowStorageInitCommand $flowStorageInitCommand,
@@ -51,6 +53,7 @@ final class FlowConsole extends BaseApplication
             $flowDiagramMermaidCommand,
             $flowDockerInitCommand,
             $flowObserverCommand,
+            $flowProjectionWorkerCommand,
             $flowSchedulerCommand,
             $flowServiceCommand,
             $flowStorageInitCommand,

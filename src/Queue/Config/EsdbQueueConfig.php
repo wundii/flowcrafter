@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Wundii\Flowcrafter\Storage\Config;
+namespace Wundii\Flowcrafter\Queue\Config;
 
-use Wundii\Flowcrafter\Interface\StorageConfigInterface;
-use Wundii\Flowcrafter\Storage\Esdb;
+use Wundii\Flowcrafter\Interface\QueueConfigInterface;
+use Wundii\Flowcrafter\Queue\EsdbQueue;
 
-final readonly class EsdbConfig implements StorageConfigInterface
+final readonly class EsdbQueueConfig implements QueueConfigInterface
 {
     public function __construct(
         private string $url,
@@ -15,9 +15,9 @@ final readonly class EsdbConfig implements StorageConfigInterface
     ) {
     }
 
-    public function getStorageClass(): string
+    public function getQueueClass(): string
     {
-        return Esdb::class;
+        return EsdbQueue::class;
     }
 
     public function getUrl(): string

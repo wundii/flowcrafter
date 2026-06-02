@@ -76,6 +76,7 @@ final class FlowServiceCommand extends Command
         $env = $this->bootstrapConfig->getProcessEnv();
 
         $this->flowcrafterConfig->initializeStorage($output);
+        $this->flowcrafterConfig->initializeQueue($output);
 
         $output->writeln(sprintf(
             '<fg=%s>starting API server (FrankenPHP worker mode) on %s:%s with %s worker(s)</>',

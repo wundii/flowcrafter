@@ -4,21 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\MockClass;
 
-use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
 use Wundii\Flowcrafter\FlowRetry;
 use Wundii\Flowcrafter\FlowSchema;
-use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
-use Wundii\Flowcrafter\Storage\Service;
+use Wundii\Flowcrafter\Storage\ServiceStorage;
 
-class SqliteStorageMock extends Service
+class SqliteStorageMock extends ServiceStorage
 {
     public function isPrimaryStorageInitialized(): bool
     {
@@ -61,35 +59,10 @@ class SqliteStorageMock extends Service
     {
     }
 
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void
-    {
-    }
-
-    public function openQueues(): int
-    {
-        return 0;
-    }
-
-    /**
-     * @return iterable<ObserveItem>
-     */
-    public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable
-    {
-        return [];
-    }
-
     /**
      * @return iterable<string>
      */
     public function findAllFlowHashes(): iterable
-    {
-        return [];
-    }
-
-    /**
-     * @return iterable<ObserveItem>
-     */
-    public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable
     {
         return [];
     }

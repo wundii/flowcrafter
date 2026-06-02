@@ -6,6 +6,7 @@ namespace Wundii\Service;
 
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\FlowPreflight;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flower\Flower;
 use Wundii\Flower\MethodEnum;
@@ -20,7 +21,7 @@ use Wundii\Service\Controller\SchemaController;
 
 final class Routes
 {
-    public static function service(FlowcrafterConfig $flowcrafterConfig, StorageInterface $storage): void
+    public static function service(FlowcrafterConfig $flowcrafterConfig, StorageInterface $storage, QueueInterface $queue): void
     {
         $router = Flower::router();
 
@@ -28,9 +29,9 @@ final class Routes
         $flowPreflight = new FlowPreflight();
         $flowController = new FlowController($flowcrafterConfig, $storage, $flowPreflight);
         $healthController = new HealthController();
-        $infoController = new InfoController($flowcrafterConfig, $storage);
-        $queueController = new QueueController($storage, $flowPreflight);
-        $scheduleController = new ScheduleController($flowcrafterConfig, $storage);
+        $infoController = new InfoController($flowcrafterConfig, $storage, $queue);
+        $queueController = new QueueController($storage, $queue, $flowPreflight);
+        $scheduleController = new ScheduleController($flowcrafterConfig, $storage, $queue);
         $schemaController = new SchemaController($storage);
 
         $router->add('/', MethodEnum::GET, $healthController->index(...));
@@ -50,6 +51,7 @@ final class Routes
         $router->add('/api/flow/step-source', MethodEnum::GET, $schemaController->stepSource(...));
         $router->add('/api/flow/step-source-list', MethodEnum::GET, $schemaController->stepSources(...));
         $router->add('/api/flow/message-source-list', MethodEnum::GET, $schemaController->messageSources(...));
+        $router->add('/api/flow/projection-handler-source', MethodEnum::GET, $schemaController->projectionHandlerSource(...));
 
         $router->add('/api/schedule/schedule-list', MethodEnum::GET, $scheduleController->list(...));
         $router->add('/api/schedule/flow-run', MethodEnum::POST, $scheduleController->run(...));

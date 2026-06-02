@@ -71,7 +71,7 @@ final class FlowSchemaTest extends TestCase
 
         $this->assertCount(3, $steps);
 
-        $sources = array_map(static fn (\Wundii\Flowcrafter\Step $step): string => $step->getSource(), $steps);
+        $sources = array_map(static fn (Step $step): string => $step->getSource(), $steps);
         $this->assertContains(NextStepMock::class, $sources);
         $this->assertContains(OtherStepMock::class, $sources);
         $this->assertContains(PostStepMock::class, $sources);
@@ -186,7 +186,7 @@ final class FlowSchemaTest extends TestCase
         $flowSchema = $this->createSchema();
 
         $leafSteps = $flowSchema->getLeafSteps();
-        $sources = array_map(static fn (\Wundii\Flowcrafter\Step $step): string => $step->getSource(), $leafSteps);
+        $sources = array_map(static fn (Step $step): string => $step->getSource(), $leafSteps);
 
         $this->assertContains(NextStepMock::class, $sources);
         $this->assertContains(PostStepMock::class, $sources);

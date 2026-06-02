@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Wundii\Flowcrafter\Storage\Config;
+namespace Wundii\Flowcrafter\Queue\Config;
 
-use Wundii\Flowcrafter\Interface\StorageConfigInterface;
-use Wundii\Flowcrafter\Storage\MySql;
+use Wundii\Flowcrafter\Interface\QueueConfigInterface;
+use Wundii\Flowcrafter\Queue\MySqlQueue;
 
-final readonly class MySqlConfig implements StorageConfigInterface
+final readonly class MySqlQueueConfig implements QueueConfigInterface
 {
     public function __construct(
         private string $host,
@@ -18,9 +18,9 @@ final readonly class MySqlConfig implements StorageConfigInterface
     ) {
     }
 
-    public function getStorageClass(): string
+    public function getQueueClass(): string
     {
-        return MySql::class;
+        return MySqlQueue::class;
     }
 
     public function getHost(): string

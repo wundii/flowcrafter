@@ -111,6 +111,7 @@ final class ConverterTest extends TestCase
             FlowMessage::create(
                 flowHash: $flow->getHash(),
                 flowRuntimeHash: $flow->getRuntimeHash(),
+                flowType: 'flow.workflow.v1',
                 stepSource: StepMock::class,
                 stepHash: '123',
                 messageTypeEnum: messageTypeEnum::FINISH,
@@ -169,6 +170,7 @@ final class ConverterTest extends TestCase
                 [
                     'flowHash' => $flow->getHash(),
                     'flowRuntimeHash' => $flow->getRuntimeHash(),
+                    'flowType' => 'flow.workflow.v1',
                     'stepSource' => StepMock::class,
                     'stepHash' => '123',
                     'messageType' => 'finish',
@@ -398,6 +400,7 @@ final class ConverterTest extends TestCase
                 [
                     'flowHash' => $hash,
                     'flowRuntimeHash' => Uuid::uuid7($datetime)->toString(),
+                    'flowType' => 'flow.workflow.v1',
                     'stepSource' => StepMock::class,
                     'stepHash' => '123',
                     'messageType' => 'finish',
@@ -428,6 +431,7 @@ final class ConverterTest extends TestCase
                 FlowMessage::create(
                     flowHash: $hash,
                     flowRuntimeHash: Uuid::uuid7($datetime)->toString(),
+                    flowType: 'flow.workflow.v1',
                     stepSource: StepMock::class,
                     stepHash: '123',
                     messageTypeEnum: messageTypeEnum::FINISH,

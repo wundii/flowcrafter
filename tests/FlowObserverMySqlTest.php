@@ -11,7 +11,8 @@ use Tests\MockClass\WorkflowMock;
 use Tests\Trait\MySqlClientTestTrait;
 use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\FlowObserver;
-use Wundii\Flowcrafter\Storage\MySql;
+use Wundii\Flowcrafter\Queue\MySqlQueue;
+use Wundii\Flowcrafter\Storage\MySqlStorage;
 
 final class FlowObserverMySqlTest extends TestCase
 {
@@ -20,18 +21,20 @@ final class FlowObserverMySqlTest extends TestCase
     public function testRunObserverWithoutMessages(): void
     {
         $storage = $this->storage();
-        $flowObserver = new FlowObserver($storage, []);
+        $queue = $this->queue();
+        $flowObserver = new FlowObserver($storage, $queue, []);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_QUEUE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlQueue::TABLE_QUEUE);
         $this->assertCount(0, iterator_to_array($stmt->fetchAll()));
     }
 
     public function testRunObserverWithMessages(): void
     {
         $storage = $this->storage();
+        $queue = $this->queue();
         $storage->initializeDatabase();
-        $storage->appendObserveItem(
+        $queue->appendObserveItem(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowHash: null,
@@ -41,42 +44,43 @@ final class FlowObserverMySqlTest extends TestCase
             ]
         );
 
-        $flowObserver = new FlowObserver($storage, []);
+        $flowObserver = new FlowObserver($storage, $queue, []);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SCHEMA);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_SCHEMA);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_INSTANCE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_INSTANCE);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_RUN);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_RUN);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_MESSAGE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_MESSAGE);
         $this->assertCount(6, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_RESULT);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_RESULT);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_QUEUE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlQueue::TABLE_QUEUE);
         $this->assertCount(0, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_EXCEPTION);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_EXCEPTION);
         $this->assertCount(0, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_STEP);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_SOURCE_STEP);
         $this->assertCount(4, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_MESSAGE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_SOURCE_MESSAGE);
         $this->assertCount(4, iterator_to_array($stmt->fetchAll()));
     }
 
     public function testRunObserverWithEmptyInitMessage(): void
     {
         $storage = $this->storage();
+        $queue = $this->queue();
         $storage->initializeDatabase();
-        $storage->appendObserveItem(
+        $queue->appendObserveItem(
             type: 'flow.empty.v1',
             flowSource: WorkflowEmptyMock::class,
             flowHash: null,
@@ -84,34 +88,34 @@ final class FlowObserverMySqlTest extends TestCase
             message: null,
         );
 
-        $flowObserver = new FlowObserver($storage, []);
+        $flowObserver = new FlowObserver($storage, $queue, []);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SCHEMA);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_SCHEMA);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_INSTANCE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_INSTANCE);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_RUN);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_RUN);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_MESSAGE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_MESSAGE);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_RESULT);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_RESULT);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_QUEUE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlQueue::TABLE_QUEUE);
         $this->assertCount(0, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_EXCEPTION);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_EXCEPTION);
         $this->assertCount(0, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_STEP);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_SOURCE_STEP);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
 
-        $stmt = $this->client->query('SELECT * FROM ' . MySql::TYPE_SOURCE_MESSAGE);
+        $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_SOURCE_MESSAGE);
         $this->assertCount(1, iterator_to_array($stmt->fetchAll()));
     }
 }

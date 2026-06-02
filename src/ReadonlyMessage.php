@@ -6,7 +6,7 @@ namespace Wundii\Flowcrafter;
 
 use Wundii\Flowcrafter\Interface\MessageInterface;
 
-class FlowMessageReadOnly implements MessageInterface
+class ReadonlyMessage implements MessageInterface
 {
     /**
      * @param array<string, mixed> $rawData

@@ -21,6 +21,7 @@ class FlowMessage implements JsonSerializable
     public function __construct(
         private readonly string $flowHash,
         private readonly string $flowRuntimeHash,
+        private readonly string $flowType,
         private readonly string $stepSource,
         private readonly string $stepHash,
         private MessageTypeEnum $messageTypeEnum,
@@ -52,6 +53,7 @@ class FlowMessage implements JsonSerializable
     public static function create(
         string $flowHash,
         string $flowRuntimeHash,
+        string $flowType,
         string $stepSource,
         string $stepHash,
         MessageTypeEnum $messageTypeEnum,
@@ -64,6 +66,7 @@ class FlowMessage implements JsonSerializable
         return new self(
             flowHash: $flowHash,
             flowRuntimeHash: $flowRuntimeHash,
+            flowType: $flowType,
             stepSource: $stepSource,
             stepHash: $stepHash,
             messageTypeEnum: $messageTypeEnum,
@@ -102,6 +105,11 @@ class FlowMessage implements JsonSerializable
     public function getFlowRuntimeHash(): string
     {
         return $this->flowRuntimeHash;
+    }
+
+    public function getFlowType(): string
+    {
+        return $this->flowType;
     }
 
     public function getStepSource(): string
@@ -157,6 +165,7 @@ class FlowMessage implements JsonSerializable
         return [
             'flowHash' => $this->flowHash,
             'flowRuntimeHash' => $this->flowRuntimeHash,
+            'flowType' => $this->flowType,
             'stepSource' => $this->stepSource,
             'stepHash' => $this->stepHash,
             'messageType' => $this->messageTypeEnum->value,

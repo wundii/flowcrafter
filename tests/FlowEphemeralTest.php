@@ -14,7 +14,9 @@ use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Attribute\FlowEphemeral;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
+use Wundii\Flowcrafter\FlowScheduler;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 
 final class FlowEphemeralTest extends TestCase
@@ -306,7 +308,9 @@ final class FlowEphemeralTest extends TestCase
         $storage->expects($this->once())
             ->method('cleanupEphemeral');
 
-        $flowScheduler = new \Wundii\Flowcrafter\FlowScheduler($storage, [], []);
+        $queue = $this->createStub(QueueInterface::class);
+
+        $flowScheduler = new FlowScheduler($storage, $queue, [], []);
         $flowScheduler->tick();
     }
 

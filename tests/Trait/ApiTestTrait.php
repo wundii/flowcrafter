@@ -8,6 +8,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flower\Flower;
 use Wundii\Service\Routes;
@@ -16,6 +17,8 @@ trait ApiTestTrait
 {
     private StorageInterface&MockObject $storage;
 
+    private QueueInterface&MockObject $queue;
+
     private FlowcrafterConfig $flowcrafterConfig;
 
     protected function setUpApi(): void
@@ -23,12 +26,13 @@ trait ApiTestTrait
         Flower::reset();
 
         $this->storage = $this->createMock(StorageInterface::class);
+        $this->queue = $this->createMock(QueueInterface::class);
 
         $this->flowcrafterConfig = new FlowcrafterConfig();
         $this->flowcrafterConfig->setServerSecret('test-secret');
         $this->flowcrafterConfig->setServerDescription('Test Instance');
 
-        Routes::service($this->flowcrafterConfig, $this->storage);
+        Routes::service($this->flowcrafterConfig, $this->storage, $this->queue);
     }
 
     protected function tearDownApi(): void

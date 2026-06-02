@@ -1,4 +1,17 @@
 services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   service:
     build:
       context: .
@@ -8,6 +21,8 @@ services:
       - "8000:8000"
     environment:
       FLOWCRAFTER_CONFIG: /app/flowcrafter.php
+    depends_on:
+      - redis
     volumes:
       - observer-tmp:/tmp/flowcrafter
       - service-data:/app/data
@@ -21,6 +36,7 @@ services:
       FLOWCRAFTER_CONFIG: /app/flowcrafter.php
     depends_on:
       - service
+      - redis
     healthcheck:
       test: ["CMD-SHELL", "find /tmp/flowcrafter -name '*.heartbeat' -mmin -1 -type f | grep -q ."]
       interval: 30s
@@ -39,6 +55,26 @@ services:
       FLOWCRAFTER_CONFIG: /app/flowcrafter.php
     depends_on:
       - service
+      - redis
+    healthcheck:
+      test: ["CMD-SHELL", "find /tmp/flowcrafter -name '*.heartbeat' -mmin -1 -type f | grep -q ."]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - observer-tmp:/tmp/flowcrafter
+      - service-data:/app/data
+
+  projection-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["vendor/bin/flowcrafter", "projection:worker"]
+    environment:
+      FLOWCRAFTER_CONFIG: /app/flowcrafter.php
+    depends_on:
+      - service
+      - redis
     healthcheck:
       test: ["CMD-SHELL", "find /tmp/flowcrafter -name '*.heartbeat' -mmin -1 -type f | grep -q ."]
       interval: 30s
@@ -61,3 +97,4 @@ volumes:
   observer-tmp:
   service-data:
   ui-data:
+  redis-data:

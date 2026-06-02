@@ -191,7 +191,7 @@ final class Converter
             : Assert::classString($message['messageSource'] ?? null, MessageInterface::class, 'Each Message must have a string source.');
 
         $flowMessage = $readOnly
-            ? new FlowMessageReadOnly($messageSource, $messageData)
+            ? new ReadonlyMessage($messageSource, $messageData)
             /** @phpstan-ignore argument.type, argument.templateType */
             : $dataMapper->array($messageData, $messageSource);
 
@@ -202,6 +202,7 @@ final class Converter
         return new FlowMessage(
             Assert::string($message['flowHash'] ?? null, 'Each Message must have a string flowHash.'),
             Assert::string($message['flowRuntimeHash'] ?? null, 'Each Message must have a string flowRuntimeHash.'),
+            Assert::string($message['flowType'] ?? '', 'Each Message must have a string flowType.'),
             /** @phpstan-ignore argument.type */
             $stepSource,
             Assert::string($message['stepHash'] ?? '', 'Each stepHash must have a string or null.'),

@@ -31,7 +31,8 @@ $bootstrapConfig = new BootstrapConfig(is_string($flowcrafterConfigFile) ? $flow
 $bootstrapConfigRequirer = new BootstrapConfigRequirer($bootstrapConfig);
 $flowcrafterConfig = $bootstrapConfigRequirer->loadConfigFile(new FlowcrafterConfig());
 $storage = $flowcrafterConfig->getStorage();
+$queue = $flowcrafterConfig->getQueue();
 
-Routes::service($flowcrafterConfig, $storage);
+Routes::service($flowcrafterConfig, $storage, $queue);
 
 return $flowcrafterConfig;

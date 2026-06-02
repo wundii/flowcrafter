@@ -19,7 +19,8 @@ final class FlowObserverRedisTest extends TestCase
     public function testRunObserverWithoutMessages(): void
     {
         $storage = $this->storage();
-        $flowObserver = new FlowObserver($storage, []);
+        $queue = $this->queue();
+        $flowObserver = new FlowObserver($storage, $queue, []);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->keys('flow:*');
@@ -30,7 +31,8 @@ final class FlowObserverRedisTest extends TestCase
     public function testRunObserverWithMessages(): void
     {
         $storage = $this->storage();
-        $storage->appendObserveItem(
+        $queue = $this->queue();
+        $queue->appendObserveItem(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
             flowHash: null,
@@ -40,7 +42,7 @@ final class FlowObserverRedisTest extends TestCase
             ]
         );
 
-        $flowObserver = new FlowObserver($storage, []);
+        $flowObserver = new FlowObserver($storage, $queue, []);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->keys('flow:*');
@@ -74,7 +76,8 @@ final class FlowObserverRedisTest extends TestCase
     public function testRunObserverWithEmptyInitMessage(): void
     {
         $storage = $this->storage();
-        $storage->appendObserveItem(
+        $queue = $this->queue();
+        $queue->appendObserveItem(
             type: 'flow.empty.v1',
             flowSource: WorkflowEmptyMock::class,
             flowHash: null,
@@ -82,7 +85,7 @@ final class FlowObserverRedisTest extends TestCase
             message: null,
         );
 
-        $flowObserver = new FlowObserver($storage, []);
+        $flowObserver = new FlowObserver($storage, $queue, []);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $flowSchemaEvents = $this->client->keys('flow:schema:*');

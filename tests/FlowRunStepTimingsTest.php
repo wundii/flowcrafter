@@ -195,6 +195,7 @@ final class FlowRunStepTimingsTest extends TestCase
         $makeMsg = fn (string $runtimeHash, string $stepSource, object $message, int $offsetMs): FlowMessage => FlowMessage::create(
             flowHash: $flowHash,
             flowRuntimeHash: $runtimeHash,
+            flowType: 'flow.workflow.v1',
             stepSource: $stepSource,
             stepHash: 'step-hash',
             messageTypeEnum: MessageTypeEnum::FINISH,
@@ -322,6 +323,7 @@ final class FlowRunStepTimingsTest extends TestCase
         return FlowMessage::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: $runtimeHash ?? $flow->getRuntimeHash(),
+            flowType: $flow->getType(),
             stepSource: $stepSource,
             stepHash: 'step-hash',
             messageTypeEnum: MessageTypeEnum::FINISH,

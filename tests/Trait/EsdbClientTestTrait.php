@@ -6,9 +6,12 @@ namespace Tests\Trait;
 
 use Thenativeweb\Eventsourcingdb\Client;
 use Thenativeweb\Eventsourcingdb\Container;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
-use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
-use Wundii\Flowcrafter\Storage\Esdb;
+use Wundii\Flowcrafter\Queue\Config\EsdbQueueConfig;
+use Wundii\Flowcrafter\Queue\EsdbQueue;
+use Wundii\Flowcrafter\Storage\Config\EsdbStorageConfig;
+use Wundii\Flowcrafter\Storage\EsdbStorage;
 
 trait EsdbClientTestTrait
 {
@@ -40,16 +43,29 @@ trait EsdbClientTestTrait
 
     protected function storage(): StorageInterface
     {
-        $esdb = new Esdb(
-            new EsdbConfig(
+        $esdbStorage = new EsdbStorage(
+            new EsdbStorageConfig(
                 $this->container->getBaseUrl(),
                 $this->container->getApiToken(),
             ),
             ':memory:',
         );
-        $esdb->initializeDatabase();
-        $esdb->truncateFlowList();
+        $esdbStorage->initializeDatabase();
+        $esdbStorage->truncateFlowList();
 
-        return $esdb;
+        return $esdbStorage;
+    }
+
+    protected function queue(): QueueInterface
+    {
+        $esdbQueue = new EsdbQueue(
+            new EsdbQueueConfig(
+                $this->container->getBaseUrl(),
+                $this->container->getApiToken(),
+            ),
+        );
+        $esdbQueue->initializeQueue();
+
+        return $esdbQueue;
     }
 }

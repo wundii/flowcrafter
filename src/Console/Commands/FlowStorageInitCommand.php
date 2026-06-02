@@ -37,6 +37,7 @@ final class FlowStorageInitCommand extends Command
 
         try {
             $this->flowcrafterConfig->initializeStorage($output);
+            $this->flowcrafterConfig->initializeQueue($output);
         } catch (Exception $exception) {
             $output->writeln(sprintf(
                 '<fg=%s>%s</>',

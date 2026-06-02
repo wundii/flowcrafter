@@ -6,6 +6,7 @@ namespace Tests\Service;
 
 use PHPUnit\Framework\TestCase;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Service\Controller\InfoController;
 
@@ -67,11 +68,13 @@ final class InfoControllerTest extends TestCase
         }
 
         $storage = $this->createMock(StorageInterface::class);
-        $storage->method('openQueues')->willReturn(0);
         $storage->method('countFlows')->willReturn(0);
         $storage->method('countExceptions')->willReturn(0);
         $storage->method('countScheduleExceptions')->willReturn(0);
 
-        return new InfoController($flowcrafterConfig, $storage);
+        $queue = $this->createMock(QueueInterface::class);
+        $queue->method('openQueues')->willReturn(0);
+
+        return new InfoController($flowcrafterConfig, $storage, $queue);
     }
 }

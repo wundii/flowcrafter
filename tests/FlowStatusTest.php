@@ -266,6 +266,7 @@ final class FlowStatusTest extends TestCase
         $flow->addMessage(FlowMessage::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: $flow->getRuntimeHash(),
+            flowType: $flow->getType(),
             stepSource: PostStepMock::class,
             stepHash: 'step-hash',
             messageTypeEnum: MessageTypeEnum::FINISH,
@@ -581,6 +582,7 @@ final class FlowStatusTest extends TestCase
         return FlowMessage::create(
             flowHash: $flow->getHash(),
             flowRuntimeHash: $runtimeHash ?? $flow->getRuntimeHash(),
+            flowType: $flow->getType(),
             stepSource: $stepSource,
             stepHash: 'step-hash',
             messageTypeEnum: MessageTypeEnum::FINISH,

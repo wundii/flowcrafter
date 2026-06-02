@@ -8,12 +8,9 @@ use DateTimeImmutable;
 use Exception;
 use InvalidArgumentException;
 use PDO as Client;
-use PDOException;
 use RuntimeException;
 use Throwable;
-use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Converter;
-use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
@@ -23,17 +20,16 @@ use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\StepInterface;
-use Wundii\Flowcrafter\Interface\StorageInterface;
-use Wundii\Flowcrafter\ObserveItem;
 use Wundii\Flowcrafter\ObserverException;
+use Wundii\Flowcrafter\Projection\ProjectionException;
 use Wundii\Flowcrafter\Schedule\ScheduleException;
-use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
+use Wundii\Flowcrafter\Storage\Config\MySqlStorageConfig;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowSchemaEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
 
-class MySql extends Service implements StorageInterface
+class MySqlStorage extends ServiceStorage
 {
     public const TYPE_INSTANCE = 'flow_instance';
 
@@ -42,8 +38,6 @@ class MySql extends Service implements StorageInterface
     public const TYPE_EXCEPTION = 'flow_exception';
 
     public const TYPE_RESULT = 'flow_result';
-
-    public const TYPE_QUEUE = 'flow_queue';
 
     public const TYPE_RUN = 'flow_run';
 
@@ -55,20 +49,20 @@ class MySql extends Service implements StorageInterface
 
     protected Client $client;
 
-    public function __construct(MySqlConfig $mySqlConfig, ?string $sqliteFile = null)
+    public function __construct(MySqlStorageConfig $mySqlStorageConfig, ?string $sqliteFile = null)
     {
         parent::__construct($sqliteFile);
 
         $dsn = sprintf(
             'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
-            $mySqlConfig->getHost(),
-            $mySqlConfig->getPort(),
-            $mySqlConfig->getDatabase(),
+            $mySqlStorageConfig->getHost(),
+            $mySqlStorageConfig->getPort(),
+            $mySqlStorageConfig->getDatabase(),
         );
         $this->client = new Client(
             $dsn,
-            $mySqlConfig->getUsername(),
-            $mySqlConfig->getPassword(),
+            $mySqlStorageConfig->getUsername(),
+            $mySqlStorageConfig->getPassword(),
             [
                 Client::ATTR_ERRMODE => Client::ERRMODE_EXCEPTION,
                 Client::ATTR_DEFAULT_FETCH_MODE => Client::FETCH_ASSOC,
@@ -174,6 +168,7 @@ class MySql extends Service implements StorageInterface
                 hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 flow_hash VARCHAR(191) NOT NULL,
                 flow_runtime_hash VARCHAR(191) NOT NULL,
+                flow_type VARCHAR(255) NOT NULL,
                 step_source VARCHAR(255) NOT NULL,
                 step_hash VARCHAR(191) NOT NULL,
                 message_type VARCHAR(64) NOT NULL,
@@ -184,6 +179,7 @@ class MySql extends Service implements StorageInterface
                 `time` DATETIME(3) NOT NULL,
                 INDEX idx_flow_message_flow_hash (flow_hash),
                 INDEX idx_flow_message_flow_runtime_hash (flow_runtime_hash),
+                INDEX idx_flow_message_flow_type (flow_type),
                 INDEX idx_flow_message_message_source (message_source),
                 INDEX idx_flow_message_message_type (message_type),
                 FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
@@ -292,20 +288,22 @@ class MySql extends Service implements StorageInterface
 
         $this->client->exec(
             <<<'SQL'
-            CREATE TABLE IF NOT EXISTS flow_queue (
-                queue_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                `type` VARCHAR(191) NOT NULL,
-                flow_source VARCHAR(255) NOT NULL,
-                flow_hash VARCHAR(191) NULL,
-                flow_subject VARCHAR(255) NULL,
-                message_source VARCHAR(255) NOT NULL,
-                message JSON NOT NULL,
-                include_steps JSON NOT NULL,
-                created_at DATETIME(3) NOT NULL,
-                INDEX idx_flow_queue_created_at (created_at)
+            CREATE TABLE IF NOT EXISTS projection_exception (
+                hash VARCHAR(191) NOT NULL PRIMARY KEY,
+                flow_hash VARCHAR(191) NOT NULL,
+                flow_type VARCHAR(191) NOT NULL,
+                projection_handler_class VARCHAR(255) NOT NULL,
+                code INT(11) NOT NULL,
+                message VARCHAR(2000) NOT NULL,
+                file VARCHAR(2000) NOT NULL,
+                line INT(11) NOT NULL,
+                trace_string TEXT NOT NULL,
+                `time` DATETIME(3) NOT NULL,
+                INDEX idx_projection_exception_time (time)
             )
             SQL
         );
+
     }
 
     public function registerFlowSchema(FlowSchema $flowSchema): void
@@ -419,14 +417,15 @@ class MySql extends Service implements StorageInterface
         }
 
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, step_source, step_hash, message_hash, message_type, message_source, predecessor_hash, time, message) ' .
-            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :step_source, :step_hash, :message_hash, :message_type, :message_source, :predecessor_hash, :time, :message)'
+            'INSERT IGNORE INTO flow_message (hash, flow_hash, flow_runtime_hash, flow_type, step_source, step_hash, message_hash, message_type, message_source, predecessor_hash, time, message) ' .
+            'VALUES (:hash, :flow_hash, :flow_runtime_hash, :flow_type, :step_source, :step_hash, :message_hash, :message_type, :message_source, :predecessor_hash, :time, :message)'
         );
 
         $stmt->execute([
             ':hash' => $flowMessage->getHash(),
             ':flow_hash' => $flowMessage->getFlowHash(),
             ':flow_runtime_hash' => $flowMessage->getFlowRuntimeHash(),
+            ':flow_type' => $flowMessage->getFlowType(),
             ':step_source' => $flowMessage->getStepSource(),
             ':step_hash' => $flowMessage->getStepHash(),
             ':message_type' => $flowMessage->getMessageType()->value,
@@ -507,6 +506,29 @@ class MySql extends Service implements StorageInterface
         parent::appendObserverException($observerException);
     }
 
+    public function appendProjectionException(ProjectionException $projectionException): void
+    {
+        $stmt = $this->client->prepare(
+            'INSERT IGNORE INTO projection_exception (hash, flow_hash, flow_type, projection_handler_class, code, message, file, line, trace_string, time) ' .
+            'VALUES (:hash, :flow_hash, :flow_type, :projection_handler_class, :code, :message, :file, :line, :trace_string, :time)'
+        );
+
+        $stmt->execute([
+            ':hash' => $projectionException->getHash(),
+            ':flow_hash' => $projectionException->getFlowHash(),
+            ':flow_type' => $projectionException->getFlowType(),
+            ':projection_handler_class' => $projectionException->getProjectionHandlerClass(),
+            ':code' => $projectionException->getCode(),
+            ':message' => $projectionException->getMessage(),
+            ':file' => $projectionException->getFile(),
+            ':line' => $projectionException->getLine(),
+            ':trace_string' => $projectionException->getTraceString(),
+            ':time' => $projectionException->getTime()->format('Y-m-d H:i:s.v'),
+        ]);
+
+        parent::appendProjectionException($projectionException);
+    }
+
     public function appendFlowResult(FlowResult $flowResult): void
     {
         $stmt = $this->client->prepare(
@@ -541,75 +563,6 @@ class MySql extends Service implements StorageInterface
             ':message' => $flowRetry->getMessage(),
             ':time' => $flowRetry->getTime()->format('Y-m-d H:i:s.v'),
         ]);
-    }
-
-    /**
-     * @param class-string $flowSource
-     * @param class-string $messageSource
-     * @param array<mixed> $message
-     */
-    public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void
-    {
-        Assert::classString($flowSource, FlowInterface::class);
-        Assert::classString($messageSource, MessageInterface::class);
-
-        $messageJson = json_encode($message);
-        if (!is_string($messageJson)) {
-            throw new RuntimeException('Could not serialize observe message payload.');
-        }
-
-        $includeStepsJson = json_encode($includeSteps);
-        if (!is_string($includeStepsJson)) {
-            throw new RuntimeException('Could not serialize includeSteps payload.');
-        }
-
-        $stmt = $this->client->prepare(
-            'INSERT INTO flow_queue (type, flow_source, flow_hash, flow_subject, message_source, message, include_steps, created_at)' .
-            ' VALUES (:type, :flow_source, :flow_hash, :flow_subject, :message_source, :message, :include_steps, :created_at)'
-        );
-
-        $stmt->execute([
-            ':type' => $type,
-            ':flow_source' => $flowSource,
-            ':flow_hash' => $flowHash,
-            ':flow_subject' => $flowSubject,
-            ':message_source' => $messageSource,
-            ':message' => $messageJson,
-            ':include_steps' => $includeStepsJson,
-            ':created_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s.v'),
-        ]);
-    }
-
-    /**
-     * @return iterable<ObserveItem>
-     */
-    public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable
-    {
-        $startExecutionTime = microtime(true);
-
-        while (true) {
-            if ($maxExecutionTimeInSeconds > 0.0 && (microtime(true) - $startExecutionTime) >= $maxExecutionTimeInSeconds) {
-                break;
-            }
-
-            $observeItem = $this->takeQueueItem();
-            if ($observeItem instanceof ObserveItem) {
-                yield $observeItem;
-                continue;
-            }
-
-            usleep(200_000);
-        }
-    }
-
-    public function openQueues(): int
-    {
-        $stmt = $this->client->query('SELECT COUNT(*) FROM flow_queue');
-        if ($stmt === false) {
-            return 0;
-        }
-
-        return (int) $stmt->fetchColumn();
     }
 
     /**
@@ -696,45 +649,6 @@ class MySql extends Service implements StorageInterface
         }
     }
 
-    /**
-     * @return iterable<ObserveItem>
-     */
-    public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable
-    {
-        $stmt = $this->client->query(
-            'SELECT * FROM flow_queue ' .
-            'ORDER BY queue_id ' . $sortEnum->name
-        );
-
-        if ($stmt === false) {
-            return;
-        }
-
-        $stmt->setFetchMode(Client::FETCH_ASSOC);
-
-        foreach ($stmt as $row) {
-            /** @var array{queue_id: string, type: string, flow_subject: string|null, flow_source: class-string<\Wundii\Flowcrafter\Interface\FlowInterface>, flow_hash: string|null, message_source: string, message: string, include_steps: string|null} $row */
-            /** @var class-string[] $includeStepsParsed */
-            $includeStepsParsed = json_decode($row['include_steps'] ?? '[]', true) ?? [];
-
-            $messageArray = json_decode($row['message'], true);
-            if (!is_array($messageArray)) {
-                throw new RuntimeException('Could not validate message payload.');
-            }
-
-            yield new ObserveItem(
-                queueId: $row['queue_id'],
-                type: $row['type'],
-                flowSubject: $row['flow_subject'],
-                flowSource: $row['flow_source'],
-                flowHash: $row['flow_hash'],
-                messageSource: $row['message_source'],
-                message: $messageArray,
-                includeSteps: $includeStepsParsed,
-            );
-        }
-    }
-
     public function findFlowInstanceByHash(string $flowHash): ?FlowInstanceEntity
     {
         $stmt = $this->client->prepare(
@@ -752,7 +666,7 @@ class MySql extends Service implements StorageInterface
 
         $flowHash = is_string($instance['flow_hash'] ?? null) ? $instance['flow_hash'] : '';
         $flowType = is_string($instance['flow_type'] ?? null) ? $instance['flow_type'] : '';
-        /** @var class-string<\Wundii\Flowcrafter\Interface\FlowInterface> $flowSource */
+        /** @var class-string<FlowInterface> $flowSource */
         $flowSource = is_string($instance['flow_source'] ?? null) ? $instance['flow_source'] : '';
         $flowSubject = is_string($instance['flow_subject'] ?? null) ? $instance['flow_subject'] : null;
         $flowSchemaHash = is_string($instance['flow_schema_hash'] ?? null) ? $instance['flow_schema_hash'] : '';
@@ -823,7 +737,7 @@ class MySql extends Service implements StorageInterface
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $message) {
-            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, step_source: string, step_hash: string|null, message_type: string, message_source: string, message_hash: string, message: string, predecessor_hash: string, time: string} $message */
+            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, flow_type: string, step_source: string, step_hash: string|null, message_type: string, message_source: string, message_hash: string, message: string, predecessor_hash: string, time: string} $message */
             $messageJson = $message['message'];
             if (!json_validate($messageJson)) {
                 throw new RuntimeException('Could not validate flow message payload.');
@@ -838,6 +752,7 @@ class MySql extends Service implements StorageInterface
                 'hash' => $message['hash'],
                 'flowHash' => $message['flow_hash'],
                 'flowRuntimeHash' => $message['flow_runtime_hash'],
+                'flowType' => $message['flow_type'],
                 'stepSource' => $message['step_source'],
                 'stepHash' => $message['step_hash'],
                 'messageType' => $message['message_type'],
@@ -1060,70 +975,4 @@ class MySql extends Service implements StorageInterface
         }
     }
 
-    private function takeQueueItem(): ?ObserveItem
-    {
-        try {
-            $this->client->beginTransaction();
-
-            $stmt = $this->client->query(
-                'SELECT * FROM flow_queue ' .
-                'ORDER BY created_at ASC LIMIT 1 ' .
-                'FOR UPDATE SKIP LOCKED'
-            );
-
-            $row = $stmt === false ? false : $stmt->fetch();
-            if (!is_array($row)) {
-                $this->client->commit();
-                return null;
-            }
-
-            $deleteStmt = $this->client->prepare('DELETE FROM flow_queue WHERE queue_id = :queue_id');
-            $deleteStmt->execute([
-                ':queue_id' => $row['queue_id'],
-            ]);
-
-            if ($deleteStmt->rowCount() === 0) {
-                $this->client->commit();
-                return null;
-            }
-
-            $this->client->commit();
-
-            $messageJson = $row['message'] ?? 'null';
-            if (!is_string($messageJson)) {
-                throw new RuntimeException('Could not validate flow message payload.');
-            }
-
-            if (!json_validate($messageJson)) {
-                throw new RuntimeException('Could not validate flow message payload.');
-            }
-
-            $message = json_decode($messageJson, true);
-            if (!is_array($message) && $message !== null) {
-                throw new RuntimeException('Could not validate flow message payload.');
-            }
-
-            $includeStepsRaw = $row['include_steps'] ?? '[]';
-            /** @var class-string[] $includeStepsParsed */
-            $includeStepsParsed = is_string($includeStepsRaw) ? (json_decode($includeStepsRaw, true) ?? []) : [];
-
-            /** @var array{queue_id: string, type: string, flow_source: class-string<FlowInterface>, flow_hash: ?string, flow_subject: ?string, message_source: string, message: string, include_steps?: string} $row */
-            return new ObserveItem(
-                queueId: (string) $row['queue_id'],
-                type: $row['type'],
-                flowSubject: $row['flow_subject'] ?? null,
-                flowSource: $row['flow_source'],
-                flowHash: $row['flow_hash'],
-                messageSource: $row['message_source'],
-                message: $message,
-                includeSteps: $includeStepsParsed,
-            );
-        } catch (PDOException $pdoException) {
-            if ($this->client->inTransaction()) {
-                $this->client->rollBack();
-            }
-
-            throw new RuntimeException('Could not fetch observe queue item.', 0, $pdoException);
-        }
-    }
 }

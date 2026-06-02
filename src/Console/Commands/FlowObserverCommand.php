@@ -17,6 +17,7 @@ use Wundii\Flowcrafter\Console\Heartbeat;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\FlowObserver;
+use Wundii\Flowcrafter\Projection\ProjectionDiscovery;
 
 final class FlowObserverCommand extends Command
 {
@@ -49,6 +50,7 @@ final class FlowObserverCommand extends Command
         $workers = max(1, (int) $workersOption);
 
         $this->flowcrafterConfig->initializeStorage($output);
+        $this->flowcrafterConfig->initializeQueue($output);
 
         $output->writeln(sprintf(
             '<fg=%s>starting %d observer worker(s)</>',
@@ -73,8 +75,10 @@ final class FlowObserverCommand extends Command
         });
 
         $storage = $this->flowcrafterConfig->getStorage();
+        $queue = $this->flowcrafterConfig->getQueue();
         $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
-        $flowObserver = new FlowObserver($storage, $dependencyInjections);
+        $projectionHandlerMetas = ProjectionDiscovery::discover();
+        $flowObserver = new FlowObserver($storage, $queue, $dependencyInjections, $projectionHandlerMetas);
 
         $logger = static function (string $message) use ($flowSymfonyStyle): void {
             $flowSymfonyStyle->writeln($message);

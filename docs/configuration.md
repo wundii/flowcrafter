@@ -10,10 +10,10 @@ Erstelle eine `flowcrafter.php` im Projektstamm (oder via
 declare(strict_types=1);
 
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
-use Wundii\Flowcrafter\Storage\Config\RedisConfig;
+use Wundii\Flowcrafter\Storage\Config\RedisStorageConfig;
 
 return static function (FlowcrafterConfig $flowcrafterConfig): void {
-    $flowcrafterConfig->setStorageConfig(new RedisConfig('localhost', 6379));
+    $flowcrafterConfig->setStorageConfig(new RedisStorageConfig('localhost', 6379));
     $flowcrafterConfig->setServerHost('0.0.0.0');
     $flowcrafterConfig->setServerPort(8000);
     $flowcrafterConfig->setServerWorkers(4);
@@ -29,11 +29,11 @@ return static function (FlowcrafterConfig $flowcrafterConfig): void {
 
 Das Storage-Backend wird über typisierte Config-Objekte konfiguriert:
 
-| Backend         | Config-Klasse                  | Parameter                                          | Besonderheit                              |
-| --------------- | ------------------------------ | -------------------------------------------------- | ----------------------------------------- |
-| MySQL           | `Storage\Config\MySqlConfig`   | `host`, `port`, `database`, `username`, `password` | Relationales Schema, Transaktionen, PDO — atomarer Queue-Zugriff via `FOR UPDATE SKIP LOCKED` |
-| Redis           | `Storage\Config\RedisConfig`   | `host`, `port`                                     | In-Memory, RediSearch-Indizes             |
-| EventSourcingDB | `Storage\Config\EsdbConfig`    | `url`, `apiToken`                                  | Event Sourcing, Append-Only — atomarer Queue-Zugriff via Claim-Events (`IsSubjectPristine`) |
+| Backend          | Config-Klasse                  | Parameter                                          | Besonderheit                                                                                   |
+|------------------|--------------------------------|----------------------------------------------------|------------------------------------------------------------------------------------------------|
+| MySQL            | `Storage\Config\MySqlConfig`   | `host`, `port`, `database`, `username`, `password` | Relationales Schema, Transaktionen, PDO — atomarer Queue-Zugriff via `FOR UPDATE SKIP LOCKED`  |
+| Redis            | `Storage\Config\RedisConfig`   | `host`, `port`                                     | In-Memory, RediSearch-Indizes                                                                  |
+| EventSourcingDB  | `Storage\Config\EsdbConfig`    | `url`, `apiToken`                                  | Event Sourcing, Append-Only — atomarer Queue-Zugriff via Claim-Events (`IsSubjectPristine`)    |
 
 Alle drei Backends erben von `Storage\Service` und führen neben dem
 primären Backend automatisch eine SQLite-Datenbank (`flow_list`,
@@ -48,31 +48,33 @@ und kann über `setServerStorage()` in der Config überschrieben werden.
 > Schreib- und Lesezugriffe beider Container.
 
 **Beispiel MySQL:**
+
 ```php
-use Wundii\Flowcrafter\Storage\Config\MySqlConfig;
+use Wundii\Flowcrafter\Storage\Config\MySqlStorageConfig;
 $flowcrafterConfig->setStorageConfig(
-    new MySqlConfig('localhost', 3306, 'flowcrafter', 'root', 'secret')
+    new MySqlStorageConfig('localhost', 3306, 'flowcrafter', 'root', 'secret')
 );
 ```
 
 **Beispiel EventSourcingDB:**
+
 ```php
-use Wundii\Flowcrafter\Storage\Config\EsdbConfig;
+use Wundii\Flowcrafter\Storage\Config\EsdbStorageConfig;
 $flowcrafterConfig->setStorageConfig(
-    new EsdbConfig('http://localhost:3000', 'my-api-token')
+    new EsdbStorageConfig('http://localhost:3000', 'my-api-token')
 );
 ```
 
 ## Optionale Einstellungen
 
-| Methode                        | Beschreibung                                                                         |
-| ------------------------------ | ------------------------------------------------------------------------------------ |
-| `setServerHost()`              | Server-Host (Default: `0.0.0.0`)                                                     |
-| `setServerPort()`              | Server-Port (Default: `8000`)                                                        |
-| `setServerWorkers()`           | Anzahl FrankenPHP-Worker (Default: `4`)                                              |
-| `setServerNumThreads()`        | FrankenPHP Thread-Pool-Größe (Default: `workers × 2`). Muss `> workers` sein         |
-| `setServerHttps()`             | HTTPS aktivieren für FrankenPHP (Default: `false`)                                   |
-| `setServerSecret()`            | Bearer-Token für die API-Authentifizierung (ohne Secret sind alle Routen öffentlich) |
-| `setServerDescription()`       | Beschreibung, die über `/api/info` und `/metrics` exponiert wird                     |
-| `setServerStorage()`           | Pfad zur SQLite-Datei für den Service-Index (Default: `data/flowcrafter-ui.sqlite`)  |
-| `setDependenciesInjection()`   | Service-Instanzen, die in Step-Konstruktoren injiziert werden                        |
+| Methode                       | Beschreibung                                                                         |
+|-------------------------------|--------------------------------------------------------------------------------------|
+| `setServerHost()`             | Server-Host (Default: `0.0.0.0`)                                                     |
+| `setServerPort()`             | Server-Port (Default: `8000`)                                                        |
+| `setServerWorkers()`          | Anzahl FrankenPHP-Worker (Default: `4`)                                              |
+| `setServerNumThreads()`       | FrankenPHP Thread-Pool-Größe (Default: `workers × 2`). Muss `> workers` sein         |
+| `setServerHttps()`            | HTTPS aktivieren für FrankenPHP (Default: `false`)                                   |
+| `setServerSecret()`           | Bearer-Token für die API-Authentifizierung (ohne Secret sind alle Routen öffentlich) |
+| `setServerDescription()`      | Beschreibung, die über `/api/info` und `/metrics` exponiert wird                     |
+| `setServerStorage()`          | Pfad zur SQLite-Datei für den Service-Index (Default: `data/flowcrafter-ui.sqlite`)  |
+| `setDependenciesInjection()`  | Service-Instanzen, die in Step-Konstruktoren injiziert werden                        |

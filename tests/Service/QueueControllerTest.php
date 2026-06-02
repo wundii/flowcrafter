@@ -12,6 +12,7 @@ use Tests\MockClass\MessageSubDataMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\FlowPreflight;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Service\Controller\QueueController;
 
@@ -99,8 +100,9 @@ final class QueueControllerTest extends TestCase
 
     public function testEnqueueAppendsObserveItemOnValidInput(): void
     {
-        $storage = $this->createMock(StorageInterface::class);
-        $storage->expects($this->once())
+        $storage = $this->createStub(StorageInterface::class);
+        $queue = $this->createMock(QueueInterface::class);
+        $queue->expects($this->once())
             ->method('appendObserveItem')
             ->with(
                 'flow.workflow.v1',
@@ -114,7 +116,7 @@ final class QueueControllerTest extends TestCase
                 'subject-1',
             );
 
-        $queueController = new QueueController($storage, new FlowPreflight());
+        $queueController = new QueueController($storage, $queue, new FlowPreflight());
         $jsonResponse = $queueController->enqueue($this->makeRequest([
             'type' => 'flow.workflow.v1',
             'flowSource' => WorkflowMock::class,
@@ -131,7 +133,11 @@ final class QueueControllerTest extends TestCase
 
     private function makeController(): QueueController
     {
-        return new QueueController($this->createStub(StorageInterface::class), new FlowPreflight());
+        return new QueueController(
+            $this->createStub(StorageInterface::class),
+            $this->createStub(QueueInterface::class),
+            new FlowPreflight(),
+        );
     }
 
     /**

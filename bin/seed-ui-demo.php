@@ -24,13 +24,13 @@ use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
 use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
-use Wundii\Flowcrafter\Storage\Service;
+use Wundii\Flowcrafter\Storage\ServiceStorage;
 
 /**
  * Concrete subclass that satisfies the StorageInterface contract.
  * Only initializeDatabase(), truncateFlowList(), and getServiceClient() are used by the seed.
  */
-class SeedStorage extends Service
+class SeedStorage extends ServiceStorage
 {
     public function __construct(string $file)
     {

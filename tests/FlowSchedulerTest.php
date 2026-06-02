@@ -10,6 +10,7 @@ use Tests\MockClass\ScheduleMock;
 use Tests\MockClass\ScheduleNonDueMock;
 use Wundii\Flowcrafter\Attribute\FlowSchedule;
 use Wundii\Flowcrafter\FlowScheduler;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 
 final class FlowSchedulerTest extends TestCase
@@ -17,12 +18,13 @@ final class FlowSchedulerTest extends TestCase
     public function testGetScheduleAttributesReturnsConfiguredSchedules(): void
     {
         $storage = $this->createStub(StorageInterface::class);
+        $queue = $this->createStub(QueueInterface::class);
 
         $schedules = [
             ScheduleMock::class => new FlowSchedule('* * * * *', name: 'test-schedule'),
         ];
 
-        $flowScheduler = new FlowScheduler($storage, [], $schedules);
+        $flowScheduler = new FlowScheduler($storage, $queue, [], $schedules);
 
         $attributes = $flowScheduler->getScheduleAttributes();
         $this->assertCount(1, $attributes);
@@ -33,15 +35,16 @@ final class FlowSchedulerTest extends TestCase
 
     public function testTickExecutesDueSchedule(): void
     {
-        $storage = $this->createMock(StorageInterface::class);
-        $storage->expects($this->once())
+        $storage = $this->createStub(StorageInterface::class);
+        $queue = $this->createMock(QueueInterface::class);
+        $queue->expects($this->once())
             ->method('appendObserveItem');
 
         $schedules = [
             ScheduleMock::class => new FlowSchedule('* * * * *', name: 'test-schedule'),
         ];
 
-        $flowScheduler = new FlowScheduler($storage, [], $schedules);
+        $flowScheduler = new FlowScheduler($storage, $queue, [], $schedules);
 
         $messages = [];
         $logger = static function (string $message) use (&$messages): void {
@@ -56,29 +59,31 @@ final class FlowSchedulerTest extends TestCase
 
     public function testTickSkipsNonDueSchedule(): void
     {
-        $storage = $this->createMock(StorageInterface::class);
-        $storage->expects($this->never())
+        $storage = $this->createStub(StorageInterface::class);
+        $queue = $this->createMock(QueueInterface::class);
+        $queue->expects($this->never())
             ->method('appendObserveItem');
 
         $schedules = [
             ScheduleNonDueMock::class => new FlowSchedule('0 0 1 1 *', name: 'non-due'),
         ];
 
-        $flowScheduler = new FlowScheduler($storage, [], $schedules);
+        $flowScheduler = new FlowScheduler($storage, $queue, [], $schedules);
         $flowScheduler->tick();
     }
 
     public function testTickDoesNotExecuteSameMinuteTwice(): void
     {
-        $storage = $this->createMock(StorageInterface::class);
-        $storage->expects($this->once())
+        $storage = $this->createStub(StorageInterface::class);
+        $queue = $this->createMock(QueueInterface::class);
+        $queue->expects($this->once())
             ->method('appendObserveItem');
 
         $schedules = [
             ScheduleMock::class => new FlowSchedule('* * * * *', name: 'test-schedule'),
         ];
 
-        $flowScheduler = new FlowScheduler($storage, [], $schedules);
+        $flowScheduler = new FlowScheduler($storage, $queue, [], $schedules);
         $flowScheduler->tick();
         $flowScheduler->tick();
     }
@@ -86,12 +91,13 @@ final class FlowSchedulerTest extends TestCase
     public function testTickLogsErrorsAndContinues(): void
     {
         $storage = $this->createStub(StorageInterface::class);
+        $queue = $this->createStub(QueueInterface::class);
 
         $schedules = [
             ScheduleFailMock::class => new FlowSchedule('* * * * *', name: 'fail-schedule'),
         ];
 
-        $flowScheduler = new FlowScheduler($storage, [], $schedules);
+        $flowScheduler = new FlowScheduler($storage, $queue, [], $schedules);
 
         $messages = [];
         $logger = static function (string $message) use (&$messages): void {
@@ -110,8 +116,9 @@ final class FlowSchedulerTest extends TestCase
     public function testTickWithEmptySchedulesDoesNothing(): void
     {
         $storage = $this->createStub(StorageInterface::class);
+        $queue = $this->createStub(QueueInterface::class);
 
-        $flowScheduler = new FlowScheduler($storage, [], []);
+        $flowScheduler = new FlowScheduler($storage, $queue, [], []);
         $flowScheduler->tick();
 
         $this->assertCount(0, $flowScheduler->getScheduleAttributes());

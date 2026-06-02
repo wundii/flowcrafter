@@ -8,6 +8,7 @@ use DateTimeInterface;
 use ReflectionClass;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Wundii\Flowcrafter\Interface\ProjectionHandlerInterface;
 use Wundii\Flowcrafter\Interface\StepInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Storage\Entity\StepSourceEntity;
@@ -84,6 +85,45 @@ final class SchemaController
         return new JsonResponse([
             'current' => $current,
             'source' => $source,
+        ]);
+    }
+
+    public function projectionHandlerSource(Request $request): JsonResponse
+    {
+        $className = $request->query->get('className', '');
+        $className = $className && !str_starts_with($className, '\\') ? '\\' . $className : $className;
+
+        if (!class_exists($className)) {
+            return new JsonResponse([
+                'error' => 'Projection handler class not found',
+            ], 404);
+        }
+
+        if (!is_subclass_of($className, ProjectionHandlerInterface::class)) {
+            return new JsonResponse([
+                'error' => 'The class does not implement ProjectionHandlerInterface',
+            ], 400);
+        }
+
+        $reflectionClass = new ReflectionClass($className);
+        $file = (string) $reflectionClass->getFileName();
+
+        if (!file_exists($file)) {
+            return new JsonResponse([
+                'error' => 'The file not found',
+            ], 400);
+        }
+
+        $content = file_get_contents($file);
+        if (!is_string($content)) {
+            return new JsonResponse([
+                'error' => 'The file could not be read.',
+            ], 400);
+        }
+
+        return new JsonResponse([
+            'current' => true,
+            'source' => $content,
         ]);
     }
 
