@@ -22,6 +22,9 @@ Ausführung mit vollständigem Audit-Log.
   `StorageInterface` frei erweiterbar
 - Synchrone Ausführung (`FlowRunner`) + asynchrone Queue-Verarbeitung
   (`FlowObserver`) + zeitgesteuerte Ausführung (`FlowScheduler`)
+- Asynchrone Read-Model-Projektionen: Handler-Methoden via
+  `#[FlowProjectionMessage]` an Message-Sources gebunden, message-zentriert
+  vom `ProjectionWorker` über eine gemeinsame Queue abgearbeitet
 - Automatischer Flow-Status, vollständiges Message-, Exception- &
   Schedule-Exception-Logging, Schema-Versionierung via Hash
 - `#[FlowGroup]`- und `#[FlowSchedule(group:)]`-Attribute für
@@ -51,7 +54,7 @@ Die vollständige Dokumentation liegt im [`docs/`](docs/)-Ordner:
 | [Entwicklung](docs/development.md) | QA-Scripts für Contributor |
 | [Getting Started](docs/getting-started.md) | Erste Schritte: Config, Storage, Dev-Server |
 | [Konfiguration](docs/configuration.md) | `flowcrafter.php`, Storage-Backends, Server-Einstellungen |
-| [Konzepte](docs/concepts.md) | Flow, Status, Schema, Messages, includeSteps, Observer |
+| [Konzepte](docs/concepts.md) | Flow, Status, Schema, Messages, includeSteps, Observer, Scheduler, Projektion |
 | [Monitoring](docs/monitoring.md) | Prometheus / OpenMetrics, CheckMK |
 | [REST-API](docs/api.md) | Endpunkte, Pagination, Auth |
 | [Testing](docs/testing.md) | Flows & Steps testen mit PHPUnit 11+ |
@@ -65,7 +68,7 @@ vendor/bin/flowcrafter config:create
 # 2. Storage initialisieren
 vendor/bin/flowcrafter storage:init
 
-# 3. Dev-Server (API + Observer + Scheduler) starten
+# 3. Dev-Server (API + Observer + Scheduler + Projection-Worker) starten
 vendor/bin/flowcrafter dev
 ```
 
@@ -321,7 +324,9 @@ $result = $flowRunner->run(new OrderInit('sku-42'));
 **Asynchron** — Message in die Queue legen, der `FlowObserver`-Worker führt sie aus:
 
 ```php
-$storage->appendObserveItem(
+$queue = $flowcrafterConfig->getQueue();   // Queue-Backend aus der Config
+
+$queue->appendObserveItem(
     type: 'flow.order.v1',
     flowSource: OrderFlow::class,
     flowHash: null,                 // null = neuer Flow, sonst Re-Run einer bestehenden Instanz
@@ -350,7 +355,41 @@ class OrderCleanupSchedule extends AbstractSchedule
 }
 ```
 
-Schedule-Klassen werden über das `#[FlowSchedule]`-Attribut automatisch aus dem Composer-Classmap entdeckt — keine manuelle Registrierung nötig. Der Scheduler läuft als eigenständiger Prozess (`vendor/bin/flowcrafter scheduler`) oder im Dev-Modus inline mit.
+Schedule-Klassen werden über das `#[FlowSchedule]`-Attribut automatisch aus dem Composer-Classmap entdeckt — keine manuelle Registrierung nötig. Der Scheduler läuft als eigenständiger Prozess (`vendor/bin/flowcrafter scheduler`) oder im Dev-Modus als überwachter Subprozess mit.
+
+### Projektion (Read Models)
+
+Projection-Handler reagieren **asynchron** auf einzelne Messages eines Flows — ideal für Read Models, Benachrichtigungen oder Side-Effects. Jede Handler-Methode wird per `#[FlowProjectionMessage]` an genau einen Message-Source gebunden; die Klasse ordnet sich per `#[FlowProjection]` einem oder mehreren Flow-Typen zu:
+
+```php
+use Wundii\Flowcrafter\Attribute\FlowProjection;
+use Wundii\Flowcrafter\Attribute\FlowProjectionMessage;
+use Wundii\Flowcrafter\FlowMessageReadonly;
+use Wundii\Flowcrafter\Interface\ProjectionHandlerInterface;
+
+#[FlowProjection(['flow.order.v1'])]
+class OrderProjection implements ProjectionHandlerInterface
+{
+    #[FlowProjectionMessage(OrderValidated::class)]
+    public function onValidated(FlowMessageReadonly $message): void
+    {
+        // Read Model aktualisieren, Benachrichtigung verschicken, ...
+    }
+
+    #[FlowProjectionMessage(OrderCompleted::class)]
+    public function onCompleted(FlowMessageReadonly $message): void
+    {
+        // ...
+    }
+}
+```
+
+- `FlowRunner` schreibt **jede finalisierte `FlowMessage` inkrementell** in eine gemeinsame Projection-Queue (nur wenn ein Handler den Flow-Typ abonniert) — auch ein Run, der später wirft, projiziert das bereits Abgeschlossene.
+- Der `ProjectionWorker` arbeitet die Queue **message-zentriert** ab: pro Message wird der (eindeutige) Handler des Flow-Typs ermittelt und die zum Message-Source registrierte Methode mit einer `FlowMessageReadonly` aufgerufen.
+- **At-least-once:** Handler-Methoden müssen idempotent sein. Wirft eine Methode, wird die Exception als `ProjectionException` protokolliert und mit der nächsten Message weitergemacht — die gemeinsame Queue blockiert nicht.
+- Handler werden — wie Schedules — automatisch aus dem Composer-Classmap entdeckt (keine manuelle Registrierung). Pro Flow-Typ ist genau ein Handler zulässig, und jede annotierte Methode muss einen `FlowMessageReadonly`-Parameter deklarieren.
+
+Der Worker läuft als eigenständiger Prozess (`vendor/bin/flowcrafter projection:worker`) oder im Dev-Modus als überwachter Subprozess mit.
 
 ### Dependency Injection
 

@@ -8,8 +8,10 @@ vendor/bin/flowcrafter config:create
 # Storage-Tabellen / -Indizes anlegen
 vendor/bin/flowcrafter storage:init
 
-# Entwicklung: API-Server + Observer + Scheduler zusammen starten
-# Aktiviert automatisch den Dev-Modus inkl. /api/dev/*-Endpunkte
+# Entwicklung: API-Server + Observer + Scheduler + Projection-Worker zusammen starten
+# Aktiviert automatisch den Dev-Modus inkl. /api/dev/*-Endpunkte.
+# Observer, Scheduler und Projection-Worker laufen als überwachte Subprozesse
+# und werden bei Code-Änderungen automatisch neu gestartet (Hot-Reload).
 vendor/bin/flowcrafter dev [--host=0.0.0.0] [--port=8000]
 
 # Produktion: API-Server (FrankenPHP Worker Mode)
@@ -20,6 +22,9 @@ vendor/bin/flowcrafter observer [--workers=1]
 
 # Scheduler für zeitgesteuerte Flow-Auslösung starten
 vendor/bin/flowcrafter scheduler
+
+# Projection-Worker für asynchrone Read-Model-Projektionen starten
+vendor/bin/flowcrafter projection:worker
 
 # Dockerfiles + docker-compose.yml generieren
 vendor/bin/flowcrafter docker:init

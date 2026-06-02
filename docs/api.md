@@ -10,13 +10,13 @@ einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 | Methode | Pfad                          | Parameter                                        | Beschreibung                          |
 | ------- | ----------------------------- | ------------------------------------------------ | ------------------------------------- |
 | GET     | `/api/ping`                   | —                                                | Verbindungstest (`pong`)              |
-| GET     | `/api/info`                   | —                                                | Server-Beschreibung + Observer-Status |
+| GET     | `/api/info`                   | —                                                | Version, Storage, Queue + Heartbeat-Status von Observer, Scheduler & Projection-Worker |
 | GET     | `/api/flow/flow-list`         | `sort`, `top`, `skip`, `type`, `from`, `to`      | Flow-Instanzen (paginiert, filterbar) |
 | GET     | `/api/flow/flow-details`      | `hash` oder `runtimeHash`                        | Flow mit Messages, Exceptions & Runs  |
 | GET     | `/api/flow/flow-stats`        | `from`, `to`, `type`                             | Tägliche Flow-Statistiken             |
 | GET     | `/api/flow/flow-search`       | `subject`, `top`                                 | Flows nach `flowSubject` suchen       |
-| GET     | `/api/flow/flow-type-stats`   | `from`, `to`                                     | Flow-Typen mit Runs/Fehler/OK-Rate und optionalem `group` |
-| GET     | `/api/flow/exception-list`    | `sort`, `top`, `skip`, `from`, `to`, `status`    | Flow- und Schedule-Exceptions (paginiert, filterbar, klassifiziert via `type`) |
+| GET     | `/api/flow/flow-type-stats`   | `from`, `to`                                     | Flow-Typen mit Runs/Fehler/OK-Rate, optionalem `group` sowie `projectionHandlerClass` und `projectionMessageMethods` (Message-Source → Methode) des registrierten Projection-Handlers |
+| GET     | `/api/flow/exception-list`    | `sort`, `top`, `skip`, `from`, `to`, `status`    | Flow-, Schedule-, Observer- und Projection-Exceptions (paginiert, filterbar, klassifiziert via `type`) |
 | GET     | `/api/flow/exceptions-stats`  | `from`, `to`                                     | Tägliche Exception-Statistiken (`{ date, flow, schedule }`) |
 
 ## Schemas & Step-Source
@@ -27,6 +27,7 @@ einen Bearer-Token, sofern ein `serverSecret` konfiguriert ist.
 | GET     | `/api/flow/step-source`       | `className` oder `stepHash` | Step-Quellcode (aktuell oder historisch) |
 | GET     | `/api/flow/step-source-list`  | `stepSource`                | Alle historischen Snapshots eines Steps  |
 | GET     | `/api/flow/message-source-list` | —                         | Alle Message-Source-Einträge             |
+| GET     | `/api/flow/projection-handler-source` | `className`          | Quellcode eines Projection-Handlers + Liste der gebundenen `messageSources` |
 
 ## Schedules
 

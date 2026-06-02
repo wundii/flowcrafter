@@ -114,6 +114,55 @@ Der Scheduler trackt pro Schedule die letzte Ausführungsminute und
 verhindert so Doppelausführungen innerhalb derselben Minute (relevant
 im Dev-Modus, wo `tick()` häufiger aufgerufen wird).
 
+## Projektion (Read Models)
+
+Projection-Handler verarbeiten Messages eines Flows **asynchron** und
+entkoppelt — typischerweise um Read Models aufzubauen, Benachrichtigungen
+zu versenden oder Side-Effects auszulösen.
+
+```php
+use Wundii\Flowcrafter\Attribute\FlowProjection;
+use Wundii\Flowcrafter\Attribute\FlowProjectionMessage;
+use Wundii\Flowcrafter\FlowMessageReadonly;
+use Wundii\Flowcrafter\Interface\ProjectionHandlerInterface;
+
+#[FlowProjection(['flow.order.v1'])]
+class OrderProjection implements ProjectionHandlerInterface
+{
+    #[FlowProjectionMessage(OrderValidated::class)]
+    public function onValidated(FlowMessageReadonly $message): void { /* ... */ }
+}
+```
+
+**Attribute:**
+- `#[FlowProjection([flowTypes])]` (Klasse) — ordnet den Handler einem oder
+  mehreren Flow-Typen zu. Pro Flow-Typ ist genau **ein** Handler zulässig.
+- `#[FlowProjectionMessage(MessageSource::class)]` (Methode, wiederholbar) —
+  bindet die Methode an einen Message-Source. Jede annotierte Methode muss
+  einen `FlowMessageReadonly`-Parameter deklarieren (wird bei der Discovery
+  validiert; doppelte Message-Sources innerhalb eines Handlers werfen).
+
+**Ablauf:**
+- Während eines Runs schreibt der `FlowRunner` jede finalisierte
+  `FlowMessage` **inkrementell** in eine gemeinsame Projection-Queue —
+  aber nur, wenn überhaupt ein Handler den Flow-Typ abonniert. Ein Run, der
+  später eine Exception wirft, hat das bis dahin Abgeschlossene damit bereits
+  projiziert.
+- Der `ProjectionWorker` arbeitet die **eine** Queue message-zentriert ab:
+  pro Message ermittelt er den Handler des Flow-Typs und ruft die zum
+  `messageSource` registrierte Methode mit einer `FlowMessageReadonly` auf.
+  Messages ohne passenden Handler/Methode werden übersprungen (acked).
+
+**Fehlerverhalten (at-least-once):** Handler-Methoden müssen idempotent
+sein. Wirft eine Methode, wird die Exception als `ProjectionException`
+persistiert, die Message dennoch acked und mit der nächsten weitergemacht —
+ein defekter Handler blockiert die gemeinsame Queue nicht.
+
+Handler werden — wie Schedules — automatisch aus dem Composer-Classmap
+entdeckt; keine manuelle Registrierung nötig. Der Worker läuft als
+eigenständiger Prozess (`vendor/bin/flowcrafter projection:worker`) oder im
+Dev-Modus als überwachter Subprozess mit.
+
 ## Step Retry
 
 Steps können bei transienten Fehlern automatisch wiederholt werden.

@@ -1,8 +1,8 @@
 # Deployment (Produktion)
 - [Back to README.md](./../README.md)
 
-Für den Produktionsbetrieb werden API-Server, Observer und Scheduler als
-getrennte Container betrieben.
+Für den Produktionsbetrieb werden API-Server, Observer, Scheduler und
+Projection-Worker als getrennte Container betrieben.
 
 ## Docker-Dateien generieren
 
@@ -11,7 +11,7 @@ vendor/bin/flowcrafter docker:init
 ```
 
 Erzeugt `Dockerfile`, `docker-compose.yml` im Projektstamm mit
-Service-, Observer- und Scheduler-Container.
+Service-, Observer-, Scheduler- und Projection-Worker-Container.
 
 ## Einzeln starten (ohne Docker)
 
@@ -24,15 +24,19 @@ vendor/bin/flowcrafter observer [--workers=1]
 
 # Scheduler (zeitgesteuerte Flow-Auslösung)
 vendor/bin/flowcrafter scheduler
+
+# Projection-Worker (asynchrone Read-Model-Projektionen)
+vendor/bin/flowcrafter projection:worker
 ```
 
 ## Container-Übersicht
 
-| Container     | Command                                        | Skalierung                              |
-| ------------- | ---------------------------------------------- | --------------------------------------- |
-| **service**   | `vendor/bin/flowcrafter service`               | vertikal (FrankenPHP Worker)            |
-| **observer**  | `vendor/bin/flowcrafter observer --workers N`  | horizontal (mehrere Worker-Prozesse)    |
-| **scheduler** | `vendor/bin/flowcrafter scheduler`             | einzelne Instanz (keine Skalierung)     |
+| Container       | Command                                        | Skalierung                              |
+| --------------- | ---------------------------------------------- | --------------------------------------- |
+| **service**     | `vendor/bin/flowcrafter service`               | vertikal (FrankenPHP Worker)            |
+| **observer**    | `vendor/bin/flowcrafter observer --workers N`  | horizontal (mehrere Worker-Prozesse)    |
+| **scheduler**   | `vendor/bin/flowcrafter scheduler`             | einzelne Instanz (keine Skalierung)     |
+| **projection**  | `vendor/bin/flowcrafter projection:worker`     | einzelne Instanz (gemeinsame, geordnete Queue) |
 
 > **Hinweis:** Horizontale Skalierung des Observers erfordert atomaren
 > Queue-Zugriff im Storage-Backend. **MySQL** nutzt
