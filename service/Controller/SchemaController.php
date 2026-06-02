@@ -6,8 +6,10 @@ namespace Wundii\Service\Controller;
 
 use DateTimeInterface;
 use ReflectionClass;
+use ReflectionMethod;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Wundii\Flowcrafter\Attribute\FlowProjectionMessage;
 use Wundii\Flowcrafter\Interface\ProjectionHandlerInterface;
 use Wundii\Flowcrafter\Interface\StepInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
@@ -121,9 +123,17 @@ final class SchemaController
             ], 400);
         }
 
+        $messageSources = [];
+        foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
+            foreach ($reflectionMethod->getAttributes(FlowProjectionMessage::class) as $attribute) {
+                $messageSources[] = $attribute->newInstance()->messageSource;
+            }
+        }
+
         return new JsonResponse([
             'current' => true,
             'source' => $content,
+            'messageSources' => array_values(array_unique($messageSources)),
         ]);
     }
 

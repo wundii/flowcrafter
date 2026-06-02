@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\MockClass;
 
 use Wundii\Flowcrafter\Attribute\FlowProjection;
-use Wundii\Flowcrafter\FlowMessage;
+use Wundii\Flowcrafter\Attribute\FlowProjectionMessage;
 use Wundii\Flowcrafter\FlowMessageReadonly;
 use Wundii\Flowcrafter\Interface\ProjectionHandlerInterface;
 
@@ -13,15 +13,27 @@ use Wundii\Flowcrafter\Interface\ProjectionHandlerInterface;
 class ValidProjectionHandlerMock implements ProjectionHandlerInterface
 {
     /**
-     * @var list<array{messageSource: string, flowMessage: FlowMessage}>
+     * @var list<array{method: string, messageSource: string, flowMessage: FlowMessageReadonly}>
      */
     public array $calls = [];
 
-    public function project(FlowMessageReadonly $flowMessageReadonly): void
+    #[FlowProjectionMessage(MessageInitMock::class)]
+    public function onInit(FlowMessageReadonly $flowMessageReadonly): void
     {
         $this->calls[] = [
+            'method' => 'onInit',
             'messageSource' => $flowMessageReadonly->getMessageSource(),
-            'flowMessageReadony' => $flowMessageReadonly,
+            'flowMessage' => $flowMessageReadonly,
+        ];
+    }
+
+    #[FlowProjectionMessage(MessageReturnMock::class)]
+    public function onReturn(FlowMessageReadonly $flowMessageReadonly): void
+    {
+        $this->calls[] = [
+            'method' => 'onReturn',
+            'messageSource' => $flowMessageReadonly->getMessageSource(),
+            'flowMessage' => $flowMessageReadonly,
         ];
     }
 }

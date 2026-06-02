@@ -25,7 +25,7 @@ interface QueueInterface
      */
     public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void;
 
-    public function appendProjectionQueueItem(FlowMessage $flowMessage, string $handlerClass): void;
+    public function appendProjectionQueueItem(FlowMessage $flowMessage): void;
 
     /**
      * @return iterable<ObserveItem>
@@ -42,7 +42,7 @@ interface QueueInterface
     /**
      * @return iterable<ProjectionQueueItem>
      */
-    public function observeProjectionQueue(string $handlerClass, float $maxExecutionTimeInSeconds = 0.0): iterable;
+    public function observeProjectionQueue(float $maxExecutionTimeInSeconds = 0.0): iterable;
 
-    public function ackProjectionQueueItem(string $handlerClass, string $itemId): void;
+    public function ackProjectionQueueItem(string $itemId): void;
 }

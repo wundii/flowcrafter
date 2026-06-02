@@ -6,8 +6,12 @@ namespace Wundii\Flowcrafter\Projection;
 
 use InvalidArgumentException;
 use ReflectionClass;
+use ReflectionMethod;
+use ReflectionNamedType;
 use Wundii\Flowcrafter\Attribute\FlowProjection;
+use Wundii\Flowcrafter\Attribute\FlowProjectionMessage;
 use Wundii\Flowcrafter\ClassResolver;
+use Wundii\Flowcrafter\FlowMessageReadonly;
 use Wundii\Flowcrafter\Interface\ProjectionHandlerInterface;
 
 final class ProjectionDiscovery
@@ -115,9 +119,62 @@ final class ProjectionDiscovery
             $metas[] = new ProjectionHandlerMeta(
                 handlerClass: $handlerClass,
                 flowTypes: $flowTypes,
+                messageMethods: self::resolveMessageMethods($reflectionClass),
             );
         }
 
         return $metas;
+    }
+
+    /**
+     * @param ReflectionClass<ProjectionHandlerInterface> $reflectionClass
+     * @return array<class-string, string> messageSource => handler method name
+     */
+    private static function resolveMessageMethods(ReflectionClass $reflectionClass): array
+    {
+        $messageMethods = [];
+
+        foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
+            foreach ($reflectionMethod->getAttributes(FlowProjectionMessage::class) as $attribute) {
+                $messageSource = $attribute->newInstance()->messageSource;
+
+                if (!self::acceptsFlowMessageReadonly($reflectionMethod)) {
+                    throw new InvalidArgumentException(sprintf(
+                        'Projection method "%s::%s" must declare a parameter of type %s.',
+                        $reflectionClass->getName(),
+                        $reflectionMethod->getName(),
+                        FlowMessageReadonly::class,
+                    ));
+                }
+
+                if (array_key_exists($messageSource, $messageMethods)) {
+                    throw new InvalidArgumentException(sprintf(
+                        'Message source "%s" is already registered by method "%s::%s", cannot register "%s::%s".',
+                        $messageSource,
+                        $reflectionClass->getName(),
+                        $messageMethods[$messageSource],
+                        $reflectionClass->getName(),
+                        $reflectionMethod->getName(),
+                    ));
+                }
+
+                $messageMethods[$messageSource] = $reflectionMethod->getName();
+            }
+        }
+
+        return $messageMethods;
+    }
+
+    private static function acceptsFlowMessageReadonly(ReflectionMethod $reflectionMethod): bool
+    {
+        foreach ($reflectionMethod->getParameters() as $reflectionParameter) {
+            $type = $reflectionParameter->getType();
+
+            if ($type instanceof ReflectionNamedType && $type->getName() === FlowMessageReadonly::class) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

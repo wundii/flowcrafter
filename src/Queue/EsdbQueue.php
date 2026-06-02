@@ -29,6 +29,10 @@ final class EsdbQueue implements QueueInterface
 
     public const QUEUE_SUBJECT = '/flow/queue';
 
+    public const PROJECTION_QUEUE_SUBJECT = '/projection/queue';
+
+    public const PROJECTION_CHECKPOINT_SUBJECT = '/projection/checkpoint';
+
     public const TYPE_QUEUE = 'flowcrafter.flow.queue.v1';
 
     public const TYPE_QUEUE_CLAIM = 'flowcrafter.flow.queue.claim.v1';
@@ -222,12 +226,12 @@ final class EsdbQueue implements QueueInterface
         }
     }
 
-    public function appendProjectionQueueItem(FlowMessage $flowMessage, string $handlerClass): void
+    public function appendProjectionQueueItem(FlowMessage $flowMessage): void
     {
         $this->client->writeEvents([
             new EventCandidate(
                 source: self::SOURCE,
-                subject: $this->projectionQueueSubject($handlerClass),
+                subject: self::PROJECTION_QUEUE_SUBJECT,
                 type: self::TYPE_PROJECTION_ITEM,
                 data: $flowMessage->jsonSerialize(),
             ),
@@ -237,16 +241,16 @@ final class EsdbQueue implements QueueInterface
     /**
      * @return iterable<ProjectionQueueItem>
      */
-    public function observeProjectionQueue(string $handlerClass, float $maxExecutionTimeInSeconds = 0.0): iterable
+    public function observeProjectionQueue(float $maxExecutionTimeInSeconds = 0.0): iterable
     {
         $this->client->abortIn($maxExecutionTimeInSeconds);
 
         $observeEventsOptions = new ObserveEventsOptions(
             recursive: false,
-            lowerBound: $this->resolveProjectionLowerBound($handlerClass),
+            lowerBound: $this->resolveProjectionLowerBound(),
         );
 
-        foreach ($this->client->observeEvents($this->projectionQueueSubject($handlerClass), $observeEventsOptions) as $event) {
+        foreach ($this->client->observeEvents(self::PROJECTION_QUEUE_SUBJECT, $observeEventsOptions) as $event) {
             if ($event->type !== self::TYPE_PROJECTION_ITEM) {
                 continue;
             }
@@ -256,21 +260,19 @@ final class EsdbQueue implements QueueInterface
             /** @var array<string, mixed> $payload */
             yield new ProjectionQueueItem(
                 itemId: $event->id,
-                handlerClass: $handlerClass,
                 flowMessageReadonly: FlowMessageReadonly::createFromArray($payload),
             );
         }
     }
 
-    public function ackProjectionQueueItem(string $handlerClass, string $itemId): void
+    public function ackProjectionQueueItem(string $itemId): void
     {
         $this->client->writeEvents([
             new EventCandidate(
                 source: self::SOURCE,
-                subject: $this->projectionCheckpointSubject($handlerClass),
+                subject: self::PROJECTION_CHECKPOINT_SUBJECT,
                 type: self::TYPE_PROJECTION_CHECKPOINT,
                 data: [
-                    'handlerClass' => $handlerClass,
                     'lastEventId' => $itemId,
                 ],
             ),
@@ -322,23 +324,11 @@ final class EsdbQueue implements QueueInterface
             : null;
     }
 
-    private function projectionQueueSubject(string $handlerClass): string
+    private function resolveProjectionLowerBound(): ?Bound
     {
-        return '/projection/' . md5($handlerClass) . '/queue';
-    }
-
-    private function projectionCheckpointSubject(string $handlerClass): string
-    {
-        return '/projection/' . md5($handlerClass) . '/checkpoint';
-    }
-
-    private function resolveProjectionLowerBound(string $handlerClass): ?Bound
-    {
-        $subject = $this->projectionCheckpointSubject($handlerClass);
-
         $checkpoints = $this->client->runEventQlQuery(
             'FROM e IN events ' .
-            'WHERE e.subject == "' . $subject . '" ' .
+            'WHERE e.subject == "' . self::PROJECTION_CHECKPOINT_SUBJECT . '" ' .
             'AND e.type == "' . self::TYPE_PROJECTION_CHECKPOINT . '" ' .
             'ORDER BY e.id DESC ' .
             'TOP 1 ' .

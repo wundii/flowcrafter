@@ -24,7 +24,7 @@ final class RedisQueue implements QueueInterface
 {
     public const QUEUE_KEY = 'flow:queue';
 
-    public const PREFIX_PROJECTION_QUEUE = 'projection:queue:';
+    public const PROJECTION_QUEUE_KEY = 'flow:projection:queue';
 
     private const PROJECTION_GROUP = 'projection_workers';
 
@@ -155,16 +155,15 @@ final class RedisQueue implements QueueInterface
         }
     }
 
-    public function appendProjectionQueueItem(FlowMessage $flowMessage, string $handlerClass): void
+    public function appendProjectionQueueItem(FlowMessage $flowMessage): void
     {
         $payloadJson = json_encode($flowMessage);
         if (!is_string($payloadJson)) {
             throw new RuntimeException('Could not serialize projection queue payload.');
         }
 
-        $streamKey = self::PREFIX_PROJECTION_QUEUE . $handlerClass;
-        $this->ensureProjectionGroup($streamKey);
-        $this->client->xAdd($streamKey, '*', [
+        $this->ensureProjectionGroup(self::PROJECTION_QUEUE_KEY);
+        $this->client->xAdd(self::PROJECTION_QUEUE_KEY, '*', [
             'payload' => $payloadJson,
         ]);
     }
@@ -172,10 +171,9 @@ final class RedisQueue implements QueueInterface
     /**
      * @return iterable<ProjectionQueueItem>
      */
-    public function observeProjectionQueue(string $handlerClass, float $maxExecutionTimeInSeconds = 0.0): iterable
+    public function observeProjectionQueue(float $maxExecutionTimeInSeconds = 0.0): iterable
     {
-        $streamKey = self::PREFIX_PROJECTION_QUEUE . $handlerClass;
-        $this->ensureProjectionGroup($streamKey);
+        $this->ensureProjectionGroup(self::PROJECTION_QUEUE_KEY);
         $consumer = $this->projectionConsumerName();
         $startExecutionTime = microtime(true);
 
@@ -184,20 +182,18 @@ final class RedisQueue implements QueueInterface
                 break;
             }
 
-            foreach ($this->fetchProjectionEntries($streamKey, $consumer) as $itemId => $payload) {
+            foreach ($this->fetchProjectionEntries(self::PROJECTION_QUEUE_KEY, $consumer) as $itemId => $payload) {
                 yield new ProjectionQueueItem(
-                    itemId: $itemId,
-                    handlerClass: $handlerClass,
+                    itemId: (string) $itemId,
                     flowMessageReadonly: FlowMessageReadonly::createFromArray($payload),
                 );
             }
         }
     }
 
-    public function ackProjectionQueueItem(string $handlerClass, string $itemId): void
+    public function ackProjectionQueueItem(string $itemId): void
     {
-        $streamKey = self::PREFIX_PROJECTION_QUEUE . $handlerClass;
-        $this->client->xAck($streamKey, self::PROJECTION_GROUP, [$itemId]);
+        $this->client->xAck(self::PROJECTION_QUEUE_KEY, self::PROJECTION_GROUP, [$itemId]);
     }
 
     private function ensureProjectionGroup(string $streamKey): void

@@ -9,11 +9,14 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 final readonly class FlowProjection
 {
+    public array $flowTypes;
+
     /**
      * @param string[] $flowTypes
      */
     public function __construct(
-        public array $flowTypes,
+        string|array $flowTypes,
     ) {
+        $this->flowTypes = is_array($flowTypes) ? $flowTypes : [$flowTypes];
     }
 }

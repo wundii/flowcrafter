@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Wundii\Flowcrafter\Interface;
 
-use Wundii\Flowcrafter\FlowMessageReadonly;
-
+/**
+ * Marker interface for projection handlers. Concrete handlers carry the
+ * #[FlowProjection] class attribute (flow types) and bind methods to message
+ * sources via the #[FlowProjectionMessage] method attribute. The projection
+ * worker resolves and invokes the matching method per message.
+ */
 interface ProjectionHandlerInterface
 {
-    public function project(FlowMessageReadonly $flowMessageReadonly): void;
 }

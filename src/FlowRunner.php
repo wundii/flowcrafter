@@ -572,12 +572,13 @@ class FlowRunner
     }
 
     /**
-     * Push a single finalized FlowMessage into the projection queue, once per
-     * handler that subscribes to this flow type. Called incrementally as the
-     * run progresses (on FINISH transition), so projections keep up with the
-     * flow and a run that later throws still projects what already completed.
-     * The projection worker consumes the queue asynchronously (ephemeral and
-     * persistent flows are treated identically here).
+     * Push a single finalized FlowMessage into the shared projection queue.
+     * Called incrementally as the run progresses (on FINISH transition), so
+     * projections keep up with the flow and a run that later throws still
+     * projects what already completed. The message is enqueued once; the
+     * projection worker resolves the matching handler/method per message. Only
+     * enqueued when at least one handler subscribes to this flow type
+     * (ephemeral and persistent flows are treated identically here).
      */
     private function projectFlowMessage(FlowMessage $flowMessage): void
     {
@@ -585,8 +586,10 @@ class FlowRunner
             return;
         }
 
-        foreach ($this->projectionHandlerClasses as $projectionHandlerClass) {
-            $this->queue->appendProjectionQueueItem($flowMessage, $projectionHandlerClass);
+        if ($this->projectionHandlerClasses === []) {
+            return;
         }
+
+        $this->queue->appendProjectionQueueItem($flowMessage);
     }
 }

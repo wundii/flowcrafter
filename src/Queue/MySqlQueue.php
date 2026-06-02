@@ -72,14 +72,13 @@ final class MySqlQueue implements QueueInterface
             <<<'SQL'
             CREATE TABLE IF NOT EXISTS projection_queue (
                 queue_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                handler_class VARCHAR(255) NOT NULL,
                 flow_hash VARCHAR(191) NOT NULL,
                 flow_type VARCHAR(191) NOT NULL,
                 message_hash VARCHAR(191) NOT NULL,
                 payload JSON NOT NULL,
                 claimed_at DATETIME(3) NULL,
                 created_at DATETIME(3) NOT NULL,
-                INDEX idx_projection_queue_claim (handler_class, claimed_at, queue_id)
+                INDEX idx_projection_queue_claim (claimed_at, queue_id)
             )
             SQL
         );
@@ -194,7 +193,7 @@ final class MySqlQueue implements QueueInterface
         }
     }
 
-    public function appendProjectionQueueItem(FlowMessage $flowMessage, string $handlerClass): void
+    public function appendProjectionQueueItem(FlowMessage $flowMessage): void
     {
         $payloadJson = json_encode($flowMessage);
         if (!is_string($payloadJson)) {
@@ -202,12 +201,11 @@ final class MySqlQueue implements QueueInterface
         }
 
         $stmt = $this->client->prepare(
-            'INSERT INTO projection_queue (handler_class, flow_hash, flow_type, message_hash, payload, created_at)' .
-            ' VALUES (:handler_class, :flow_hash, :flow_type, :message_hash, :payload, :created_at)'
+            'INSERT INTO projection_queue (flow_hash, flow_type, message_hash, payload, created_at)' .
+            ' VALUES (:flow_hash, :flow_type, :message_hash, :payload, :created_at)'
         );
 
         $stmt->execute([
-            ':handler_class' => $handlerClass,
             ':flow_hash' => $flowMessage->getFlowHash(),
             ':flow_type' => $flowMessage->getFlowType(),
             ':message_hash' => $flowMessage->getHash(),
@@ -219,7 +217,7 @@ final class MySqlQueue implements QueueInterface
     /**
      * @return iterable<ProjectionQueueItem>
      */
-    public function observeProjectionQueue(string $handlerClass, float $maxExecutionTimeInSeconds = 0.0): iterable
+    public function observeProjectionQueue(float $maxExecutionTimeInSeconds = 0.0): iterable
     {
         $startExecutionTime = microtime(true);
 
@@ -228,7 +226,7 @@ final class MySqlQueue implements QueueInterface
                 break;
             }
 
-            $item = $this->claimProjectionQueueItem($handlerClass);
+            $item = $this->claimProjectionQueueItem();
             if ($item instanceof ProjectionQueueItem) {
                 yield $item;
                 continue;
@@ -238,18 +236,17 @@ final class MySqlQueue implements QueueInterface
         }
     }
 
-    public function ackProjectionQueueItem(string $handlerClass, string $itemId): void
+    public function ackProjectionQueueItem(string $itemId): void
     {
         $stmt = $this->client->prepare(
-            'DELETE FROM projection_queue WHERE queue_id = :queue_id AND handler_class = :handler_class'
+            'DELETE FROM projection_queue WHERE queue_id = :queue_id'
         );
         $stmt->execute([
             ':queue_id' => $itemId,
-            ':handler_class' => $handlerClass,
         ]);
     }
 
-    private function claimProjectionQueueItem(string $handlerClass): ?ProjectionQueueItem
+    private function claimProjectionQueueItem(): ?ProjectionQueueItem
     {
         try {
             $this->client->beginTransaction();
@@ -260,13 +257,11 @@ final class MySqlQueue implements QueueInterface
 
             $stmt = $this->client->prepare(
                 'SELECT * FROM projection_queue ' .
-                'WHERE handler_class = :handler_class ' .
-                'AND (claimed_at IS NULL OR claimed_at < :visibility) ' .
+                'WHERE (claimed_at IS NULL OR claimed_at < :visibility) ' .
                 'ORDER BY queue_id ASC LIMIT 1 ' .
                 'FOR UPDATE SKIP LOCKED'
             );
             $stmt->execute([
-                ':handler_class' => $handlerClass,
                 ':visibility' => $visibility,
             ]);
 
@@ -286,7 +281,7 @@ final class MySqlQueue implements QueueInterface
 
             $this->client->commit();
 
-            /** @var array{queue_id: string|int, handler_class: string, payload: string} $row */
+            /** @var array{queue_id: string|int, payload: string} $row */
             $payloadJson = $row['payload'];
             if (!json_validate($payloadJson)) {
                 throw new RuntimeException('Could not validate projection queue payload.');
@@ -300,7 +295,6 @@ final class MySqlQueue implements QueueInterface
             /** @var array<string, mixed> $payload */
             return new ProjectionQueueItem(
                 itemId: (string) $row['queue_id'],
-                handlerClass: $handlerClass,
                 flowMessageReadonly: FlowMessageReadonly::createFromArray($payload),
             );
         } catch (PDOException $pdoException) {

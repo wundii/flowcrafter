@@ -10,18 +10,15 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
-use Throwable;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
-use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Console\FileWatcher;
 use Wundii\Flowcrafter\Console\FlowConsole;
 use Wundii\Flowcrafter\Console\Heartbeat;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
 use Wundii\Flowcrafter\Console\Preflight\StoragePreflight;
-use Wundii\Flowcrafter\FlowScheduler;
 use Wundii\Flowcrafter\Projection\ProjectionDiscovery;
-use Wundii\Flowcrafter\Projection\ProjectionWorker;
+use Wundii\Flowcrafter\Schedule\ScheduleDiscovery;
 
 final class FlowDevCommand extends Command
 {
@@ -29,12 +26,13 @@ final class FlowDevCommand extends Command
 
     private ?Process $observerProcess = null;
 
+    private ?Process $projectionWorkerProcess = null;
+
+    private ?Process $schedulerProcess = null;
+
     private ?Heartbeat $heartbeat = null;
 
-    private ?Heartbeat $schedulerHeartbeat = null;
-
     public function __construct(
-        private FlowcrafterConfig $flowcrafterConfig,
         private BootstrapConfig $bootstrapConfig,
         private StoragePreflight $storagePreflight,
     ) {
@@ -109,40 +107,30 @@ final class FlowDevCommand extends Command
 
         $this->heartbeat = new Heartbeat();
 
-        $storage = $this->flowcrafterConfig->getStorage();
-        $queue = $this->flowcrafterConfig->getQueue();
-        $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
         $projectionHandlerMetas = ProjectionDiscovery::discover();
 
-        $flowScheduler = new FlowScheduler($storage, $queue, $dependencyInjections, projectionHandlerMetas: $projectionHandlerMetas);
-        $scheduleCount = count($flowScheduler->getScheduleAttributes());
+        $scheduleCount = count(ScheduleDiscovery::discover());
         if ($scheduleCount > 0 && $output->confirm(sprintf('Start scheduler? (%d schedule(s) found)', $scheduleCount), false)) {
             $output->writeln(sprintf(
-                '<fg=%s>starting scheduler with %d schedule(s)</>',
+                '<fg=%s>starting scheduler (subprocess) with %d schedule(s)</>',
                 OutputColorEnum::BLUE->value,
                 $scheduleCount,
             ));
-            $this->schedulerHeartbeat = new Heartbeat('scheduler');
-            $this->schedulerHeartbeat->touch();
+            $this->schedulerProcess = $this->startSchedulerProcess($env, $output);
         }
 
-        $projectionWorker = null;
         if ($projectionHandlerMetas !== [] && $output->confirm(sprintf('Start projection worker? (%d handler(s) found)', count($projectionHandlerMetas)), false)) {
-            $projectionWorker = new ProjectionWorker($storage, $queue, $projectionHandlerMetas, $dependencyInjections);
             $output->writeln(sprintf(
-                '<fg=%s>starting projection worker with %d handler(s)</>',
+                '<fg=%s>starting projection worker (subprocess) with %d handler(s)</>',
                 OutputColorEnum::BLUE->value,
                 count($projectionHandlerMetas),
             ));
+            $this->projectionWorkerProcess = $this->startProjectionWorkerProcess($env, $output);
         }
 
         $fileWatcher = new FileWatcher(FileWatcher::resolveProjectDirectories());
 
         $output->writeln('');
-
-        $logger = static function (string $message) use ($output): void {
-            $output->writeln($message);
-        };
 
         $this->heartbeat->touch();
 
@@ -155,6 +143,25 @@ final class FlowDevCommand extends Command
                 ));
                 $this->observerProcess->stop();
                 $this->observerProcess = $this->startObserverProcess($env, $output);
+
+                if ($this->projectionWorkerProcess instanceof Process) {
+                    $output->writeln(sprintf(
+                        '<fg=%s>file changes detected, restarting projection worker...</>',
+                        OutputColorEnum::YELLOW->value,
+                    ));
+                    $this->projectionWorkerProcess->stop();
+                    $this->projectionWorkerProcess = $this->startProjectionWorkerProcess($env, $output);
+                }
+
+                if ($this->schedulerProcess instanceof Process) {
+                    $output->writeln(sprintf(
+                        '<fg=%s>file changes detected, restarting scheduler...</>',
+                        OutputColorEnum::YELLOW->value,
+                    ));
+                    $this->schedulerProcess->stop();
+                    $this->schedulerProcess = $this->startSchedulerProcess($env, $output);
+                }
+
                 $fileWatcher->reset();
             }
 
@@ -166,24 +173,23 @@ final class FlowDevCommand extends Command
                 $this->observerProcess = $this->startObserverProcess($env, $output);
             }
 
-            if ($this->schedulerHeartbeat instanceof Heartbeat) {
-                try {
-                    $flowScheduler->tick($logger);
-                } catch (Throwable $e) {
-                    $output->writeln('[Scheduler] error: ' . $e->getMessage());
-                }
+            if ($this->projectionWorkerProcess instanceof Process && !$this->projectionWorkerProcess->isRunning()) {
+                $output->writeln(sprintf(
+                    '<fg=%s>projection worker stopped, restarting...</>',
+                    OutputColorEnum::YELLOW->value,
+                ));
+                $this->projectionWorkerProcess = $this->startProjectionWorkerProcess($env, $output);
             }
 
-            if ($projectionWorker instanceof ProjectionWorker) {
-                try {
-                    $projectionWorker->tick($logger);
-                } catch (Throwable $e) {
-                    $output->writeln('[Projection] error: ' . $e->getMessage());
-                }
+            if ($this->schedulerProcess instanceof Process && !$this->schedulerProcess->isRunning()) {
+                $output->writeln(sprintf(
+                    '<fg=%s>scheduler stopped, restarting...</>',
+                    OutputColorEnum::YELLOW->value,
+                ));
+                $this->schedulerProcess = $this->startSchedulerProcess($env, $output);
             }
 
             $this->heartbeat->touch();
-            $this->schedulerHeartbeat?->touch();
 
             sleep(1);
         }
@@ -214,10 +220,58 @@ final class FlowDevCommand extends Command
         return $process;
     }
 
+    /**
+     * @param array<string, string>|null $env
+     */
+    private function startProjectionWorkerProcess(?array $env, FlowSymfonyStyle $flowSymfonyStyle): Process
+    {
+        $flowcrafterScript = dirname(__DIR__, 3) . '/bin/flowcrafter.php';
+
+        $process = new Process(
+            [PHP_BINARY, $flowcrafterScript, 'projection:worker'],
+            null,
+            $env,
+        );
+        $process->setTimeout(null);
+        $process->start(function (string $type, string $data) use ($flowSymfonyStyle): void {
+            $flowSymfonyStyle->write($data);
+        });
+
+        return $process;
+    }
+
+    /**
+     * @param array<string, string>|null $env
+     */
+    private function startSchedulerProcess(?array $env, FlowSymfonyStyle $flowSymfonyStyle): Process
+    {
+        $flowcrafterScript = dirname(__DIR__, 3) . '/bin/flowcrafter.php';
+
+        $process = new Process(
+            [PHP_BINARY, $flowcrafterScript, 'scheduler'],
+            null,
+            $env,
+        );
+        $process->setTimeout(null);
+        $process->start(function (string $type, string $data) use ($flowSymfonyStyle): void {
+            $flowSymfonyStyle->write($data);
+        });
+
+        return $process;
+    }
+
     private function cleanup(): void
     {
         if ($this->observerProcess?->isRunning()) {
             $this->observerProcess->stop();
+        }
+
+        if ($this->projectionWorkerProcess?->isRunning()) {
+            $this->projectionWorkerProcess->stop();
+        }
+
+        if ($this->schedulerProcess?->isRunning()) {
+            $this->schedulerProcess->stop();
         }
 
         if ($this->serverProcess?->isRunning()) {
@@ -225,6 +279,5 @@ final class FlowDevCommand extends Command
         }
 
         $this->heartbeat?->cleanup();
-        $this->schedulerHeartbeat?->cleanup();
     }
 }

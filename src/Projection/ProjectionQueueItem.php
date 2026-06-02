@@ -10,7 +10,6 @@ final readonly class ProjectionQueueItem
 {
     public function __construct(
         private string $itemId,
-        private string $handlerClass,
         private FlowMessageReadonly $flowMessageReadonly,
     ) {
     }
@@ -18,11 +17,6 @@ final readonly class ProjectionQueueItem
     public function getItemId(): string
     {
         return $this->itemId;
-    }
-
-    public function getHandlerClass(): string
-    {
-        return $this->handlerClass;
     }
 
     public function getFlowMessageReadonly(): FlowMessageReadonly
