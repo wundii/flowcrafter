@@ -53,10 +53,6 @@ class FlowMessageReadonly extends FlowMessage
     }
 
     /**
-     * Rebuild a FlowMessage from its serialized form, wrapping the payload in a
-     * read-only message. Used when reading from storage / the projection queue,
-     * where the original message class must not be instantiated.
-     *
      * @param array<string, mixed> $data
      */
     public static function createFromArray(array $data): self
@@ -83,5 +79,19 @@ class FlowMessageReadonly extends FlowMessage
             predecessorHash: is_string($data['predecessorHash'] ?? null) ? $data['predecessorHash'] : null,
             skipClassValidation: true,
         );
+    }
+
+    public function getMessage(): ReadonlyMessage
+    {
+        $message = parent::getMessage();
+
+        if (!$message instanceof ReadonlyMessage) {
+            return new ReadonlyMessage(
+                originalClass: parent::getMessageSource(),
+                rawData: $message->jsonSerialize(),
+            );
+        }
+
+        return $message;
     }
 }

@@ -119,7 +119,7 @@ final class FlowDevCommand extends Command
             $this->schedulerProcess = $this->startSchedulerProcess($env, $output);
         }
 
-        if ($projectionHandlerMetas !== [] && $output->confirm(sprintf('Start projection worker? (%d handler(s) found)', count($projectionHandlerMetas)), false)) {
+        if ($projectionHandlerMetas !== [] && $output->confirm(sprintf('Start projection worker? (%d handler(s) found)', count($projectionHandlerMetas)))) {
             $output->writeln(sprintf(
                 '<fg=%s>starting projection worker (subprocess) with %d handler(s)</>',
                 OutputColorEnum::BLUE->value,
