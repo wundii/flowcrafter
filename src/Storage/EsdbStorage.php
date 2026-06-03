@@ -37,25 +37,25 @@ class EsdbStorage extends ServiceStorage
 {
     public const SOURCE = 'https://flowcrafter';
 
-    public const TYPE_INSTANCE = 'flowcrafter.flow.instance.v1';
+    public const TYPE_INSTANCE = 'flowcrafter.instance.v1';
 
-    public const TYPE_MESSAGE = 'flowcrafter.flow.message.v1';
+    public const TYPE_MESSAGE = 'flowcrafter.message.v1';
 
-    public const TYPE_EXCEPTION = 'flowcrafter.flow.exception.v1';
+    public const TYPE_EXCEPTION = 'flowcrafter.exception.v1';
 
-    public const TYPE_RESULT = 'flowcrafter.flow.result.v1';
+    public const TYPE_RESULT = 'flowcrafter.result.v1';
 
     public const TYPE_OBSERVER_EXCEPTION = 'flowcrafter.observer.exception.v1';
 
     public const TYPE_PROJECTION_EXCEPTION = 'flowcrafter.projection.exception.v1';
 
-    public const TYPE_RUN = 'flowcrafter.flow.run.v1';
+    public const TYPE_RUN = 'flowcrafter.run.v1';
 
-    public const TYPE_SCHEMA = 'flowcrafter.flow.schema.v1';
+    public const TYPE_SCHEMA = 'flowcrafter.schema.v1';
 
-    public const TYPE_SOURCE_MESSAGE = 'flowcrafter.flow.source.message.v1';
+    public const TYPE_SOURCE_MESSAGE = 'flowcrafter.source.message.v1';
 
-    public const TYPE_SOURCE_STEP = 'flowcrafter.flow.source.step.v1';
+    public const TYPE_SOURCE_STEP = 'flowcrafter.source.step.v1';
 
     public const TYPE_STEP_RETRY = 'flowcrafter.step.retry.v1';
 

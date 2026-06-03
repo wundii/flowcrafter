@@ -9,6 +9,9 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 final readonly class FlowProjection
 {
+    /**
+     * @var string[]
+     */
     public array $flowTypes;
 
     /**

@@ -250,7 +250,7 @@ final class FlowRunnerRedisTest extends TestCase
         $this->assertSame(2, $flowRetries[1]->getAttempt());
         $this->assertSame('Retry attempt 2', $flowRetries[1]->getMessage());
 
-        $flowRetryKeys = $this->client->keys('step:retry:*');
+        $flowRetryKeys = $this->client->keys('flow:step:retry:*');
         $this->assertCount(2, $flowRetryKeys);
 
         $reloadedFlow = $storage->findFlowByHash($flow->getHash());
@@ -290,7 +290,7 @@ final class FlowRunnerRedisTest extends TestCase
         $flowRetries = $flow->getFlowRetries();
         $this->assertCount(3, $flowRetries);
 
-        $flowRetryKeys = $this->client->keys('step:retry:*');
+        $flowRetryKeys = $this->client->keys('flow:step:retry:*');
         $this->assertCount(3, $flowRetryKeys);
 
         $reloadedFlow = $storage->findFlowByHash($flow->getHash());

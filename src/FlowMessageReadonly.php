@@ -88,7 +88,7 @@ class FlowMessageReadonly extends FlowMessage
         if (!$message instanceof ReadonlyMessage) {
             return new ReadonlyMessage(
                 originalClass: parent::getMessageSource(),
-                rawData: $message->jsonSerialize(),
+                rawData: $message->jsonSerialize() ?? [],
             );
         }
 

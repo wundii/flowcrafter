@@ -46,6 +46,7 @@ final class Routes
         $router->add('/api/flow/flow-search', MethodEnum::GET, $flowController->search(...));
         $router->add('/api/flow/flow-stats', MethodEnum::GET, $flowController->stats(...));
         $router->add('/api/flow/flow-type-stats', MethodEnum::GET, $flowController->types(...));
+        $router->add('/api/flow/flow-projection-list', MethodEnum::GET, $flowController->projections(...));
 
         $router->add('/api/flow/schema-list', MethodEnum::GET, $schemaController->list(...));
         $router->add('/api/flow/step-source', MethodEnum::GET, $schemaController->stepSource(...));

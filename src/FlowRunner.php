@@ -416,6 +416,16 @@ class FlowRunner
                 for ($attempt = 1; $attempt <= $maxAttempts; ++$attempt) {
                     try {
                         $stepInstance = $this->createInstance($stepSource->stepSource, $flowMessages);
+                        if ($stepInstance instanceof AbstractStep) {
+                            $stepInstance->setAbstractData(
+                                $flow->getHash(),
+                                $flow->getRuntimeHash(),
+                                $flow->getType(),
+                                $flow->getSchemaHash(),
+                                $flow->getSubject(),
+                            );
+                        }
+
                         ob_start();
                         $processResult = $stepInstance->process();
                         $stepOutput = ob_get_clean();

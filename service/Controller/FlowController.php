@@ -77,22 +77,27 @@ final class FlowController
 
         $stats = $this->storage->findFlowTypeStats($from, $to);
         $groupMap = FlowDiscovery::discover();
-        $projectionHandlerMap = [];
-        $projectionMessageMethodsMap = [];
-        foreach (ProjectionDiscovery::discover() as $projectionHandlerMetum) {
-            foreach ($projectionHandlerMetum->flowTypes as $flowType) {
-                $projectionHandlerMap[$flowType] = $projectionHandlerMetum->handlerClass;
-                $projectionMessageMethodsMap[$flowType] = $projectionHandlerMetum->messageMethods;
-            }
-        }
 
         $result = [];
         foreach ($stats as $stat) {
             $item = $stat->jsonSerialize();
             $item['group'] = $groupMap[$stat->flowType] ?? null;
-            $item['projectionHandlerClass'] = $projectionHandlerMap[$stat->flowType] ?? null;
-            $item['projectionMessageMethods'] = $projectionMessageMethodsMap[$stat->flowType] ?? null;
             $result[] = $item;
+        }
+
+        return new JsonResponse($result);
+    }
+
+    public function projections(): JsonResponse
+    {
+        $result = [];
+        foreach (ProjectionDiscovery::discover() as $projectionHandlerMetum) {
+            foreach ($projectionHandlerMetum->flowTypes as $flowType) {
+                $result[$flowType] = [
+                    'projectionHandlerClass' => $projectionHandlerMetum->handlerClass,
+                    'projectionMessageMethods' => $projectionHandlerMetum->messageMethods,
+                ];
+            }
         }
 
         return new JsonResponse($result);

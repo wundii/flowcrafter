@@ -31,11 +31,11 @@ vendor/bin/flowcrafter projection:worker
 
 ## Container-Übersicht
 
-| Container       | Command                                        | Skalierung                              |
-| --------------- | ---------------------------------------------- | --------------------------------------- |
-| **service**     | `vendor/bin/flowcrafter service`               | vertikal (FrankenPHP Worker)            |
-| **observer**    | `vendor/bin/flowcrafter observer --workers N`  | horizontal (mehrere Worker-Prozesse)    |
-| **scheduler**   | `vendor/bin/flowcrafter scheduler`             | einzelne Instanz (keine Skalierung)     |
+| Container       | Command                                        | Skalierung                                     |
+|-----------------|------------------------------------------------|------------------------------------------------|
+| **service**     | `vendor/bin/flowcrafter service`               | vertikal (FrankenPHP Worker)                   |
+| **observer**    | `vendor/bin/flowcrafter observer --workers N`  | horizontal (mehrere Worker-Prozesse)           |
+| **scheduler**   | `vendor/bin/flowcrafter scheduler`             | einzelne Instanz (keine Skalierung)            |
 | **projection**  | `vendor/bin/flowcrafter projection:worker`     | einzelne Instanz (gemeinsame, geordnete Queue) |
 
 > **Hinweis:** Horizontale Skalierung des Observers erfordert atomaren

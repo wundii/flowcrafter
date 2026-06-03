@@ -8,20 +8,20 @@ Absicherung erfolgt auf Netzwerkebene (Firewall, Reverse Proxy).
 
 ## Exportierte Metriken
 
-| Metrik                                | Typ   | Beschreibung                                                              |
-| ------------------------------------- | ----- | ------------------------------------------------------------------------- |
-| `flowcrafter_info`                    | gauge | Immer `1`, Labels `description` und `storage` enthalten Metadaten         |
-| `flowcrafter_observer_up`             | gauge | `1` = Observer läuft, `0` = Observer gestoppt                             |
-| `flowcrafter_observer_workers`        | gauge | Anzahl der aktiven Observer-Worker-Prozesse                               |
-| `flowcrafter_scheduler_up`            | gauge | `1` = Scheduler läuft, `0` = Scheduler gestoppt                          |
-| `flowcrafter_scheduler_workers`       | gauge | Anzahl der aktiven Scheduler-Prozesse                                     |
-| `flowcrafter_projection_up`           | gauge | `1` = Projection-Worker läuft, `0` = gestoppt                            |
-| `flowcrafter_projection_workers`      | gauge | Anzahl der aktiven Projection-Worker-Prozesse                            |
-| `flowcrafter_queue_size`              | gauge | Aktuelle Anzahl der Einträge in der Queue                                 |
-| `flowcrafter_flows_total`             | gauge | Gesamtanzahl aller Flow-Instanzen                                         |
-| `flowcrafter_exceptions_7d`           | gauge | Anzahl der Flow-Exceptions in den letzten 7 Tagen                        |
-| `flowcrafter_schedule_exceptions_7d`  | gauge | Anzahl der Schedule-Exceptions in den letzten 7 Tagen                    |
-| `flowcrafter_projection_exceptions_7d`| gauge | Anzahl der Projection-Exceptions in den letzten 7 Tagen                  |
+| Metrik                                 | Typ   | Beschreibung                                                      |
+|----------------------------------------|-------|-------------------------------------------------------------------|
+| `flowcrafter_info`                     | gauge | Immer `1`, Labels `description` und `storage` enthalten Metadaten |
+| `flowcrafter_observer_up`              | gauge | `1` = Observer läuft, `0` = Observer gestoppt                     |
+| `flowcrafter_observer_workers`         | gauge | Anzahl der aktiven Observer-Worker-Prozesse                       |
+| `flowcrafter_scheduler_up`             | gauge | `1` = Scheduler läuft, `0` = Scheduler gestoppt                   |
+| `flowcrafter_scheduler_workers`        | gauge | Anzahl der aktiven Scheduler-Prozesse                             |
+| `flowcrafter_projection_up`            | gauge | `1` = Projection-Worker läuft, `0` = gestoppt                     |
+| `flowcrafter_projection_workers`       | gauge | Anzahl der aktiven Projection-Worker-Prozesse                     |
+| `flowcrafter_queue_size`               | gauge | Aktuelle Anzahl der Einträge in der Queue                         |
+| `flowcrafter_flows_total`              | gauge | Gesamtanzahl aller Flow-Instanzen                                 |
+| `flowcrafter_exceptions_7d`            | gauge | Anzahl der Flow-Exceptions in den letzten 7 Tagen                 |
+| `flowcrafter_schedule_exceptions_7d`   | gauge | Anzahl der Schedule-Exceptions in den letzten 7 Tagen             |
+| `flowcrafter_projection_exceptions_7d` | gauge | Anzahl der Projection-Exceptions in den letzten 7 Tagen           |
 
 Die `*_up`-/`*_workers`-Metriken leiten sich aus den Heartbeats der
 jeweiligen Prozesse ab (Observer, Scheduler, Projection-Worker).

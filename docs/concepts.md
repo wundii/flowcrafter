@@ -15,13 +15,13 @@ Jeder Flow besitzt einen `flowType` (z. B. `flow.example.v1`) und einen
 Jeder Flow trägt einen berechneten Status, der beim Lesen aus der SQLite
 (`flow_list`) gespeichert und bei jedem `saveFlow()` aktualisiert wird:
 
-| Status                  | Wert | Bedingung                                                                      |
-| ----------------------- | ---- | ------------------------------------------------------------------------------ |
-| `IN_PROGRESS`           | 0    | Runs vorhanden, aber noch nicht alle Leaf-Steps im letzten Run erreicht        |
-| `IN_PROGRESS_EXCEEDED`  | 1    | `IN_PROGRESS` + letzter Run liegt > 1 Stunde zurück                            |
-| `OK`                    | 2    | Alle relevanten Leaf-Steps erreicht, keine Exceptions, keine `false`-Results   |
-| `WARNING`               | 3    | Alle Leaf-Steps erreicht, aber mindestens ein `FlowResult` mit `result = false` |
-| `FAILED`                | 4    | Mindestens eine `FlowException` im letzten Run                                 |
+| Status                 | Wert  | Bedingung                                                                       |
+|------------------------|-------|---------------------------------------------------------------------------------|
+| `IN_PROGRESS`          | 0     | Runs vorhanden, aber noch nicht alle Leaf-Steps im letzten Run erreicht         |
+| `IN_PROGRESS_EXCEEDED` | 1     | `IN_PROGRESS` + letzter Run liegt > 1 Stunde zurück                             |
+| `OK`                   | 2     | Alle relevanten Leaf-Steps erreicht, keine Exceptions, keine `false`-Results    |
+| `WARNING`              | 3     | Alle Leaf-Steps erreicht, aber mindestens ein `FlowResult` mit `result = false` |
+| `FAILED`               | 4     | Mindestens eine `FlowException` im letzten Run                                  |
 
 **Leaf-Steps** sind Steps, deren Rückgabetypen von keinem weiteren Step
 konsumiert werden (Endknoten des Workflow-Graphen). Erst wenn alle
@@ -44,11 +44,11 @@ nicht ausführbar (`isExecutable = false`).
 
 ## Messages & State Transitions
 
-| Zustand   | Bedeutung                                     |
-| --------- | --------------------------------------------- |
-| `WAIT`    | Message wartet auf weitere Inputs im Step     |
-| `PROCESS` | Alle Inputs vorhanden, Step wird ausgeführt   |
-| `FINISH`  | Message wurde verarbeitet                     |
+| Zustand   | Bedeutung                                   |
+|-----------|---------------------------------------------|
+| `WAIT`    | Message wartet auf weitere Inputs im Step   |
+| `PROCESS` | Alle Inputs vorhanden, Step wird ausgeführt |
+| `FINISH`  | Message wurde verarbeitet                   |
 
 Ein Step kann zurückgeben:
 - `MessageInterface` → Flow läuft weiter
@@ -172,10 +172,10 @@ Die Konfiguration erfolgt über `addStep()` im `FlowBuilder`:
 $builder->addStep(ExternalApiStep::class, retries: 3, delay: 500);
 ```
 
-| Parameter | Default | Beschreibung |
-|---|---|---|
-| `retries` | `0` | Zusätzliche Versuche nach dem Erstversuch |
-| `delay` | `200` | Fixer Delay in ms zwischen den Versuchen |
+| Parameter | Default | Beschreibung                              |
+|-----------|---------|-------------------------------------------|
+| `retries` | `0`     | Zusätzliche Versuche nach dem Erstversuch |
+| `delay`   | `200`   | Fixer Delay in ms zwischen den Versuchen  |
 
 **Verhalten:**
 - Bei einer Exception im `process()`-Aufruf wartet der Runner den

@@ -32,7 +32,7 @@ Startet den PHP-Built-in-Server, den Observer und den Scheduler zusammen
 in einem Kommando. Ctrl+C beendet alle Prozesse. Nur für Entwicklung gedacht.
 
 | Option   | Default   | Beschreibung |
-| -------- | --------- | ------------ |
+|----------|-----------|--------------|
 | `--host` | `0.0.0.0` | Server-Host  |
 | `--port` | `8000`    | Server-Port  |
 

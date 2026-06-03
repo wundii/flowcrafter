@@ -25,25 +25,25 @@ testest.
 
 ## Warum Flows gut testbar sind
 
-| Eigenschaft | Konsequenz für Tests |
-|---|---|
-| `FlowRunner` akzeptiert `StorageInterface` optional (`null`) | Komplette Flow-Ausführung **ohne DB, ohne Docker** |
-| Messages sind `readonly` Value-Objects | Triviale Konstruktion und `assertEquals`-vergleichbar |
-| Steps haben Constructor-DI mit Typen | Autowiring — Fakes lassen sich direkt injizieren |
-| Flow-Objekt exponiert den kompletten Lifecycle | Routing, Fan-In, Exceptions und Results sind introspektierbar |
-| `FlowBuilder::build()` validiert beim Bauen | Schema-Fehler fallen schon beim `MyFlow::schema()`-Aufruf auf |
+| Eigenschaft                                                  | Konsequenz für Tests                                          |
+|--------------------------------------------------------------|---------------------------------------------------------------|
+| `FlowRunner` akzeptiert `StorageInterface` optional (`null`) | Komplette Flow-Ausführung **ohne DB, ohne Docker**            |
+| Messages sind `readonly` Value-Objects                       | Triviale Konstruktion und `assertEquals`-vergleichbar         |
+| Steps haben Constructor-DI mit Typen                         | Autowiring — Fakes lassen sich direkt injizieren              |
+| Flow-Objekt exponiert den kompletten Lifecycle               | Routing, Fan-In, Exceptions und Results sind introspektierbar |
+| `FlowBuilder::build()` validiert beim Bauen                  | Schema-Fehler fallen schon beim `MyFlow::schema()`-Aufruf auf |
 
 ---
 
 ## Test-Ebenen im Überblick
 
-| Ebene | Werkzeug | Geschwindigkeit | Braucht Docker |
-|---|---|---|---|
-| Schema-Validierung | `MyFlow::schema()` direkt aufrufen | ms | nein |
-| Step isoliert | `runStep()` oder `new Step(...)` | ms | nein |
-| Flow end-to-end (in-memory) | `runFlow()` bzw. `FlowRunner` ohne Storage | ms–10ms | nein |
-| Branch- / Fehlerpfade | `runFlow()` + `includeSteps` + Fake-Dependencies | ms | nein |
-| Storage-Integration | Testcontainers (MySQL / Redis / EsDB) | Sekunden | ja |
+| Ebene                       | Werkzeug                                         | Geschwindigkeit | Braucht Docker |
+|-----------------------------|--------------------------------------------------|-----------------|----------------|
+| Schema-Validierung          | `MyFlow::schema()` direkt aufrufen               | ms              | nein           |
+| Step isoliert               | `runStep()` oder `new Step(...)`                 | ms              | nein           |
+| Flow end-to-end (in-memory) | `runFlow()` bzw. `FlowRunner` ohne Storage       | ms–10ms         | nein           |
+| Branch- / Fehlerpfade       | `runFlow()` + `includeSteps` + Fake-Dependencies | ms              | nein           |
+| Storage-Integration         | Testcontainers (MySQL / Redis / EsDB)            | Sekunden        | ja             |
 
 **Empfehlung:** 90% der Tests laufen ohne Docker. Storage-Integrationstests
 sind nur nötig, wenn du einen eigenen `StorageInterface`-Adapter schreibst.
@@ -107,14 +107,14 @@ protected function runFlow(
 ): bool|MessageReturnInterface;
 ```
 
-| Parameter | Zweck |
-|---|---|
-| `flowType` | Der Typ wie in `schema()` verwendet, z. B. `'flow.order.v1'` |
-| `flowSource` | Die `FlowInterface`-Klasse |
-| `initMessage` | Die Start-Message (`MessageInitInterface`) |
-| `flowSubject` | Optionaler Geschäfts-Key (z. B. Order-ID), zur späteren Suche |
+| Parameter      | Zweck                                                                                                         |
+|----------------|---------------------------------------------------------------------------------------------------------------|
+| `flowType`     | Der Typ wie in `schema()` verwendet, z. B. `'flow.order.v1'`                                                  |
+| `flowSource`   | Die `FlowInterface`-Klasse                                                                                    |
+| `initMessage`  | Die Start-Message (`MessageInitInterface`)                                                                    |
+| `flowSubject`  | Optionaler Geschäfts-Key (z. B. Order-ID), zur späteren Suche                                                 |
 | `dependencies` | Services, die in Steps autowired werden (siehe [Dependency Injection im Test](#dependency-injection-im-test)) |
-| `includeSteps` | Nur diese Steps ausführen (siehe [Teilweise Ausführung](#teilweise-ausführung-mit-includesteps)) |
+| `includeSteps` | Nur diese Steps ausführen (siehe [Teilweise Ausführung](#teilweise-ausführung-mit-includesteps))              |
 
 Nach dem Aufruf stehen dir zwei Hilfsmethoden zur Verfügung:
 
@@ -158,11 +158,11 @@ public function testValidateStepIsolated(): void
 
 **Wann `runStep()` statt `new MyStep(...)`?**
 
-| Situation | Empfehlung |
-|---|---|
-| Step hat nur Message-Parameter im Constructor | `new MyStep(new Init('x'))` — expliziter |
+| Situation                                                               | Empfehlung                               |
+|-------------------------------------------------------------------------|------------------------------------------|
+| Step hat nur Message-Parameter im Constructor                           | `new MyStep(new Init('x'))` — expliziter |
 | Step hat 2+ zusätzliche Services (`HttpClient`, `Repository`, `Logger`) | `runStep()` — spart den manuellen Wireup |
-| Service soll autowired werden (kein `new`) | `runStep()` übernimmt Autowiring |
+| Service soll autowired werden (kein `new`)                              | `runStep()` übernimmt Autowiring         |
 
 ---
 
@@ -182,13 +182,13 @@ $this->assertFlowStatus(StatusEnum::WARNING);       // beliebiger Status
 
 Die berechnete Status-Logik (`Flow::status()`):
 
-| Status | Bedingung |
-|---|---|
-| `IN_PROGRESS` | Leaf-Steps noch nicht erreicht |
-| `IN_PROGRESS_EXCEEDED` | wie oben, aber Run > 1h alt |
-| `OK` | Alle Leafs erreicht, alle FlowResults `true` |
-| `WARNING` | Alle Leafs erreicht, mindestens ein FlowResult `false` |
-| `FAILED` | Exception im letzten Run |
+| Status                 | Bedingung                                              |
+|------------------------|--------------------------------------------------------|
+| `IN_PROGRESS`          | Leaf-Steps noch nicht erreicht                         |
+| `IN_PROGRESS_EXCEEDED` | wie oben, aber Run > 1h alt                            |
+| `OK`                   | Alle Leafs erreicht, alle FlowResults `true`           |
+| `WARNING`              | Alle Leafs erreicht, mindestens ein FlowResult `false` |
+| `FAILED`               | Exception im letzten Run                               |
 
 ### Return-Message prüfen
 
@@ -410,14 +410,14 @@ deine Flow-Logik wird in-memory getestet.
 
 ## Zusammenfassung
 
-| Du willst … | Nutze |
-|---|---|
-| …den ganzen Flow durchspielen | `$this->runFlow(...)` |
-| …einen einzelnen Step mit DI testen | `$this->runStep(...)` |
-| …einen Step ohne DI trivial testen | `new MyStep(new Init('x'))` + `$step->process()` |
-| …prüfen, dass der Flow erfolgreich war | `$this->assertFlowOk()` |
-| …prüfen, welche Steps liefen | `assertStepExecuted()` / `assertStepNotExecuted()` |
-| …den Return-Wert prüfen | `$r = $this->assertFlowReturned(Foo::class)` |
-| …einen Fehlerpfad prüfen | `try { runFlow() } catch {}` + `assertFlowFailed()` + `assertFlowExceptionFrom()` |
-| …nur einen Teil des Flows ausführen | `includeSteps: [...]` in `runFlow()` |
-| …Services im Step fälschen | `dependencies: [new FakeService()]` |
+| Du willst …                            | Nutze                                                                             |
+|----------------------------------------|-----------------------------------------------------------------------------------|
+| …den ganzen Flow durchspielen          | `$this->runFlow(...)`                                                             |
+| …einen einzelnen Step mit DI testen    | `$this->runStep(...)`                                                             |
+| …einen Step ohne DI trivial testen     | `new MyStep(new Init('x'))` + `$step->process()`                                  |
+| …prüfen, dass der Flow erfolgreich war | `$this->assertFlowOk()`                                                           |
+| …prüfen, welche Steps liefen           | `assertStepExecuted()` / `assertStepNotExecuted()`                                |
+| …den Return-Wert prüfen                | `$r = $this->assertFlowReturned(Foo::class)`                                      |
+| …einen Fehlerpfad prüfen               | `try { runFlow() } catch {}` + `assertFlowFailed()` + `assertFlowExceptionFrom()` |
+| …nur einen Teil des Flows ausführen    | `includeSteps: [...]` in `runFlow()`                                              |
+| …Services im Step fälschen             | `dependencies: [new FakeService()]`                                               |

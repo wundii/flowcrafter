@@ -37,7 +37,7 @@ Das Storage-Backend wird über typisierte Config-Objekte konfiguriert:
 
 Alle drei Backends erben von `Storage\Service` und führen neben dem
 primären Backend automatisch eine SQLite-Datenbank (`flow_list`,
-`flow_run_list`, `flow_exception_list`, `schedule_exception_list`) als
+`flow_run_list`, `flow_exception_list`, `flow_schedule_exception_list`) als
 schnellen Lese-Cache für API-Anfragen. Die SQLite-Datei liegt
 standardmäßig unter `data/flowcrafter-ui.sqlite` im Projektverzeichnis
 und kann über `setServerStorage()` in der Config überschrieben werden.

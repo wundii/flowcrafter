@@ -106,7 +106,7 @@ abstract class ServiceStorage implements StorageInterface
             CREATE INDEX IF NOT EXISTS flow_exception_list_flow_hash ON flow_exception_list(flow_hash);
             CREATE INDEX IF NOT EXISTS flow_exception_list_time ON flow_exception_list(time);
 
-            CREATE TABLE IF NOT EXISTS schedule_exception_list (
+            CREATE TABLE IF NOT EXISTS flow_schedule_exception_list (
                 hash TEXT PRIMARY KEY,
                 schedule_class TEXT NOT NULL,
                 schedule_name TEXT NOT NULL,
@@ -119,9 +119,9 @@ abstract class ServiceStorage implements StorageInterface
                 time TEXT NOT NULL
             );
 
-            CREATE INDEX IF NOT EXISTS schedule_exception_list_time ON schedule_exception_list(time);
+            CREATE INDEX IF NOT EXISTS flow_schedule_exception_list_time ON flow_schedule_exception_list(time);
 
-            CREATE TABLE IF NOT EXISTS observer_exception_list (
+            CREATE TABLE IF NOT EXISTS flow_observer_exception_list (
                 hash TEXT PRIMARY KEY,
                 flow_source TEXT NOT NULL,
                 message_source TEXT NOT NULL,
@@ -134,9 +134,9 @@ abstract class ServiceStorage implements StorageInterface
                 time TEXT NOT NULL
             );
 
-            CREATE INDEX IF NOT EXISTS observer_exception_list_time ON observer_exception_list(time);
+            CREATE INDEX IF NOT EXISTS flow_observer_exception_list_time ON flow_observer_exception_list(time);
 
-            CREATE TABLE IF NOT EXISTS projection_exception_list (
+            CREATE TABLE IF NOT EXISTS flow_projection_exception_list (
                 hash TEXT PRIMARY KEY,
                 flow_hash TEXT NOT NULL,
                 flow_type TEXT NOT NULL,
@@ -149,7 +149,7 @@ abstract class ServiceStorage implements StorageInterface
                 time TEXT NOT NULL
             );
 
-            CREATE INDEX IF NOT EXISTS projection_exception_list_time ON projection_exception_list(time);
+            CREATE INDEX IF NOT EXISTS flow_projection_exception_list_time ON flow_projection_exception_list(time);
 
             CREATE TABLE IF NOT EXISTS flow_ephemeral_list (
                 flow_hash TEXT PRIMARY KEY,
@@ -173,7 +173,7 @@ abstract class ServiceStorage implements StorageInterface
         try {
             $stmt = $this->client->query(
                 "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' " .
-                "AND name IN ('flow_list', 'flow_run_list', 'flow_exception_list', 'schedule_exception_list', 'observer_exception_list', 'projection_exception_list', 'flow_ephemeral_list')"
+                "AND name IN ('flow_list', 'flow_run_list', 'flow_exception_list', 'flow_schedule_exception_list', 'flow_observer_exception_list', 'flow_projection_exception_list', 'flow_ephemeral_list')"
             );
             if ($stmt === false) {
                 return false;
@@ -284,7 +284,7 @@ abstract class ServiceStorage implements StorageInterface
         }
 
         $stmt = $this->client->prepare(
-            'INSERT OR IGNORE INTO schedule_exception_list ' .
+            'INSERT OR IGNORE INTO flow_schedule_exception_list ' .
             '(hash, schedule_class, schedule_name, schedule_expression, code, message, file, line, trace_string, time) ' .
             'VALUES (:hash, :schedule_class, :schedule_name, :schedule_expression, :code, :message, :file, :line, :trace_string, :time)'
         );
@@ -310,7 +310,7 @@ abstract class ServiceStorage implements StorageInterface
         }
 
         $stmt = $this->client->prepare(
-            'INSERT OR IGNORE INTO observer_exception_list ' .
+            'INSERT OR IGNORE INTO flow_observer_exception_list ' .
             '(hash, flow_source, message_source, queue_id, code, message, file, line, trace_string, time) ' .
             'VALUES (:hash, :flow_source, :message_source, :queue_id, :code, :message, :file, :line, :trace_string, :time)'
         );
@@ -355,7 +355,7 @@ abstract class ServiceStorage implements StorageInterface
 
         [$where, $params] = $this->buildDateFilter($from, $to, 'time');
 
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM schedule_exception_list' . $where);
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_schedule_exception_list' . $where);
         $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
@@ -369,7 +369,7 @@ abstract class ServiceStorage implements StorageInterface
 
         [$where, $params] = $this->buildDateFilter($from, $to, 'time');
 
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM observer_exception_list' . $where);
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_observer_exception_list' . $where);
         $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
@@ -382,7 +382,7 @@ abstract class ServiceStorage implements StorageInterface
         }
 
         $stmt = $this->client->prepare(
-            'INSERT OR IGNORE INTO projection_exception_list ' .
+            'INSERT OR IGNORE INTO flow_projection_exception_list ' .
             '(hash, flow_hash, flow_type, projection_handler_class, code, message, file, line, trace_string, time) ' .
             'VALUES (:hash, :flow_hash, :flow_type, :projection_handler_class, :code, :message, :file, :line, :trace_string, :time)'
         );
@@ -409,7 +409,7 @@ abstract class ServiceStorage implements StorageInterface
 
         [$where, $params] = $this->buildDateFilter($from, $to, 'time');
 
-        $stmt = $this->client->prepare('SELECT COUNT(*) FROM projection_exception_list' . $where);
+        $stmt = $this->client->prepare('SELECT COUNT(*) FROM flow_projection_exception_list' . $where);
         $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
@@ -567,7 +567,7 @@ abstract class ServiceStorage implements StorageInterface
             ' schedule_class, schedule_name, schedule_expression,' .
             ' NULL, NULL, NULL,' .
             ' NULL' .
-            ' FROM schedule_exception_list' . $scheduleWhere .
+            ' FROM flow_schedule_exception_list' . $scheduleWhere .
             ' UNION ALL' .
             " SELECT 'observer' AS exception_type," .
             ' hash, code, message, file, line, trace_string, time,' .
@@ -576,7 +576,7 @@ abstract class ServiceStorage implements StorageInterface
             ' NULL, NULL, NULL,' .
             ' flow_source, message_source, queue_id,' .
             ' NULL' .
-            ' FROM observer_exception_list' . $observerWhere .
+            ' FROM flow_observer_exception_list' . $observerWhere .
             ' UNION ALL' .
             " SELECT 'projection' AS exception_type," .
             ' hash, code, message, file, line, trace_string, time,' .
@@ -585,7 +585,7 @@ abstract class ServiceStorage implements StorageInterface
             ' NULL, NULL, NULL,' .
             ' NULL, NULL, NULL,' .
             ' projection_handler_class' .
-            ' FROM projection_exception_list' . $projectionWhere .
+            ' FROM flow_projection_exception_list' . $projectionWhere .
             ' ORDER BY time ' . $sortEnum->name .
             ' LIMIT :top OFFSET :skip';
 
@@ -940,7 +940,7 @@ abstract class ServiceStorage implements StorageInterface
 
         $scheduleCounts = [];
         $stmt = $this->client->prepare(
-            'SELECT DATE(time) AS date, COUNT(*) AS count FROM schedule_exception_list' . $where .
+            'SELECT DATE(time) AS date, COUNT(*) AS count FROM flow_schedule_exception_list' . $where .
             ' GROUP BY DATE(time) ORDER BY date ASC'
         );
         $stmt->execute($params);
@@ -951,7 +951,7 @@ abstract class ServiceStorage implements StorageInterface
 
         $observerCounts = [];
         $stmt = $this->client->prepare(
-            'SELECT DATE(time) AS date, COUNT(*) AS count FROM observer_exception_list' . $where .
+            'SELECT DATE(time) AS date, COUNT(*) AS count FROM flow_observer_exception_list' . $where .
             ' GROUP BY DATE(time) ORDER BY date ASC'
         );
         $stmt->execute($params);
@@ -962,7 +962,7 @@ abstract class ServiceStorage implements StorageInterface
 
         $projectionCounts = [];
         $stmt = $this->client->prepare(
-            'SELECT DATE(time) AS date, COUNT(*) AS count FROM projection_exception_list' . $where .
+            'SELECT DATE(time) AS date, COUNT(*) AS count FROM flow_projection_exception_list' . $where .
             ' GROUP BY DATE(time) ORDER BY date ASC'
         );
         $stmt->execute($params);
@@ -1080,9 +1080,9 @@ abstract class ServiceStorage implements StorageInterface
         $this->client->exec('DELETE FROM flow_run_list');
         $this->client->exec('DELETE FROM flow_exception_list');
         $this->client->exec('DELETE FROM flow_ephemeral_list');
-        $this->client->exec('DELETE FROM schedule_exception_list');
-        $this->client->exec('DELETE FROM observer_exception_list');
-        $this->client->exec('DELETE FROM projection_exception_list');
+        $this->client->exec('DELETE FROM flow_schedule_exception_list');
+        $this->client->exec('DELETE FROM flow_observer_exception_list');
+        $this->client->exec('DELETE FROM flow_projection_exception_list');
     }
 
     protected function getServiceClient(): ?Client

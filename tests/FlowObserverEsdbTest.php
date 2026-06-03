@@ -48,28 +48,28 @@ final class FlowObserverEsdbTest extends TestCase
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
         $this->assertCount(20, iterator_to_array($events));
 
-        $flowSchemaEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.schema.v1" PROJECT INTO e');
+        $flowSchemaEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.schema.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowSchemaEvents));
 
-        $flowInstanceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.instance.v1" PROJECT INTO e');
+        $flowInstanceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.instance.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowInstanceEvents));
 
-        $flowRunEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.run.v1" PROJECT INTO e');
+        $flowRunEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.run.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowRunEvents));
 
-        $flowMessageEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.message.v1" PROJECT INTO e');
+        $flowMessageEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.message.v1" PROJECT INTO e');
         $this->assertCount(6, iterator_to_array($flowMessageEvents));
 
-        $flowResultEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.result.v1" PROJECT INTO e');
+        $flowResultEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.result.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowResultEvents));
 
-        $flowExceptionEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.exception.v1" PROJECT INTO e');
+        $flowExceptionEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.exception.v1" PROJECT INTO e');
         $this->assertCount(0, iterator_to_array($flowExceptionEvents));
 
-        $flowStepSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.step.v1" PROJECT INTO e');
+        $flowStepSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.source.step.v1" PROJECT INTO e');
         $this->assertCount(4, iterator_to_array($flowStepSourceEvents));
 
-        $flowMessageSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.message.v1" PROJECT INTO e');
+        $flowMessageSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.source.message.v1" PROJECT INTO e');
         $this->assertCount(4, iterator_to_array($flowMessageSourceEvents));
     }
 
@@ -88,28 +88,28 @@ final class FlowObserverEsdbTest extends TestCase
         $flowObserver = new FlowObserver($storage, $queue, []);
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
-        $flowSchemaEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.schema.v1" PROJECT INTO e');
+        $flowSchemaEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.schema.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowSchemaEvents));
 
-        $flowInstanceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.instance.v1" PROJECT INTO e');
+        $flowInstanceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.instance.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowInstanceEvents));
 
-        $flowRunEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.run.v1" PROJECT INTO e');
+        $flowRunEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.run.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowRunEvents));
 
-        $flowMessageEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.message.v1" PROJECT INTO e');
+        $flowMessageEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.message.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowMessageEvents));
 
-        $flowResultEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.result.v1" PROJECT INTO e');
+        $flowResultEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.result.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowResultEvents));
 
-        $flowExceptionEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.exception.v1" PROJECT INTO e');
+        $flowExceptionEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.exception.v1" PROJECT INTO e');
         $this->assertCount(0, iterator_to_array($flowExceptionEvents));
 
-        $flowStepSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.step.v1" PROJECT INTO e');
+        $flowStepSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.source.step.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowStepSourceEvents));
 
-        $flowMessageSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.flow.source.message.v1" PROJECT INTO e');
+        $flowMessageSourceEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.source.message.v1" PROJECT INTO e');
         $this->assertCount(1, iterator_to_array($flowMessageSourceEvents));
     }
 }

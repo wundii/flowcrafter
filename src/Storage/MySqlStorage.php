@@ -234,7 +234,7 @@ class MySqlStorage extends ServiceStorage
 
         $this->client->exec(
             <<<'SQL'
-            CREATE TABLE IF NOT EXISTS step_retry (
+            CREATE TABLE IF NOT EXISTS flow_step_retry (
                 hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 flow_hash VARCHAR(191) NOT NULL,
                 flow_runtime_hash VARCHAR(191) NOT NULL,
@@ -242,8 +242,8 @@ class MySqlStorage extends ServiceStorage
                 attempt INT NOT NULL,
                 message TEXT NOT NULL,
                 `time` DATETIME(3) NOT NULL,
-                INDEX idx_step_retry_flow_hash (flow_hash),
-                INDEX idx_step_retry_flow_runtime_hash (flow_runtime_hash),
+                INDEX idx_flow_step_retry_flow_hash (flow_hash),
+                INDEX idx_flow_step_retry_flow_runtime_hash (flow_runtime_hash),
                 FOREIGN KEY (flow_hash) REFERENCES flow_instance(flow_hash),
                 FOREIGN KEY (flow_runtime_hash) REFERENCES flow_run(flow_runtime_hash)
             )
@@ -252,7 +252,7 @@ class MySqlStorage extends ServiceStorage
 
         $this->client->exec(
             <<<'SQL'
-            CREATE TABLE IF NOT EXISTS schedule_exception (
+            CREATE TABLE IF NOT EXISTS flow_schedule_exception (
                 hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 schedule_class VARCHAR(255) NOT NULL,
                 schedule_name VARCHAR(255) NOT NULL,
@@ -263,14 +263,14 @@ class MySqlStorage extends ServiceStorage
                 line INT(11) NOT NULL,
                 trace_string TEXT NOT NULL,
                 `time` DATETIME(3) NOT NULL,
-                INDEX idx_schedule_exception_time (time)
+                INDEX idx_flow_schedule_exception_time (time)
             )
             SQL
         );
 
         $this->client->exec(
             <<<'SQL'
-            CREATE TABLE IF NOT EXISTS observer_exception (
+            CREATE TABLE IF NOT EXISTS flow_observer_exception (
                 hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 flow_source VARCHAR(255) NOT NULL,
                 message_source VARCHAR(255) NOT NULL,
@@ -281,14 +281,14 @@ class MySqlStorage extends ServiceStorage
                 line INT(11) NOT NULL,
                 trace_string TEXT NOT NULL,
                 `time` DATETIME(3) NOT NULL,
-                INDEX idx_observer_exception_time (time)
+                INDEX idx_flow_observer_exception_time (time)
             )
             SQL
         );
 
         $this->client->exec(
             <<<'SQL'
-            CREATE TABLE IF NOT EXISTS projection_exception (
+            CREATE TABLE IF NOT EXISTS flow_projection_exception (
                 hash VARCHAR(191) NOT NULL PRIMARY KEY,
                 flow_hash VARCHAR(191) NOT NULL,
                 flow_type VARCHAR(191) NOT NULL,
@@ -299,7 +299,7 @@ class MySqlStorage extends ServiceStorage
                 line INT(11) NOT NULL,
                 trace_string TEXT NOT NULL,
                 `time` DATETIME(3) NOT NULL,
-                INDEX idx_projection_exception_time (time)
+                INDEX idx_flow_projection_exception_time (time)
             )
             SQL
         );
@@ -463,7 +463,7 @@ class MySqlStorage extends ServiceStorage
     public function appendScheduleException(ScheduleException $scheduleException): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO schedule_exception (hash, schedule_class, schedule_name, schedule_expression, code, message, file, line, trace_string, time) ' .
+            'INSERT IGNORE INTO flow_schedule_exception (hash, schedule_class, schedule_name, schedule_expression, code, message, file, line, trace_string, time) ' .
             'VALUES (:hash, :schedule_class, :schedule_name, :schedule_expression, :code, :message, :file, :line, :trace_string, :time)'
         );
 
@@ -486,7 +486,7 @@ class MySqlStorage extends ServiceStorage
     public function appendObserverException(ObserverException $observerException): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO observer_exception (hash, flow_source, message_source, queue_id, code, message, file, line, trace_string, time) ' .
+            'INSERT IGNORE INTO flow_observer_exception (hash, flow_source, message_source, queue_id, code, message, file, line, trace_string, time) ' .
             'VALUES (:hash, :flow_source, :message_source, :queue_id, :code, :message, :file, :line, :trace_string, :time)'
         );
 
@@ -509,7 +509,7 @@ class MySqlStorage extends ServiceStorage
     public function appendProjectionException(ProjectionException $projectionException): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO projection_exception (hash, flow_hash, flow_type, projection_handler_class, code, message, file, line, trace_string, time) ' .
+            'INSERT IGNORE INTO flow_projection_exception (hash, flow_hash, flow_type, projection_handler_class, code, message, file, line, trace_string, time) ' .
             'VALUES (:hash, :flow_hash, :flow_type, :projection_handler_class, :code, :message, :file, :line, :trace_string, :time)'
         );
 
@@ -550,7 +550,7 @@ class MySqlStorage extends ServiceStorage
     public function appendFlowRetry(FlowRetry $flowRetry): void
     {
         $stmt = $this->client->prepare(
-            'INSERT IGNORE INTO step_retry (hash, flow_hash, flow_runtime_hash, step_source, attempt, message, time) ' .
+            'INSERT IGNORE INTO flow_step_retry (hash, flow_hash, flow_runtime_hash, step_source, attempt, message, time) ' .
             'VALUES (:hash, :flow_hash, :flow_runtime_hash, :step_source, :attempt, :message, :time)'
         );
 
@@ -818,7 +818,7 @@ class MySqlStorage extends ServiceStorage
         }
 
         $stmt = $this->client->prepare(
-            'SELECT * FROM step_retry ' .
+            'SELECT * FROM flow_step_retry ' .
             'WHERE flow_hash = :flow_hash ' .
             'ORDER BY time ASC'
         );

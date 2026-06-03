@@ -33,20 +33,15 @@ final class EsdbQueue implements QueueInterface
 
     public const PROJECTION_CHECKPOINT_SUBJECT = '/projection/checkpoint';
 
-    public const TYPE_QUEUE = 'flowcrafter.flow.queue.v1';
+    public const TYPE_QUEUE = 'flowcrafter.queue.v1';
 
-    public const TYPE_QUEUE_CLAIM = 'flowcrafter.flow.queue.claim.v1';
+    public const TYPE_QUEUE_CLAIM = 'flowcrafter.queue.claim.v1';
 
     public const TYPE_PROJECTION_ITEM = 'flowcrafter.projection.item.v1';
 
     public const TYPE_PROJECTION_CHECKPOINT = 'flowcrafter.projection.checkpoint.v1';
 
-    /**
-     * Mirrors Esdb::TYPE_RUN. The observer queue lower bound is derived from the
-     * flow-run events written by the storage; when queue and storage point at
-     * the same EventSourcingDB this resolves the last consumed queue item.
-     */
-    public const TYPE_RUN = 'flowcrafter.flow.run.v1';
+    public const TYPE_RUN = 'flowcrafter.run.v1';
 
     private readonly Client $client;
 

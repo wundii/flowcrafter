@@ -239,12 +239,12 @@ $stmtExc = $pdo->prepare(
 );
 
 $stmtSchedExc = $pdo->prepare(
-    'INSERT OR IGNORE INTO schedule_exception_list (hash, schedule_class, schedule_name, schedule_expression, code, message, file, line, trace_string, time) ' .
+    'INSERT OR IGNORE INTO flow_schedule_exception_list (hash, schedule_class, schedule_name, schedule_expression, code, message, file, line, trace_string, time) ' .
     'VALUES (:hash, :schedule_class, :schedule_name, :schedule_expression, :code, :message, :file, :line, :trace_string, :time)'
 );
 
 $stmtObsExc = $pdo->prepare(
-    'INSERT OR IGNORE INTO observer_exception_list (hash, flow_source, message_source, queue_id, code, message, file, line, trace_string, time) ' .
+    'INSERT OR IGNORE INTO flow_observer_exception_list (hash, flow_source, message_source, queue_id, code, message, file, line, trace_string, time) ' .
     'VALUES (:hash, :flow_source, :message_source, :queue_id, :code, :message, :file, :line, :trace_string, :time)'
 );
 

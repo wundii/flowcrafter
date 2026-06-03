@@ -47,7 +47,7 @@ class RedisStorage extends ServiceStorage
 
     public const PREFIX_TYPE_SOURCE_STEP = 'flow:source:step:';
 
-    public const PREFIX_TYPE_STEP_RETRY = 'step:retry:';
+    public const PREFIX_TYPE_STEP_RETRY = 'flow:step:retry:';
 
     private const INDEX_INSTANCE = 'idx:flow';
 
@@ -61,7 +61,7 @@ class RedisStorage extends ServiceStorage
 
     private const INDEX_SCHEMA = 'idx:flow:schema';
 
-    private const INDEX_STEP_RETRY = 'idx:step:retry';
+    private const INDEX_STEP_RETRY = 'idx:flow:step:retry';
 
     private const INDEX_SOURCE_MESSAGE = 'idx:flow:source:message';
 
