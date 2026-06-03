@@ -14,7 +14,7 @@ class ObserverException implements JsonSerializable
         private readonly string $flowSource,
         private readonly string $messageSource,
         private readonly ?string $queueId,
-        private readonly int $code,
+        private readonly string $code,
         private readonly string $message,
         private readonly string $file,
         private readonly int $line,
@@ -28,7 +28,7 @@ class ObserverException implements JsonSerializable
         string $flowSource,
         string $messageSource,
         ?string $queueId,
-        int $code,
+        string $code,
         string $message,
         string $file,
         int $line,
@@ -67,7 +67,7 @@ class ObserverException implements JsonSerializable
         return $this->queueId;
     }
 
-    public function getCode(): int
+    public function getCode(): string
     {
         return $this->code;
     }

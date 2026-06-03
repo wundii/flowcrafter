@@ -222,13 +222,18 @@ final class Converter
     {
         $exception = Assert::array($array, 'Each Exception must be an array.');
 
+        $code = $exception['code'] ?? null;
+        if (is_int($code)) {
+            $code = (string) $code;
+        }
+
         return new FlowException(
             Assert::string($exception['flowHash'] ?? null, 'Each Exception must have a string flowHash.'),
             Assert::string($exception['flowRuntimeHash'] ?? null, 'Each Exception must have a string flowRuntimeHash.'),
             Assert::string($exception['flowType'] ?? null, 'Each Exception must have a string flowType.'),
             Assert::string($exception['stepSource'] ?? null, 'Each Exception must have a string stepSource.'), /** @phpstan-ignore argument.type */
             Assert::string($exception['stepHash'] ?? '', 'Each stepHash must have a string or null.'),
-            Assert::int($exception['code'] ?? null, 'Each Exception must have an integer code.'),
+            Assert::string($code, 'Each Exception must have a string code.'),
             Assert::string($exception['message'] ?? null, 'Each Exception must have a string message.'),
             Assert::string($exception['file'] ?? null, 'Each Exception must have a string file.'),
             Assert::int($exception['line'] ?? null, 'Each Exception must have an integer line.'),

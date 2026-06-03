@@ -39,7 +39,7 @@ final class ExceptionControllerTest extends TestCase
         $exceptionListEntity = new ExceptionListEntity(
             type: 'flow',
             hash: 'exc-hash-1',
-            code: 500,
+            code: '500',
             message: 'Something went wrong',
             file: '/var/www/SomeStep.php',
             line: 42,

@@ -22,7 +22,7 @@ final class ScheduleExceptionTest extends TestCase
             scheduleClass: 'MySchedule',
             scheduleName: 'daily-job',
             scheduleExpression: '0 8 * * *',
-            code: 42,
+            code: '42',
             message: 'Something went wrong',
             file: '/app/src/MySchedule.php',
             line: 99,
@@ -37,7 +37,7 @@ final class ScheduleExceptionTest extends TestCase
         $this->assertSame('MySchedule', $this->scheduleException->getScheduleClass());
         $this->assertSame('daily-job', $this->scheduleException->getScheduleName());
         $this->assertSame('0 8 * * *', $this->scheduleException->getScheduleExpression());
-        $this->assertSame(42, $this->scheduleException->getCode());
+        $this->assertSame('42', $this->scheduleException->getCode());
         $this->assertSame('Something went wrong', $this->scheduleException->getMessage());
         $this->assertSame('/app/src/MySchedule.php', $this->scheduleException->getFile());
         $this->assertSame(99, $this->scheduleException->getLine());
@@ -52,7 +52,7 @@ final class ScheduleExceptionTest extends TestCase
             scheduleClass: 'ASchedule',
             scheduleName: 'job',
             scheduleExpression: '* * * * *',
-            code: 0,
+            code: '0',
             message: 'error',
             file: 'file.php',
             line: 1,
@@ -70,7 +70,7 @@ final class ScheduleExceptionTest extends TestCase
         $this->assertSame('MySchedule', $data['scheduleClass']);
         $this->assertSame('daily-job', $data['scheduleName']);
         $this->assertSame('0 8 * * *', $data['scheduleExpression']);
-        $this->assertSame(42, $data['code']);
+        $this->assertSame('42', $data['code']);
         $this->assertSame('Something went wrong', $data['message']);
         $this->assertSame('/app/src/MySchedule.php', $data['file']);
         $this->assertSame(99, $data['line']);

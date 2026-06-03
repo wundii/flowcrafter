@@ -13,7 +13,7 @@ class ExceptionListEntity implements JsonSerializable
     public function __construct(
         public string $type,
         public string $hash,
-        public int $code,
+        public string $code,
         public string $message,
         public string $file,
         public int $line,

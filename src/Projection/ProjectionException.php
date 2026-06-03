@@ -15,7 +15,7 @@ class ProjectionException implements JsonSerializable
         private readonly string $flowHash,
         private readonly string $flowType,
         private readonly string $projectionHandlerClass,
-        private readonly int $code,
+        private readonly string $code,
         private readonly string $message,
         private readonly string $file,
         private readonly int $line,
@@ -29,7 +29,7 @@ class ProjectionException implements JsonSerializable
         string $flowHash,
         string $flowType,
         string $projectionHandlerClass,
-        int $code,
+        string $code,
         string $message,
         string $file,
         int $line,
@@ -68,7 +68,7 @@ class ProjectionException implements JsonSerializable
         return $this->projectionHandlerClass;
     }
 
-    public function getCode(): int
+    public function getCode(): string
     {
         return $this->code;
     }

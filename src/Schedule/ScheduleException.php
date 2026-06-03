@@ -15,7 +15,7 @@ class ScheduleException implements JsonSerializable
         private readonly string $scheduleClass,
         private readonly string $scheduleName,
         private readonly string $scheduleExpression,
-        private readonly int $code,
+        private readonly string $code,
         private readonly string $message,
         private readonly string $file,
         private readonly int $line,
@@ -29,7 +29,7 @@ class ScheduleException implements JsonSerializable
         string $scheduleClass,
         string $scheduleName,
         string $scheduleExpression,
-        int $code,
+        string $code,
         string $message,
         string $file,
         int $line,
@@ -68,7 +68,7 @@ class ScheduleException implements JsonSerializable
         return $this->scheduleExpression;
     }
 
-    public function getCode(): int
+    public function getCode(): string
     {
         return $this->code;
     }

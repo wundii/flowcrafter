@@ -59,7 +59,7 @@ final class ServiceStorageDisabledTest extends TestCase
     {
         $nullStorageMock = new NullStorageMock();
 
-        $scheduleException = ScheduleException::create('TestSchedule', 'test', '* * * * *', 0, 'fail', __FILE__, __LINE__, '');
+        $scheduleException = ScheduleException::create('TestSchedule', 'test', '* * * * *', '0', 'fail', __FILE__, __LINE__, '');
         $nullStorageMock->appendScheduleException($scheduleException);
 
         $this->assertSame(0, $nullStorageMock->countScheduleExceptions());

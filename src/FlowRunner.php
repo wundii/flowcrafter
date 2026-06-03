@@ -476,7 +476,7 @@ class FlowRunner
                     flowType: $flow->getType(),
                     stepSource: $stepSource->stepSource,
                     stepHash: $stepSource->stepHash,
-                    code: $lastException->getCode(),
+                    code: (string) $lastException->getCode(),
                     message: $lastException->getMessage(),
                     file: $lastException->getFile(),
                     line: $lastException->getLine(),

@@ -106,7 +106,7 @@ final class ProjectionWorker
                         flowHash: $flowMessage->getFlowHash(),
                         flowType: $flowMessage->getFlowType(),
                         projectionHandlerClass: $meta->handlerClass,
-                        code: $throwable->getCode(),
+                        code: (string) $throwable->getCode(),
                         message: $throwable->getMessage(),
                         file: $throwable->getFile(),
                         line: $throwable->getLine(),

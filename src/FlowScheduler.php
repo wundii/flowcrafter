@@ -123,7 +123,7 @@ final class FlowScheduler
                         scheduleClass: $scheduleClass,
                         scheduleName: $name,
                         scheduleExpression: $attribute->expression,
-                        code: $e->getCode(),
+                        code: (string) $e->getCode(),
                         message: $e->getMessage(),
                         file: $e->getFile(),
                         line: $e->getLine(),

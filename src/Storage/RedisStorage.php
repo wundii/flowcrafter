@@ -396,7 +396,7 @@ class RedisStorage extends ServiceStorage
             '$.code',
             'AS',
             'code',
-            'NUMERIC',
+            'TAG',
             '$.message',
             'AS',
             'message',

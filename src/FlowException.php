@@ -20,7 +20,7 @@ class FlowException implements JsonSerializable
         private readonly string $flowType,
         private readonly string $stepSource,
         private readonly string $stepHash,
-        private readonly int $code,
+        private readonly string $code,
         private readonly string $message,
         private readonly string $file,
         private readonly int $line,
@@ -47,7 +47,7 @@ class FlowException implements JsonSerializable
         string $flowType,
         string $stepSource,
         string $stepHash,
-        int $code,
+        string $code,
         string $message,
         string $file,
         int $line,
@@ -96,7 +96,7 @@ class FlowException implements JsonSerializable
         return $this->stepHash;
     }
 
-    public function getCode(): int
+    public function getCode(): string
     {
         return $this->code;
     }

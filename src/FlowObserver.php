@@ -100,7 +100,7 @@ final readonly class FlowObserver
                     flowSource: $observeItem?->getFlowSource() ?? '',
                     messageSource: $observeItem?->getMessageSource() ?? '',
                     queueId: $observeItem?->getQueueId(),
-                    code: $throwable->getCode(),
+                    code: (string) $throwable->getCode(),
                     message: $throwable->getMessage(),
                     file: $throwable->getFile(),
                     line: $throwable->getLine(),

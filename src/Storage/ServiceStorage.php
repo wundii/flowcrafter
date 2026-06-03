@@ -95,7 +95,7 @@ abstract class ServiceStorage implements StorageInterface
                 flow_type TEXT NOT NULL,
                 step_source TEXT NOT NULL,
                 step_hash TEXT NOT NULL,
-                code INTEGER NOT NULL,
+                code TEXT NOT NULL,
                 message TEXT NOT NULL,
                 file TEXT NOT NULL,
                 line INTEGER NOT NULL,
@@ -111,7 +111,7 @@ abstract class ServiceStorage implements StorageInterface
                 schedule_class TEXT NOT NULL,
                 schedule_name TEXT NOT NULL,
                 schedule_expression TEXT NOT NULL,
-                code INTEGER NOT NULL,
+                code TEXT NOT NULL,
                 message TEXT NOT NULL,
                 file TEXT NOT NULL,
                 line INTEGER NOT NULL,
@@ -126,7 +126,7 @@ abstract class ServiceStorage implements StorageInterface
                 flow_source TEXT NOT NULL,
                 message_source TEXT NOT NULL,
                 queue_id TEXT,
-                code INTEGER NOT NULL,
+                code TEXT NOT NULL,
                 message TEXT NOT NULL,
                 file TEXT NOT NULL,
                 line INTEGER NOT NULL,
@@ -141,7 +141,7 @@ abstract class ServiceStorage implements StorageInterface
                 flow_hash TEXT NOT NULL,
                 flow_type TEXT NOT NULL,
                 projection_handler_class TEXT NOT NULL,
-                code INTEGER NOT NULL,
+                code TEXT NOT NULL,
                 message TEXT NOT NULL,
                 file TEXT NOT NULL,
                 line INTEGER NOT NULL,
@@ -597,11 +597,11 @@ abstract class ServiceStorage implements StorageInterface
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $row) {
-            /** @var array{exception_type: string, hash: string, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_hash: string|null, flow_runtime_hash: string|null, flow_type: string|null, step_source: string|null, step_hash: string|null, flow_status: string|null, schedule_class: string|null, schedule_name: string|null, schedule_expression: string|null, observer_flow_source: string|null, observer_message_source: string|null, observer_queue_id: string|null, projection_handler_class: string|null} $row */
+            /** @var array{exception_type: string, hash: string, code: string, message: string, file: string, line: int|string, trace_string: string, time: string, flow_hash: string|null, flow_runtime_hash: string|null, flow_type: string|null, step_source: string|null, step_hash: string|null, flow_status: string|null, schedule_class: string|null, schedule_name: string|null, schedule_expression: string|null, observer_flow_source: string|null, observer_message_source: string|null, observer_queue_id: string|null, projection_handler_class: string|null} $row */
             yield new ExceptionListEntity(
                 type: $row['exception_type'],
                 hash: $row['hash'],
-                code: (int) $row['code'],
+                code: (string) $row['code'],
                 message: $row['message'],
                 file: $row['file'],
                 line: (int) $row['line'],

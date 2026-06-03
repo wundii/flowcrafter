@@ -349,7 +349,7 @@ class EsdbStorage extends ServiceStorage
                         'type' => 'string',
                     ],
                     'code' => [
-                        'type' => 'integer',
+                        'type' => 'string',
                     ],
                     'message' => [
                         'type' => 'string',

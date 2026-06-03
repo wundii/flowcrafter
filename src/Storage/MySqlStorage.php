@@ -198,7 +198,7 @@ class MySqlStorage extends ServiceStorage
                 flow_type VARCHAR(191) NOT NULL,
                 step_source VARCHAR(255) NOT NULL,
                 step_hash VARCHAR(191) NOT NULL,
-                code INT(11) NOT NULL,
+                code VARCHAR(11) NOT NULL,
                 message VARCHAR(2000) NOT NULL,
                 file VARCHAR(2000) NOT NULL,
                 line INT(11) NOT NULL,
@@ -257,7 +257,7 @@ class MySqlStorage extends ServiceStorage
                 schedule_class VARCHAR(255) NOT NULL,
                 schedule_name VARCHAR(255) NOT NULL,
                 schedule_expression VARCHAR(100) NOT NULL,
-                code INT(11) NOT NULL,
+                code VARCHAR(11) NOT NULL,
                 message VARCHAR(2000) NOT NULL,
                 file VARCHAR(2000) NOT NULL,
                 line INT(11) NOT NULL,
@@ -275,7 +275,7 @@ class MySqlStorage extends ServiceStorage
                 flow_source VARCHAR(255) NOT NULL,
                 message_source VARCHAR(255) NOT NULL,
                 queue_id VARCHAR(191) NULL,
-                code INT(11) NOT NULL,
+                code VARCHAR(11) NOT NULL,
                 message VARCHAR(2000) NOT NULL,
                 file VARCHAR(2000) NOT NULL,
                 line INT(11) NOT NULL,
@@ -293,7 +293,7 @@ class MySqlStorage extends ServiceStorage
                 flow_hash VARCHAR(191) NOT NULL,
                 flow_type VARCHAR(191) NOT NULL,
                 projection_handler_class VARCHAR(255) NOT NULL,
-                code INT(11) NOT NULL,
+                code VARCHAR(11) NOT NULL,
                 message VARCHAR(2000) NOT NULL,
                 file VARCHAR(2000) NOT NULL,
                 line INT(11) NOT NULL,
@@ -776,7 +776,7 @@ class MySqlStorage extends ServiceStorage
         $stmt->setFetchMode(Client::FETCH_ASSOC);
 
         foreach ($stmt as $exception) {
-            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, flow_type: string, step_source: string, step_hash: string|null, code: int|string, message: string, file: string, line: int|string, trace_string: string, time: string} $exception */
+            /** @var array{hash: string, flow_hash: string, flow_runtime_hash: string, flow_type: string, step_source: string, step_hash: string|null, code: string, message: string, file: string, line: int|string, trace_string: string, time: string} $exception */
             $flowArray['flowExceptions'][] = [
                 'hash' => $exception['hash'],
                 'flowHash' => $exception['flow_hash'],
