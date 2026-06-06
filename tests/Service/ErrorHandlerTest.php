@@ -8,7 +8,7 @@ use Exception;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
-use Wundii\Service\ErrorHandler;
+use Wundii\Flower\ErrorHandler;
 
 final class ErrorHandlerTest extends TestCase
 {

@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flower\ErrorHandler;
 use Wundii\Flower\Flower;
-use Wundii\Service\ErrorHandler;
 
 try {
     /** @var FlowcrafterConfig $bootstrap */

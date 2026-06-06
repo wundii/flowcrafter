@@ -51,7 +51,7 @@ class FlowRunner
     /**
      * @var FlowOutput[]
      */
-    private array $outputLog = [];
+    private array $output = [];
 
     private bool $ephemeral = false;
 
@@ -61,6 +61,15 @@ class FlowRunner
      * @var class-string<ProjectionHandlerInterface>[]
      */
     private array $projectionHandlerClasses = [];
+
+    /**
+     * Message classes already projected in the current run. Projections are
+     * deduplicated per message class per run: a message that fans out to
+     * several consuming steps is projected only once.
+     *
+     * @var array<string, true>
+     */
+    private array $projectedMessageSources = [];
 
     /**
      * @param class-string<FlowInterface> $flowSource
@@ -104,9 +113,9 @@ class FlowRunner
     /**
      * @return FlowOutput[]
      */
-    public function getOutputLog(): array
+    public function getOutput(): array
     {
-        return $this->outputLog;
+        return $this->output;
     }
 
     /**
@@ -152,6 +161,7 @@ class FlowRunner
 
         $this->container = $this->buildContainer($flowSchema);
         $this->executedStepKey = [];
+        $this->projectedMessageSources = [];
         $this->messageToStepsMap = $flowSchema->getMessageToStepsMap();
         $this->includeSteps = $this->expandIncludeSteps($includeSteps, $flowSchema);
 
@@ -430,7 +440,7 @@ class FlowRunner
                         $processResult = $stepInstance->process();
                         $stepOutput = ob_get_clean();
                         if ($stepOutput !== '' && $stepOutput !== false) {
-                            $this->outputLog[] = FlowOutput::create($stepSource->stepSource, $stepOutput);
+                            $this->output[] = FlowOutput::create($stepSource->stepSource, $stepOutput);
                         }
 
                         $lastException = null;
@@ -599,6 +609,13 @@ class FlowRunner
         if ($this->projectionHandlerClasses === []) {
             return;
         }
+
+        $messageSource = $flowMessage->getMessageSource();
+        if (array_key_exists($messageSource, $this->projectedMessageSources)) {
+            return;
+        }
+
+        $this->projectedMessageSources[$messageSource] = true;
 
         $this->queue->appendProjectionQueueItem($flowMessage);
     }

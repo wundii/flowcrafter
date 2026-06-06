@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Wundii\Service;
+namespace Wundii\Flower;
 
 use Closure;
 use Symfony\Component\HttpFoundation\JsonResponse;

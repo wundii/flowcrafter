@@ -15,11 +15,11 @@ require getcwd() . '/vendor/autoload.php';
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfig;
 use Wundii\Flowcrafter\Bootstrap\BootstrapConfigRequirer;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
-use Wundii\Flowcrafter\Enum\SortEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowMessage;
 use Wundii\Flowcrafter\FlowResult;
+use Wundii\Flowcrafter\FlowRetry;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Storage\Entity\FlowInstanceEntity;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
@@ -47,15 +47,13 @@ class SeedStorage extends ServiceStorage
     public function registerMessageSource(MessageSourceEntity $messageSourceEntity): void {}
     public function registerStepSource(StepSourceEntity $stepSourceEntity): void {}
     public function registerFlowInstance(Flow $flow): void {}
-    public function appendFlowRun(Flow $flow, ?string $queueId = null): void {}
-    public function appendFlowMessage(FlowMessage $flowMessage): void {}
     public function appendFlowException(FlowException $flowException): void {}
+    public function appendFlowMessage(FlowMessage $flowMessage): void {}
     public function appendFlowResult(FlowResult $flowResult): void {}
+    public function appendFlowRetry(FlowRetry $flowRetry): void {}
+    public function appendFlowRun(Flow $flow, ?string $queueId = null): void {}
     public function appendObserveItem(string $type, string $flowSource, ?string $flowHash, string $messageSource, ?array $message, array $includeSteps = [], ?string $flowSubject = null): void {}
-    public function openQueues(): int { return 0; }
-    public function observeQueue(float $maxExecutionTimeInSeconds = 0.0): iterable { return []; }
     public function findAllFlowHashes(): iterable { return []; }
-    public function findAllQueues(SortEnum $sortEnum = SortEnum::DESC): iterable { return []; }
     public function findAllSchemas(): iterable { return []; }
     public function findAllMessageSources(): iterable { return []; }
     public function findFlowInstanceByHash(string $flowHash): ?FlowInstanceEntity { return null; }

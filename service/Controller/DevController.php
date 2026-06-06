@@ -24,8 +24,13 @@ use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Projection\ProjectionDiscovery;
+use Wundii\Flowcrafter\Projection\ProjectionResult;
+use Wundii\Flowcrafter\Projection\ProjectionWorker;
+use Wundii\Flowcrafter\Queue\InMemoryQueue;
 use Wundii\Flowcrafter\Source;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
+use Wundii\Flower\ThrowableEntity;
 
 final class DevController
 {
@@ -261,6 +266,16 @@ final class DevController
         /** @var class-string<FlowInterface> $className */
         $flowPreflight = new FlowPreflight();
 
+        $projectionHandlerMetas = [];
+        $projectionThrowable = null;
+        try {
+            $projectionHandlerMetas = ProjectionDiscovery::discover();
+        } catch (Throwable $throwable) {
+            $projectionThrowable = ThrowableEntity::create($throwable);
+        }
+
+        $inMemoryQueue = new InMemoryQueue();
+
         try {
             $flowSource = $flowPreflight->ensureFlowSource($className);
             $validatedMessageSource = $flowPreflight->ensureMessageSource($flowSource, $messageSource);
@@ -276,7 +291,9 @@ final class DevController
                 type: $className::schema()->type(),
                 flowSource: $className,
                 storage: null,
+                queue: $inMemoryQueue,
                 dependenciesInjection: $this->flowcrafterConfig->getDependencyInjections(),
+                projectionHandlerMetas: $projectionHandlerMetas,
             );
         } catch (Throwable $throwable) {
             return new JsonResponse([
@@ -285,38 +302,12 @@ final class DevController
         }
 
         $messageReturn = null;
-        $error = null;
-        $errorFile = null;
-        $errorLine = null;
-        $errorTrace = null;
-        $errorFileContext = null;
+        $runnerThrowable = null;
         $memoryBefore = memory_get_usage();
         try {
             $messageReturn = $flowRunner->run(message: $messageInstance);
         } catch (Throwable $throwable) {
-            $root = $throwable->getPrevious() ?? $throwable;
-            $error = $throwable->getMessage();
-            $errorFile = $root->getFile();
-            $errorLine = $root->getLine();
-            $errorTrace = $throwable->getTraceAsString();
-
-            if ($errorFile !== '' && file_exists($errorFile) && is_readable($errorFile)) {
-                $fileLines = file($errorFile, FILE_IGNORE_NEW_LINES);
-                if ($fileLines !== false) {
-                    $start = max(0, $errorLine - 6);
-                    $end = min(count($fileLines) - 1, $errorLine + 4);
-                    $contextLines = [];
-                    for ($i = $start; $i <= $end; ++$i) {
-                        $contextLines[] = [
-                            'number' => $i + 1,
-                            'content' => $fileLines[$i],
-                            'highlighted' => ($i + 1) === $errorLine,
-                        ];
-                    }
-
-                    $errorFileContext = $contextLines;
-                }
-            }
+            $runnerThrowable = ThrowableEntity::create($throwable);
         }
 
         $memoryAfter = memory_get_usage();
@@ -328,16 +319,36 @@ final class DevController
             $flowData = json_decode(Converter::flowToJson($flowInstance), true);
         }
 
-        $outputLog = $flowRunner->getOutputLog();
+        $runnerOutput = $flowRunner->getOutput();
+
+        $projectionOutput = [];
+        if (!$projectionThrowable instanceof ThrowableEntity && $projectionHandlerMetas !== []) {
+            $projectionWorker = new ProjectionWorker(
+                storage: null,
+                queue: $inMemoryQueue,
+                projectionHandlerMetas: $projectionHandlerMetas,
+                dependenciesInjection: $this->flowcrafterConfig->getDependencyInjections(),
+            );
+
+            $projectionWorker->tick(reporter: static function (ProjectionResult $projectionResult) use (&$projectionOutput): void {
+                $projectionOutput[] = [
+                    'handler' => $projectionResult->handlerClass,
+                    'method' => $projectionResult->method,
+                    'messageSource' => $projectionResult->messageSource,
+                    'content' => $projectionResult->content,
+                    'throwable' => $projectionResult->throwable instanceof Throwable
+                        ? ThrowableEntity::create($projectionResult->throwable)
+                        : null,
+                ];
+            });
+        }
 
         return new JsonResponse([
-            'success' => $error === null,
-            'error' => $error,
-            'file' => $errorFile,
-            'line' => $errorLine,
-            'trace' => $errorTrace,
-            'fileContext' => $errorFileContext,
-            'output' => $outputLog !== [] ? $outputLog : null,
+            'success' => !$runnerThrowable instanceof ThrowableEntity,
+            'runnerThrowable' => $runnerThrowable,
+            'runnerOutput' => $runnerOutput !== [] ? $runnerOutput : null,
+            'projectionThrowable' => $projectionThrowable,
+            'projectionOutput' => $projectionOutput !== [] ? $projectionOutput : null,
             'messageReturn' => $messageReturn instanceof MessageReturnInterface ? $messageReturn : null,
             'flow' => $flowData,
             'memory' => [
