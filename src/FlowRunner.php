@@ -12,6 +12,7 @@ use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Throwable;
 use Wundii\Flowcrafter\Attribute\FlowEphemeral;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Enum\MessageTypeEnum;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -73,7 +74,6 @@ class FlowRunner
 
     /**
      * @param class-string<FlowInterface> $flowSource
-     * @param array<int|class-string, class-string|object> $dependenciesInjection
      * @param ProjectionHandlerMeta[] $projectionHandlerMetas
      * @throws ReflectionException
      */
@@ -83,7 +83,7 @@ class FlowRunner
         private readonly ?string $flowSubject = null,
         private readonly ?StorageInterface $storage = null,
         private readonly ?QueueInterface $queue = null,
-        private readonly array $dependenciesInjection = [],
+        private readonly DependencyRegistry $dependencyRegistry = new DependencyRegistry(),
         private readonly array $projectionHandlerMetas = [],
     ) {
         Assert::classString(
@@ -363,7 +363,7 @@ class FlowRunner
         return FlowContainerFactory::build(
             autowireClasses: $autowireClasses,
             syntheticServices: array_values($syntheticClasses),
-            dependencies: $this->dependenciesInjection,
+            dependencyRegistry: $this->dependencyRegistry,
         );
     }
 

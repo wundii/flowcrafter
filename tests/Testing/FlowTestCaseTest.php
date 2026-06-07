@@ -21,6 +21,7 @@ use Tests\MockClass\StepMock;
 use Tests\MockClass\WorkflowBoolMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Testing\FlowTestCase;
 
@@ -33,10 +34,9 @@ final class FlowTestCaseTest extends FlowTestCase
             flowSource: WorkflowMock::class,
             initMessage: new MessageInitMock('test data'),
             flowSubject: 'subject-1',
-            dependencies: [
-                DependencyMock::class,
-                new DependencyConstructMock(' end'),
-            ],
+            dependencyRegistry: (new DependencyRegistry())
+                ->autowire(DependencyMock::class)
+                ->instance(new DependencyConstructMock(' end')),
         );
 
         // NextStepMock returns a non-deterministic bool (random_int) — the flow
@@ -200,10 +200,9 @@ final class FlowTestCaseTest extends FlowTestCase
                 new MessageDataMock('first'),
                 new MessageDataSecondMock('second', new MessageSubDataMock('sub')),
             ],
-            dependencies: [
-                DependencyMock::class,
-                new DependencyConstructMock(' end'),
-            ],
+            dependencyRegistry: (new DependencyRegistry())
+                ->autowire(DependencyMock::class)
+                ->instance(new DependencyConstructMock(' end')),
         );
 
         $this->assertInstanceOf(MessageReturnMock::class, $result);

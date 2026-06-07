@@ -107,8 +107,8 @@ Innerhalb von `process()` stehen zwei Methoden bereit:
   vom Observer abgearbeitet)
 - `$this->run(...)` — führt einen Flow synchron aus
 
-Schedule-Klassen unterstützen Constructor-Injection mit den gleichen
-`dependenciesInjection`-Einträgen wie Steps.
+Schedule-Klassen unterstützen Constructor-Injection über dieselbe
+`DependencyRegistry` wie Steps.
 
 Der Scheduler trackt pro Schedule die letzte Ausführungsminute und
 verhindert so Doppelausführungen innerhalb derselben Minute (relevant

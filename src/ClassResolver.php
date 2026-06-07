@@ -6,44 +6,93 @@ namespace Wundii\Flowcrafter;
 
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use ReflectionClass;
 use SplFileInfo;
 
 final class ClassResolver
 {
     /**
-     * @var list<class-string>|null
+     * @var array<class-string, string>|null
      */
-    private static ?array $cache = null;
+    private static ?array $map = null;
 
     /**
      * @return list<class-string>
      */
     public static function resolve(): array
     {
-        if (self::$cache !== null) {
-            return self::$cache;
+        return array_keys(self::resolveMap());
+    }
+
+    /**
+     * Map of every resolvable class to its absolute file path.
+     *
+     * @return array<class-string, string>
+     */
+    public static function resolveMap(): array
+    {
+        if (self::$map !== null) {
+            return self::$map;
         }
 
-        $classNames = [];
+        $map = [];
 
         $classMapFile = self::resolveVendorComposerPath('autoload_classmap.php');
         if ($classMapFile !== null) {
             /** @var array<class-string, string> $classMap */
             $classMap = require $classMapFile;
-            $classNames = array_keys($classMap);
+            $map = $classMap;
         }
 
-        $psr4ClassNames = self::resolveClassNamesFromPsr4();
+        self::$map = [...$map, ...self::resolveMapFromPsr4()];
 
-        self::$cache = array_values(array_unique([...$classNames, ...$psr4ClassNames]));
-
-        return self::$cache;
+        return self::$map;
     }
 
     /**
+     * Instantiable classes whose name starts with the given namespace prefix.
+     *
      * @return list<class-string>
      */
-    private static function resolveClassNamesFromPsr4(): array
+    public static function resolveByNamespace(string $namespacePrefix): array
+    {
+        $prefix = ltrim($namespacePrefix, '\\');
+
+        $classNames = array_filter(
+            array_keys(self::resolveMap()),
+            static fn (string $class): bool => str_starts_with(ltrim($class, '\\'), $prefix),
+        );
+
+        return self::filterInstantiable($classNames);
+    }
+
+    /**
+     * Instantiable classes whose file is located under the given directory.
+     *
+     * @return list<class-string>
+     */
+    public static function resolveByDirectory(string $directory): array
+    {
+        $base = realpath($directory);
+        if ($base === false) {
+            return [];
+        }
+
+        $classNames = [];
+        foreach (self::resolveMap() as $className => $path) {
+            $real = realpath($path);
+            if ($real !== false && str_starts_with($real, $base . DIRECTORY_SEPARATOR)) {
+                $classNames[] = $className;
+            }
+        }
+
+        return self::filterInstantiable($classNames);
+    }
+
+    /**
+     * @return array<class-string, string>
+     */
+    private static function resolveMapFromPsr4(): array
     {
         $psr4File = self::resolveVendorComposerPath('autoload_psr4.php');
         if ($psr4File === null) {
@@ -54,7 +103,7 @@ final class ClassResolver
         $psr4Map = require $psr4File;
 
         $vendorDir = dirname($psr4File, 2);
-        $classNames = [];
+        $map = [];
 
         foreach ($psr4Map as $namespace => $directories) {
             foreach ($directories as $directory) {
@@ -92,12 +141,32 @@ final class ClassResolver
                     }
 
                     /** @var class-string $className */
-                    $classNames[] = $className;
+                    $map[$className] = $file->getPathname();
                 }
             }
         }
 
-        return $classNames;
+        return $map;
+    }
+
+    /**
+     * @param array<int, class-string> $classNames
+     * @return list<class-string>
+     */
+    private static function filterInstantiable(array $classNames): array
+    {
+        $instantiable = array_filter(
+            $classNames,
+            static function (string $class): bool {
+                if (!class_exists($class)) {
+                    return false;
+                }
+
+                return (new ReflectionClass($class))->isInstantiable();
+            },
+        );
+
+        return array_values(array_unique($instantiable));
     }
 
     private static function resolveVendorComposerPath(string $filename): ?string

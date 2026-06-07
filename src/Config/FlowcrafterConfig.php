@@ -6,9 +6,9 @@ namespace Wundii\Flowcrafter\Config;
 
 use ReflectionClass;
 use RuntimeException;
-use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Console\Output\FlowSymfonyStyle;
 use Wundii\Flowcrafter\Console\OutputColorEnum;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Interface\QueueConfigInterface;
 use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageConfigInterface;
@@ -29,7 +29,7 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         $this->setParameter(OptionEnum::SERVER_SECRET, null);
         $this->setParameter(OptionEnum::SERVER_DESCRIPTION, null);
         $this->setParameter(OptionEnum::SERVER_STORAGE, null);
-        $this->setParameter(OptionEnum::DEPENDENCIES_INJECTION, []);
+        $this->setParameter(OptionEnum::DEPENDENCIES_INJECTION, new DependencyRegistry());
     }
 
     public function getServerDev(): bool
@@ -127,25 +127,16 @@ final class FlowcrafterConfig extends FlowcrafterConfigParameter
         return $this->getNullOrString(OptionEnum::SERVER_STORAGE);
     }
 
-    /**
-     * @param array<int|class-string, class-string|object> $dependenciesInjection
-     *        Numeric key: class-string (autowire) or object (synthetic)
-     *        String key:  interface class-string => object (interface binding)
-     */
-    public function setDependenciesInjection(array $dependenciesInjection = []): void
+    public function setDependencyRegistry(DependencyRegistry $dependencyRegistry): void
     {
-        $this->setParameter(OptionEnum::DEPENDENCIES_INJECTION, $dependenciesInjection);
+        $this->setParameter(OptionEnum::DEPENDENCIES_INJECTION, $dependencyRegistry);
     }
 
-    /**
-     * @return array<int|class-string, class-string|object>
-     */
-    public function getDependencyInjections(): array
+    public function getDependencyRegistry(): DependencyRegistry
     {
-        /** @var array<int|class-string, class-string|object> $dependencies */
-        $dependencies = Assert::array($this->getParameter(OptionEnum::DEPENDENCIES_INJECTION, []));
+        $registry = $this->getParameter(OptionEnum::DEPENDENCIES_INJECTION, new DependencyRegistry());
 
-        return $dependencies;
+        return $registry instanceof DependencyRegistry ? $registry : new DependencyRegistry();
     }
 
     public function initializeStorage(FlowSymfonyStyle $flowSymfonyStyle): StorageInterface

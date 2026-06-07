@@ -12,6 +12,7 @@ use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
 use Wundii\DataMapper\Enum\ApproachEnum;
 use Wundii\Flowcrafter\Console\Heartbeat;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\QueueInterface;
@@ -21,13 +22,12 @@ use Wundii\Flowcrafter\Projection\ProjectionHandlerMeta;
 final readonly class FlowObserver
 {
     /**
-     * @param array<class-string|object> $dependenciesInjection
      * @param ProjectionHandlerMeta[] $projectionHandlerMetas
      */
     public function __construct(
         private StorageInterface $storage,
         private QueueInterface $queue,
-        private array $dependenciesInjection,
+        private DependencyRegistry $dependencyRegistry,
         private array $projectionHandlerMetas = [],
     ) {
     }
@@ -76,7 +76,7 @@ final readonly class FlowObserver
                     flowSubject: $observeItem->getFlowSubject(),
                     storage: $this->storage,
                     queue: $this->queue,
-                    dependenciesInjection: $this->dependenciesInjection,
+                    dependencyRegistry: $this->dependencyRegistry,
                     projectionHandlerMetas: $this->projectionHandlerMetas,
                 );
 

@@ -51,7 +51,7 @@ final class FlowProjectionWorkerCommand extends Command
 
         $storage = $this->flowcrafterConfig->getStorage();
         $queue = $this->flowcrafterConfig->getQueue();
-        $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
+        $dependencyRegistry = $this->flowcrafterConfig->getDependencyRegistry();
 
         $heartbeat = new Heartbeat('projection');
         register_shutdown_function(static function () use ($heartbeat): void {
@@ -65,7 +65,7 @@ final class FlowProjectionWorkerCommand extends Command
             $heartbeat->touchIfDue();
         };
 
-        $projectionWorker = new ProjectionWorker($storage, $queue, $metas, $dependencyInjections);
+        $projectionWorker = new ProjectionWorker($storage, $queue, $metas, $dependencyRegistry);
 
         /** @phpstan-ignore while.alwaysTrue */
         while (true) {

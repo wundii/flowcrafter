@@ -275,25 +275,38 @@ und mit der nächsten Message weitergemacht; die Queue blockiert nicht.
 ### Dependency Injection
 
 Steps erhalten neben Messages auch externe Services per Constructor-Injection.
-Registriert werden sie über `dependenciesInjection` in `FlowRunner`,
-`FlowScheduler` und `FlowAssertTrait` — in drei Modi:
+Registriert werden sie über eine `DependencyRegistry` (per
+`FlowcrafterConfig::setDependencyRegistry()` bzw. im Konstruktor von `FlowRunner`,
+`FlowScheduler`, `FlowObserver`, `ProjectionWorker`). Jede Registrierungsart ist eine
+benannte Methode:
 
-| Schlüssel             | Wert           | Verhalten                                                     |
-|-----------------------|----------------|--------------------------------------------------------------|
-| ohne Schlüssel        | `class-string` | Klasse wird per Autowiring registriert                       |
-| ohne Schlüssel        | `object`       | Konkrete Instanz, gebunden an die eigene Klasse              |
-| Interface-Klassenname | `object`       | Instanz an Interface **und** konkrete Klasse gebunden (Alias) |
+| Methode                            | Verhalten                                                                  |
+|------------------------------------|----------------------------------------------------------------------------|
+| `instance(object)`                 | Konkrete Instanz, gebunden an die eigene Klasse                            |
+| `bind(string $id, object\|class)`  | Interface-Binding: Objekt → synthetic + Alias; class-string → autowire + Alias |
+| `autowire(class)`                  | Einzelklasse per Autowiring                                                |
+| `autowireNamespace(string)`        | Alle instanziierbaren Klassen unter einem PSR-4-Namespace                  |
+| `autowireDirectory(string)`        | Alle instanziierbaren Klassen unter einem Verzeichnis                      |
+| `factory(class, Closure, ?alias)`  | Lazy: Closure erhält den PSR-11-Container und liefert den Service          |
 
 ```php
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
+use Wundii\Flowcrafter\Env;
+use Psr\Container\ContainerInterface;
+
+$registry = (new DependencyRegistry())
+    ->bind(HttpClientInterface::class, new CurlHttpClient())  // Interface → Instanz
+    ->instance(new MyLogger())                                // Instanz ohne Interface
+    ->autowireNamespace('App\\Service')                       // ganze Namespaces autowiren
+    ->factory(ApiClient::class,                               // lazy, für rohe Skalare
+        fn(ContainerInterface $c) => new ApiClient($c->get(HttpClientInterface::class), Env::string('API_KEY')),
+    );
+
 $flowRunner = new FlowRunner(
     type: 'flow.order.v1',
     flowSource: OrderFlow::class,
     storage: $storage,
-    dependenciesInjection: [
-        HttpClientInterface::class => new CurlHttpClient(),   // Interface → Instanz
-        new MyLogger(),                                       // Instanz ohne Interface
-        SomeService::class,                                   // Klasse per Autowiring
-    ],
+    dependencyRegistry: $registry,
 );
 ```
 

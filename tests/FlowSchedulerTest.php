@@ -9,6 +9,7 @@ use Tests\MockClass\ScheduleFailMock;
 use Tests\MockClass\ScheduleMock;
 use Tests\MockClass\ScheduleNonDueMock;
 use Wundii\Flowcrafter\Attribute\FlowSchedule;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\FlowScheduler;
 use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
@@ -24,7 +25,7 @@ final class FlowSchedulerTest extends TestCase
             ScheduleMock::class => new FlowSchedule('* * * * *', name: 'test-schedule'),
         ];
 
-        $flowScheduler = new FlowScheduler($storage, $queue, [], $schedules);
+        $flowScheduler = new FlowScheduler($storage, $queue, new DependencyRegistry(), $schedules);
 
         $attributes = $flowScheduler->getScheduleAttributes();
         $this->assertCount(1, $attributes);
@@ -44,7 +45,7 @@ final class FlowSchedulerTest extends TestCase
             ScheduleMock::class => new FlowSchedule('* * * * *', name: 'test-schedule'),
         ];
 
-        $flowScheduler = new FlowScheduler($storage, $queue, [], $schedules);
+        $flowScheduler = new FlowScheduler($storage, $queue, new DependencyRegistry(), $schedules);
 
         $messages = [];
         $logger = static function (string $message) use (&$messages): void {
@@ -68,7 +69,7 @@ final class FlowSchedulerTest extends TestCase
             ScheduleNonDueMock::class => new FlowSchedule('0 0 1 1 *', name: 'non-due'),
         ];
 
-        $flowScheduler = new FlowScheduler($storage, $queue, [], $schedules);
+        $flowScheduler = new FlowScheduler($storage, $queue, new DependencyRegistry(), $schedules);
         $flowScheduler->tick();
     }
 
@@ -83,7 +84,7 @@ final class FlowSchedulerTest extends TestCase
             ScheduleMock::class => new FlowSchedule('* * * * *', name: 'test-schedule'),
         ];
 
-        $flowScheduler = new FlowScheduler($storage, $queue, [], $schedules);
+        $flowScheduler = new FlowScheduler($storage, $queue, new DependencyRegistry(), $schedules);
         $flowScheduler->tick();
         $flowScheduler->tick();
     }
@@ -97,7 +98,7 @@ final class FlowSchedulerTest extends TestCase
             ScheduleFailMock::class => new FlowSchedule('* * * * *', name: 'fail-schedule'),
         ];
 
-        $flowScheduler = new FlowScheduler($storage, $queue, [], $schedules);
+        $flowScheduler = new FlowScheduler($storage, $queue, new DependencyRegistry(), $schedules);
 
         $messages = [];
         $logger = static function (string $message) use (&$messages): void {
@@ -118,7 +119,7 @@ final class FlowSchedulerTest extends TestCase
         $storage = $this->createStub(StorageInterface::class);
         $queue = $this->createStub(QueueInterface::class);
 
-        $flowScheduler = new FlowScheduler($storage, $queue, [], []);
+        $flowScheduler = new FlowScheduler($storage, $queue, new DependencyRegistry(), []);
         $flowScheduler->tick();
 
         $this->assertCount(0, $flowScheduler->getScheduleAttributes());

@@ -9,6 +9,7 @@ use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\WorkflowEmptyMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\MySqlClientTestTrait;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\FlowObserver;
 use Wundii\Flowcrafter\Queue\MySqlQueue;
@@ -22,7 +23,7 @@ final class FlowObserverMySqlTest extends TestCase
     {
         $storage = $this->storage();
         $queue = $this->queue();
-        $flowObserver = new FlowObserver($storage, $queue, []);
+        $flowObserver = new FlowObserver($storage, $queue, new DependencyRegistry());
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $stmt = $this->client->query('SELECT * FROM ' . MySqlQueue::TABLE_QUEUE);
@@ -44,7 +45,7 @@ final class FlowObserverMySqlTest extends TestCase
             ]
         );
 
-        $flowObserver = new FlowObserver($storage, $queue, []);
+        $flowObserver = new FlowObserver($storage, $queue, new DependencyRegistry());
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_SCHEMA);
@@ -88,7 +89,7 @@ final class FlowObserverMySqlTest extends TestCase
             message: null,
         );
 
-        $flowObserver = new FlowObserver($storage, $queue, []);
+        $flowObserver = new FlowObserver($storage, $queue, new DependencyRegistry());
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $stmt = $this->client->query('SELECT * FROM ' . MySqlStorage::TYPE_SCHEMA);
