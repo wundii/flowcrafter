@@ -11,6 +11,8 @@ use ReflectionUnionType;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Throwable;
+use Wundii\DataMapper\Enum\DataTypeEnum;
+use Wundii\DataMapper\Parser\ReflectionClassParser;
 use Wundii\Flowcrafter\Assert;
 use Wundii\Flowcrafter\Attribute\FlowEphemeral;
 use Wundii\Flowcrafter\Attribute\FlowGroup;
@@ -360,7 +362,6 @@ final class DevController
 
     /**
      * @param class-string $messageClass
-     * @param class-string $messageClass
      * @param array<string, array<string, string>> $schemas
      */
     private function buildMessageSchemasRecursively(string $messageClass, array &$schemas): void
@@ -374,7 +375,7 @@ final class DevController
 
         $primitives = ['string', 'int', 'float', 'bool', 'array', 'mixed', 'null', 'void', 'never', 'object'];
         foreach ($built['types'] as $typeString) {
-            $typeName = ltrim($typeString, '?');
+            $typeName = rtrim(ltrim($typeString, '?'), '[]');
             foreach (explode('|', $typeName) as $part) {
                 if (!in_array($part, $primitives, true) && class_exists($part)) {
                     /** @var class-string $part */
@@ -382,6 +383,41 @@ final class DevController
                 }
             }
         }
+
+        $constructor = (new ReflectionClass($messageClass))->getConstructor();
+        foreach ($constructor?->getParameters() ?? [] as $param) {
+            $arrayTarget = $this->resolveArrayTargetType($messageClass, $param->getName());
+            if ($arrayTarget !== null && class_exists($arrayTarget)) {
+                /** @var class-string $arrayTarget */
+                $this->buildMessageSchemasRecursively($arrayTarget, $schemas);
+            }
+        }
+    }
+
+    /**
+     * @param class-string $messageClass
+     */
+    private function resolveArrayTargetType(string $messageClass, string $paramName): ?string
+    {
+        try {
+            $reflectionObjectDto = (new ReflectionClassParser())->parse($messageClass);
+        } catch (Throwable) {
+            return null;
+        }
+
+        foreach ($reflectionObjectDto->getProperties() as $propertyDto) {
+            if (strcasecmp($propertyDto->getName(), $paramName) !== 0) {
+                continue;
+            }
+
+            if ($propertyDto->getDataType() !== DataTypeEnum::ARRAY) {
+                return null;
+            }
+
+            return $propertyDto->getTargetType();
+        }
+
+        return null;
     }
 
     /**
@@ -411,6 +447,15 @@ final class DevController
             } else {
                 $typeString = 'mixed';
                 $firstTypeName = 'string';
+            }
+
+            if (ltrim($typeString, '?') === 'array') {
+                $arrayTarget = $this->resolveArrayTargetType($messageClass, $param->getName());
+                if ($arrayTarget !== null) {
+                    // Object lists keep the FQCN so the UI can resolve the nested
+                    // schema via messageSchemas[FQCN]; scalar lists keep the primitive.
+                    $typeString = ($nullable ? '?' : '') . $arrayTarget . '[]';
+                }
             }
 
             $types[$param->getName()] = $typeString;

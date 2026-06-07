@@ -6,9 +6,13 @@ namespace Tests\Service;
 
 use ArrayIterator;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 use stdClass;
 use Symfony\Component\HttpFoundation\Request;
 use Tests\MockClass\MessageInitMock;
+use Tests\MockClass\MessageWithArrayMock;
+use Tests\MockClass\StationPriceMock;
+use Tests\MockClass\WorkflowArrayMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\Interface\StorageInterface;
@@ -219,6 +223,53 @@ final class DevControllerTest extends TestCase
         $this->assertIsInt($data['memory']['used']);
         $this->assertIsInt($data['memory']['peak']);
         $this->assertGreaterThan(0, $data['memory']['peak']);
+    }
+
+    public function testMessageSchemasRefineArrayTypesFromAnnotations(): void
+    {
+        $devController = $this->makeController();
+
+        $reflectionMethod = new ReflectionMethod($devController, 'buildMessageSchemasRecursively');
+        $schemas = [];
+        $reflectionMethod->invokeArgs($devController, [MessageWithArrayMock::class, &$schemas]);
+
+        $this->assertSame(StationPriceMock::class . '[]', $schemas[MessageWithArrayMock::class]['stationPrice']);
+        $this->assertSame('string[]', $schemas[MessageWithArrayMock::class]['tags']);
+
+        $this->assertArrayHasKey(StationPriceMock::class, $schemas);
+        $this->assertSame('string', $schemas[StationPriceMock::class]['station']);
+        $this->assertSame('float', $schemas[StationPriceMock::class]['price']);
+    }
+
+    public function testFlowRefinesArrayMessageSchemasFromAnnotations(): void
+    {
+        $storage = $this->createMock(StorageInterface::class);
+        $storage->method('findAllSchemas')->willReturn(new ArrayIterator([]));
+        $storage->method('findMessageSourceByMessageSource')->willReturn(new ArrayIterator([]));
+
+        putenv('FLOWCRAFTER_DEV=1');
+        $devController = new DevController(new FlowcrafterConfig(), $storage);
+        $request = Request::create('/dev/flow', 'GET', [
+            'className' => WorkflowArrayMock::class,
+        ]);
+        $jsonResponse = $devController->flow($request);
+
+        $this->assertSame(200, $jsonResponse->getStatusCode());
+
+        $data = json_decode((string) $jsonResponse->getContent(), true);
+        $this->assertIsArray($data);
+        $this->assertTrue($data['valid']);
+
+        $messageSchemas = $data['messageSchemas'];
+        $this->assertSame(StationPriceMock::class . '[]', $messageSchemas[MessageWithArrayMock::class]['stationPrice']);
+        $this->assertSame('string[]', $messageSchemas[MessageWithArrayMock::class]['tags']);
+
+        $this->assertArrayHasKey(StationPriceMock::class, $messageSchemas);
+        $this->assertSame('string', $messageSchemas[StationPriceMock::class]['station']);
+        $this->assertSame('float', $messageSchemas[StationPriceMock::class]['price']);
+
+        $this->assertSame(StationPriceMock::class . '[]', $data['initMessageTypes']['stationPrice']);
+        $this->assertSame('string[]', $data['initMessageTypes']['tags']);
     }
 
     private function makeController(bool $devMode = true): DevController
