@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Queue\Config\RedisQueueConfig;
 use Wundii\Flowcrafter\Storage\Config\RedisConfig;
 
@@ -16,5 +17,14 @@ return static function (FlowcrafterConfig $flowcrafterConfig): void {
     $flowcrafterConfig->setServerSecret();
     $flowcrafterConfig->setServerDescription();
     $flowcrafterConfig->setServerStorage(__DIR__ . '/data/flowcrafter-ui.sqlite');
-    $flowcrafterConfig->setDependenciesInjection();
+
+    // Custom services injected into steps, schedules and projection handlers.
+    // Register them on a DependencyRegistry:
+    //   ->instance($service)                 ready-made instance, bound to its own class
+    //   ->bind(Interface::class, $service)   bind an interface to a concrete object or class
+    //   ->autowire(Service::class)           autowire a single class
+    //   ->autowireNamespace('App\\Service')  autowire every class under a namespace
+    //   ->autowireDirectory(__DIR__ . '/src') autowire every class under a directory
+    //   ->factory(Service::class, fn($c) => …) lazy closure, receives the PSR-11 container
+    $flowcrafterConfig->setDependencyRegistry(new DependencyRegistry());
 };

@@ -11,6 +11,7 @@ use RuntimeException;
 use Throwable;
 use Wundii\Flowcrafter\Attribute\FlowSchedule;
 use Wundii\Flowcrafter\Console\Heartbeat;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\ScheduleInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
@@ -32,14 +33,13 @@ final class FlowScheduler
     private array $lastExecutedMinute = [];
 
     /**
-     * @param array<int|class-string, class-string|object> $dependenciesInjection
      * @param array<class-string<ScheduleInterface>, FlowSchedule>|null $scheduleAttributes
      * @param ProjectionHandlerMeta[] $projectionHandlerMetas
      */
     public function __construct(
         private readonly StorageInterface $storage,
         private readonly QueueInterface $queue,
-        private readonly array $dependenciesInjection,
+        private readonly DependencyRegistry $dependencyRegistry,
         ?array $scheduleAttributes = null,
         private readonly array $projectionHandlerMetas = [],
     ) {
@@ -84,7 +84,7 @@ final class FlowScheduler
             try {
                 $schedule = FlowContainerFactory::build(
                     autowireClasses: [$scheduleClass],
-                    dependencies: $this->dependenciesInjection,
+                    dependencyRegistry: $this->dependencyRegistry,
                 )->get($scheduleClass);
 
                 if (!$schedule instanceof AbstractSchedule) {
@@ -94,7 +94,7 @@ final class FlowScheduler
                     ));
                 }
 
-                $schedule->setContext($this->storage, $this->queue, $this->dependenciesInjection, $this->projectionHandlerMetas);
+                $schedule->setContext($this->storage, $this->queue, $this->dependencyRegistry, $this->projectionHandlerMetas);
 
                 if ($logger instanceof Closure) {
                     $logger(sprintf(

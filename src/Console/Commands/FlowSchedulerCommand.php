@@ -40,9 +40,9 @@ final class FlowSchedulerCommand extends Command
 
         $storage = $this->flowcrafterConfig->getStorage();
         $queue = $this->flowcrafterConfig->getQueue();
-        $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
+        $dependencyRegistry = $this->flowcrafterConfig->getDependencyRegistry();
         $projectionHandlerMetas = ProjectionDiscovery::discover();
-        $flowScheduler = new FlowScheduler($storage, $queue, $dependencyInjections, projectionHandlerMetas: $projectionHandlerMetas);
+        $flowScheduler = new FlowScheduler($storage, $queue, $dependencyRegistry, projectionHandlerMetas: $projectionHandlerMetas);
 
         $scheduleCount = count($flowScheduler->getScheduleAttributes());
 

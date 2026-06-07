@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Schedule;
 
 use RuntimeException;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -20,10 +21,7 @@ abstract class AbstractSchedule implements ScheduleInterface
 
     private ?QueueInterface $queue = null;
 
-    /**
-     * @var array<class-string|object>
-     */
-    private array $dependenciesInjection = [];
+    private ?DependencyRegistry $dependencyRegistry = null;
 
     /**
      * @var ProjectionHandlerMeta[]
@@ -31,14 +29,13 @@ abstract class AbstractSchedule implements ScheduleInterface
     private array $projectionHandlerMetas = [];
 
     /**
-     * @param array<class-string|object> $dependenciesInjection
      * @param ProjectionHandlerMeta[] $projectionHandlerMetas
      */
-    public function setContext(StorageInterface $storage, QueueInterface $queue, array $dependenciesInjection, array $projectionHandlerMetas = []): void
+    public function setContext(StorageInterface $storage, QueueInterface $queue, DependencyRegistry $dependencyRegistry, array $projectionHandlerMetas = []): void
     {
         $this->storage = $storage;
         $this->queue = $queue;
-        $this->dependenciesInjection = $dependenciesInjection;
+        $this->dependencyRegistry = $dependencyRegistry;
         $this->projectionHandlerMetas = $projectionHandlerMetas;
     }
 
@@ -84,7 +81,7 @@ abstract class AbstractSchedule implements ScheduleInterface
             flowSubject: $flowSubject,
             storage: $this->requireStorage(),
             queue: $this->requireQueue(),
-            dependenciesInjection: $this->dependenciesInjection,
+            dependencyRegistry: $this->dependencyRegistry ?? new DependencyRegistry(),
             projectionHandlerMetas: $this->projectionHandlerMetas,
         );
 

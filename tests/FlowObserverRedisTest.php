@@ -9,6 +9,7 @@ use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\WorkflowEmptyMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\RedisClientTestTrait;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\FlowObserver;
 
@@ -20,7 +21,7 @@ final class FlowObserverRedisTest extends TestCase
     {
         $storage = $this->storage();
         $queue = $this->queue();
-        $flowObserver = new FlowObserver($storage, $queue, []);
+        $flowObserver = new FlowObserver($storage, $queue, new DependencyRegistry());
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->keys('flow:*');
@@ -42,7 +43,7 @@ final class FlowObserverRedisTest extends TestCase
             ]
         );
 
-        $flowObserver = new FlowObserver($storage, $queue, []);
+        $flowObserver = new FlowObserver($storage, $queue, new DependencyRegistry());
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->keys('flow:*');
@@ -85,7 +86,7 @@ final class FlowObserverRedisTest extends TestCase
             message: null,
         );
 
-        $flowObserver = new FlowObserver($storage, $queue, []);
+        $flowObserver = new FlowObserver($storage, $queue, new DependencyRegistry());
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $flowSchemaEvents = $this->client->keys('flow:schema:*');

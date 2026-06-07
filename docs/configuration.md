@@ -10,6 +10,7 @@ Erstelle eine `flowcrafter.php` im Projektstamm (oder via
 declare(strict_types=1);
 
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Storage\Config\RedisStorageConfig;
 
 return static function (FlowcrafterConfig $flowcrafterConfig): void {
@@ -21,7 +22,7 @@ return static function (FlowcrafterConfig $flowcrafterConfig): void {
     $flowcrafterConfig->setServerSecret();
     $flowcrafterConfig->setServerDescription();
     $flowcrafterConfig->setServerStorage(__DIR__ . '/data/flowcrafter-ui.sqlite');
-    $flowcrafterConfig->setDependenciesInjection();
+    $flowcrafterConfig->setDependencyRegistry(new DependencyRegistry());
 };
 ```
 
@@ -77,4 +78,4 @@ $flowcrafterConfig->setStorageConfig(
 | `setServerSecret()`           | Bearer-Token für die API-Authentifizierung (ohne Secret sind alle Routen öffentlich) |
 | `setServerDescription()`      | Beschreibung, die über `/api/info` und `/metrics` exponiert wird                     |
 | `setServerStorage()`          | Pfad zur SQLite-Datei für den Service-Index (Default: `data/flowcrafter-ui.sqlite`)  |
-| `setDependenciesInjection()`  | Service-Instanzen, die in Step-Konstruktoren injiziert werden                        |
+| `setDependencyRegistry()`     | `DependencyRegistry` mit Services, die in Step-Konstruktoren injiziert werden         |

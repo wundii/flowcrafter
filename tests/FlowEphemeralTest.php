@@ -12,6 +12,7 @@ use Tests\MockClass\SqliteStorageMock;
 use Tests\MockClass\WorkflowEphemeralMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Attribute\FlowEphemeral;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\FlowScheduler;
@@ -310,7 +311,7 @@ final class FlowEphemeralTest extends TestCase
 
         $queue = $this->createStub(QueueInterface::class);
 
-        $flowScheduler = new FlowScheduler($storage, $queue, [], []);
+        $flowScheduler = new FlowScheduler($storage, $queue, new DependencyRegistry(), []);
         $flowScheduler->tick();
     }
 

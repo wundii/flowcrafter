@@ -149,7 +149,7 @@ public function testValidateStepIsolated(): void
     $result = $this->runStep(
         stepSource: ValidateStep::class,
         messages: [new OrderInit('sku-42')],
-        dependencies: [new FakeHttpClient()],
+        dependencyRegistry: (new DependencyRegistry())->instance(new FakeHttpClient()),
     );
 
     $this->assertInstanceOf(OrderValidated::class, $result);
@@ -259,8 +259,8 @@ $this->assertFlowOk($runner->getFlow());
 
 Steps, die zusätzliche Services brauchen (nicht nur Messages), bekommen
 diese per Constructor autowired. Im Produktivcode via
-`FlowcrafterConfig::$dependenciesInjection`, im Test via den
-`dependencies`-Parameter:
+`FlowcrafterConfig::setDependencyRegistry()`, im Test via den
+`dependencyRegistry`-Parameter:
 
 ```php
 class ValidateStep implements StepInterface
@@ -283,10 +283,9 @@ $this->runFlow(
     flowType: 'flow.order.v1',
     flowSource: OrderFlow::class,
     initMessage: new OrderInit('sku-42'),
-    dependencies: [
-        new FakeHttpClient(),                    // fertige Instanz
-        InventoryRepository::class,              // wird autowired
-    ],
+    dependencyRegistry: (new DependencyRegistry())
+        ->instance(new FakeHttpClient())         // fertige Instanz
+        ->autowire(InventoryRepository::class),  // wird autowired
 );
 ```
 
@@ -420,4 +419,4 @@ deine Flow-Logik wird in-memory getestet.
 | …den Return-Wert prüfen                | `$r = $this->assertFlowReturned(Foo::class)`                                      |
 | …einen Fehlerpfad prüfen               | `try { runFlow() } catch {}` + `assertFlowFailed()` + `assertFlowExceptionFrom()` |
 | …nur einen Teil des Flows ausführen    | `includeSteps: [...]` in `runFlow()`                                              |
-| …Services im Step fälschen             | `dependencies: [new FakeService()]`                                               |
+| …Services im Step fälschen             | `dependencyRegistry: (new DependencyRegistry())->instance(new FakeService())`     |

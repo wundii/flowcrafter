@@ -76,9 +76,9 @@ final class FlowObserverCommand extends Command
 
         $storage = $this->flowcrafterConfig->getStorage();
         $queue = $this->flowcrafterConfig->getQueue();
-        $dependencyInjections = $this->flowcrafterConfig->getDependencyInjections();
+        $dependencyRegistry = $this->flowcrafterConfig->getDependencyRegistry();
         $projectionHandlerMetas = ProjectionDiscovery::discover();
-        $flowObserver = new FlowObserver($storage, $queue, $dependencyInjections, $projectionHandlerMetas);
+        $flowObserver = new FlowObserver($storage, $queue, $dependencyRegistry, $projectionHandlerMetas);
 
         $logger = static function (string $message) use ($flowSymfonyStyle): void {
             $flowSymfonyStyle->writeln($message);

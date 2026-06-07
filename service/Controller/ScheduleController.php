@@ -127,12 +127,12 @@ final class ScheduleController
         /** @var FlowSchedule $flowSchedule */
         $flowSchedule = $attributes[0]->newInstance();
 
-        $dependenciesInjection = $this->flowcrafterConfig->getDependencyInjections();
+        $dependencyRegistry = $this->flowcrafterConfig->getDependencyRegistry();
 
         try {
             $containerBuilder = FlowContainerFactory::build(
                 autowireClasses: [$resolvedClassName],
-                dependencies: $dependenciesInjection,
+                dependencyRegistry: $dependencyRegistry,
             );
 
             $schedule = $containerBuilder->get($resolvedClassName);
@@ -143,7 +143,7 @@ final class ScheduleController
                 ], 500);
             }
 
-            $schedule->setContext($this->storage, $this->queue, $dependenciesInjection);
+            $schedule->setContext($this->storage, $this->queue, $dependencyRegistry);
 
             ob_start();
             $schedule->process();

@@ -294,7 +294,7 @@ final class DevController
                 flowSource: $className,
                 storage: null,
                 queue: $inMemoryQueue,
-                dependenciesInjection: $this->flowcrafterConfig->getDependencyInjections(),
+                dependencyRegistry: $this->flowcrafterConfig->getDependencyRegistry(),
                 projectionHandlerMetas: $projectionHandlerMetas,
             );
         } catch (Throwable $throwable) {
@@ -329,7 +329,7 @@ final class DevController
                 storage: null,
                 queue: $inMemoryQueue,
                 projectionHandlerMetas: $projectionHandlerMetas,
-                dependenciesInjection: $this->flowcrafterConfig->getDependencyInjections(),
+                dependencyRegistry: $this->flowcrafterConfig->getDependencyRegistry(),
             );
 
             $projectionWorker->tick(reporter: static function (ProjectionResult $projectionResult) use (&$projectionOutput): void {

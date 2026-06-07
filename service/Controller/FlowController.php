@@ -245,7 +245,7 @@ final class FlowController
                 flowSource: $existingFlow->getSource(),
                 flowSubject: $existingFlow->getSubject(),
                 storage: $this->storage,
-                dependenciesInjection: $this->flowcrafterConfig->getDependencyInjections(),
+                dependencyRegistry: $this->flowcrafterConfig->getDependencyRegistry(),
                 projectionHandlerMetas: ProjectionDiscovery::discover(),
             );
         } catch (Throwable $throwable) {

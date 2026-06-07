@@ -24,6 +24,7 @@ use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\MockClass\WorkflowRetryMock;
 use Tests\MockClass\WorkflowRunOnceMock;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
@@ -270,10 +271,9 @@ final class FlowRunnerTest extends TestCase
         $flowRunner = new FlowRunner(
             type: 'flow.workflow.v1',
             flowSource: WorkflowMock::class,
-            dependenciesInjection: [
-                DependencyMock::class,
-                new DependencyConstructMock(' the end'),
-            ]
+            dependencyRegistry: (new DependencyRegistry())
+                ->autowire(DependencyMock::class)
+                ->instance(new DependencyConstructMock(' the end')),
         );
         $result = $flowRunner->run(new MessageInitMock('test data'));
 

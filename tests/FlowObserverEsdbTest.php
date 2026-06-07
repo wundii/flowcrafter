@@ -10,6 +10,7 @@ use Tests\MockClass\WorkflowEmptyMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\Trait\EsdbClientTestTrait;
 use Thenativeweb\Eventsourcingdb\ReadEventsOptions;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\FlowObserver;
 
@@ -21,7 +22,7 @@ final class FlowObserverEsdbTest extends TestCase
     {
         $storage = $this->storage();
         $queue = $this->queue();
-        $flowObserver = new FlowObserver($storage, $queue, []);
+        $flowObserver = new FlowObserver($storage, $queue, new DependencyRegistry());
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
@@ -42,7 +43,7 @@ final class FlowObserverEsdbTest extends TestCase
             ]
         );
 
-        $flowObserver = new FlowObserver($storage, $queue, []);
+        $flowObserver = new FlowObserver($storage, $queue, new DependencyRegistry());
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $events = $this->client->readEvents('/', new ReadEventsOptions(true));
@@ -85,7 +86,7 @@ final class FlowObserverEsdbTest extends TestCase
             message: null,
         );
 
-        $flowObserver = new FlowObserver($storage, $queue, []);
+        $flowObserver = new FlowObserver($storage, $queue, new DependencyRegistry());
         $flowObserver->run(maxExecutionTimeInSeconds: 0.5);
 
         $flowSchemaEvents = $this->client->runEventQlQuery('FROM e IN events WHERE e.type == "flowcrafter.schema.v1" PROJECT INTO e');

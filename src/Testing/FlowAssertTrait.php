@@ -6,6 +6,7 @@ namespace Wundii\Flowcrafter\Testing;
 
 use PHPUnit\Framework\Assert;
 use RuntimeException;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowContainerFactory;
@@ -25,7 +26,6 @@ trait FlowAssertTrait
      * Executes a flow without storage and stores the resulting Flow for later assertions.
      *
      * @param class-string<FlowInterface> $flowSource
-     * @param array<class-string|object> $dependencies
      * @param class-string[] $includeSteps
      */
     protected function runFlow(
@@ -33,14 +33,14 @@ trait FlowAssertTrait
         string $flowSource,
         MessageInterface $initMessage,
         ?string $flowSubject = null,
-        array $dependencies = [],
+        DependencyRegistry $dependencyRegistry = new DependencyRegistry(),
         array $includeSteps = [],
     ): bool|MessageReturnInterface {
         $flowRunner = new FlowRunner(
             type: $flowType,
             flowSource: $flowSource,
             flowSubject: $flowSubject,
-            dependenciesInjection: $dependencies,
+            dependencyRegistry: $dependencyRegistry,
         );
 
         try {
@@ -86,17 +86,16 @@ trait FlowAssertTrait
      *
      * @param class-string<StepInterface> $stepSource
      * @param MessageInterface[] $messages
-     * @param array<int|class-string, class-string|object> $dependencies
      */
     protected function runStep(
         string $stepSource,
         array $messages,
-        array $dependencies = [],
+        DependencyRegistry $dependencyRegistry = new DependencyRegistry(),
     ): bool|MessageInterface {
         $containerBuilder = FlowContainerFactory::build(
             autowireClasses: [$stepSource],
             syntheticServices: $messages,
-            dependencies: $dependencies,
+            dependencyRegistry: $dependencyRegistry,
         );
 
         $stepInstance = $containerBuilder->get($stepSource);

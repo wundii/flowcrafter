@@ -7,6 +7,7 @@ namespace Wundii\Flowcrafter\Projection;
 use Closure;
 use RuntimeException;
 use Throwable;
+use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\FlowContainerFactory;
 use Wundii\Flowcrafter\FlowMessageReadonly;
 use Wundii\Flowcrafter\Interface\ProjectionHandlerInterface;
@@ -27,13 +28,12 @@ final class ProjectionWorker
 
     /**
      * @param ProjectionHandlerMeta[] $projectionHandlerMetas
-     * @param array<int|class-string, class-string|object> $dependenciesInjection
      */
     public function __construct(
         private readonly ?StorageInterface $storage,
         private readonly QueueInterface $queue,
         private readonly array $projectionHandlerMetas,
-        private readonly array $dependenciesInjection = [],
+        private readonly DependencyRegistry $dependencyRegistry = new DependencyRegistry(),
     ) {
         foreach ($this->projectionHandlerMetas as $projectionHandlerMeta) {
             foreach ($projectionHandlerMeta->flowTypes as $flowType) {
@@ -195,7 +195,7 @@ final class ProjectionWorker
 
         $containerBuilder = FlowContainerFactory::build(
             autowireClasses: [$handlerClass],
-            dependencies: $this->dependenciesInjection,
+            dependencyRegistry: $this->dependencyRegistry,
         );
         $handler = $containerBuilder->get($handlerClass);
         if (!$handler instanceof ProjectionHandlerInterface) {
