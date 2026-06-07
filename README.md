@@ -10,32 +10,24 @@
 [![codecov](https://img.shields.io/codecov/c/github/wundii/flowcrafter/main?token=TNC2MM0MWS&style=for-the-badge)](https://codecov.io/github/wundii/flowcrafter)
 [![Downloads](https://img.shields.io/packagist/dt/wundii/flowcrafter.svg?style=for-the-badge)](https://packagist.org/packages/wundii/flowcrafter)
 
-PHP-Engine für message-driven Workflows — Schema-as-Code,
-typsicheres Routing über Message-Klassen, synchrone und asynchrone
-Ausführung mit vollständigem Audit-Log.
+> **PHP-Engine für message-driven Workflows** — Geschäftsprozesse als typsichere State Machines in reinem PHP, mit synchroner, asynchroner und zeitgesteuerter Ausführung und lückenlosem Audit-Log.
+
+Ein Workflow besteht aus typisierten **Messages**, die zwischen **Steps** fließen.
+Das Routing schreibt man nicht — es ergibt sich aus den Constructor-Signaturen
+der Steps: Welche Message ein Step im Constructor verlangt, bestimmt, wann er
+läuft. Daraus entsteht ein typsicherer DAG, der sich versionieren, ausführen
+und in Echtzeit überwachen lässt. Kein YAML, kein XML, keine Annotations.
 
 ## Features
 
-- Typsichere Workflow-Definitionen als PHP-Klassen — kein YAML/XML
-- Storage-Backends: **MySQL**, **Redis**, **EventSourcingDB** mit
-  SQLite-Service-Layer als Query-Cache — eigene Backends via
-  `StorageInterface` frei erweiterbar
-- Synchrone Ausführung (`FlowRunner`) + asynchrone Queue-Verarbeitung
-  (`FlowObserver`) + zeitgesteuerte Ausführung (`FlowScheduler`)
-- Asynchrone Read-Model-Projektionen: Handler-Methoden via
-  `#[FlowProjectionMessage]` an Message-Sources gebunden, message-zentriert
-  vom `ProjectionWorker` über eine gemeinsame Queue abgearbeitet
-- Automatischer Flow-Status, vollständiges Message-, Exception- &
-  Schedule-Exception-Logging, Schema-Versionierung via Hash
-- `#[FlowGroup]`- und `#[FlowSchedule(group:)]`-Attribute für
-  UI-Gruppierung von Flow-Typen und Schedules
-- UI-DevTool wird automatisch aktiviert wenn der Server via `bin/flowcrafter dev` gestartet wird
-- REST-API für Flows, Schemas, Queues, Exceptions & Schedule-Exceptions
-  inkl. Prometheus/OpenMetrics-Endpunkt;
-- Symfony Console Commands für Config, Storage-Init/Rebuild, Dev-Server,
-  Observer, Scheduler und Mermaid-Diagramme
-- Testing-Helper (`FlowTestCase`, `FlowAssertTrait`) für storageless
-  Unit-Tests
+  - **Schema-as-Code** — Workflows als PHP-Klassen, Routing direkt aus den Step-Constructors abgeleitet
+- **Drei Ausführungsmodi** — synchron (`FlowRunner`), asynchron über Queue (`FlowObserver`) und zeitgesteuert per Cron (`FlowScheduler`)
+- **Read-Model-Projektionen** — Handler reagieren asynchron auf einzelne Messages (`ProjectionWorker`)
+- **Pluggable Storage** — MySQL, Redis, EventSourcingDB; eigene Backends via `StorageInterface`
+- **Lückenloses Audit-Log** — jede Message, Exception und Statusänderung wird erfasst, Schemas via Hash versioniert
+- **Automatischer Retry** — pro Step konfigurierbare Wiederholungen bei transienten Fehlern
+- **Observability** — REST-API, Prometheus/OpenMetrics-Endpunkt und optionales [Web-UI](#web-ui)
+- **Developer Experience** — Console Commands, storageless Testing, Mermaid-Diagramme und [Claude-Code-Plugin](#claude-code-plugin)
 
 ## Installation
 
@@ -43,95 +35,24 @@ Ausführung mit vollständigem Audit-Log.
 composer require wundii/flowcrafter
 ```
 
-## Dokumentation
-
-Die vollständige Dokumentation liegt im [`docs/`](docs/)-Ordner:
-
-| Kapitel | Inhalt |
-|---|---|
-| [Console Commands](docs/commands.md) | Command-Referenz |
-| [Deployment](docs/deployment.md) | Produktion: FrankenPHP + Docker |
-| [Entwicklung](docs/development.md) | QA-Scripts für Contributor |
-| [Getting Started](docs/getting-started.md) | Erste Schritte: Config, Storage, Dev-Server |
-| [Konfiguration](docs/configuration.md) | `flowcrafter.php`, Storage-Backends, Server-Einstellungen |
-| [Konzepte](docs/concepts.md) | Flow, Status, Schema, Messages, includeSteps, Observer, Scheduler, Projektion |
-| [Monitoring](docs/monitoring.md) | Prometheus / OpenMetrics, CheckMK |
-| [REST-API](docs/api.md) | Endpunkte, Pagination, Auth |
-| [Testing](docs/testing.md) | Flows & Steps testen mit PHPUnit 11+ |
-
 ## Quickstart
 
 ```bash
-# 1. Config-Datei erzeugen
-vendor/bin/flowcrafter config:create
-
-# 2. Storage initialisieren
-vendor/bin/flowcrafter storage:init
-
-# 3. Dev-Server (API + Observer + Scheduler + Projection-Worker) starten
-vendor/bin/flowcrafter dev
+vendor/bin/flowcrafter config:create   # 1. flowcrafter.php anlegen
+vendor/bin/flowcrafter storage:init    # 2. Storage initialisieren
+vendor/bin/flowcrafter dev             # 3. Dev-Server starten (API + Observer + Scheduler + Projection-Worker)
 ```
 
-Details siehe [docs/getting-started.md](docs/getting-started.md).
+Schritt für Schritt: [docs/getting-started.md](docs/getting-started.md).
 
-## Web-UI
+## Beispiel
 
-Das optionale Web-Frontend
-[FlowCrafter UI](https://github.com/wundii/flowcrafter-ui) visualisiert
-Flows, Messages, Exceptions, Schedules und Queues in Echtzeit:
+Ein vollständiger Order-Flow in drei Bausteinen — Messages, Steps, Flow.
 
-```bash
-docker run -p 5173:5173 -v ./data:/flowcrafter/data wundii/flowcrafter-ui:latest
-```
-<p align="center">
-  <picture>
-    <img src="https://raw.githubusercontent.com/wundii/flowcrafter-ui/refs/heads/main/assets/01-overview.png" alt="Overview" style="width: 100%; max-width: 600px; height: auto;">
-  </picture>
-</p>
-<p align="center">
-  <picture>
-    <img src="https://raw.githubusercontent.com/wundii/flowcrafter-ui/refs/heads/main/assets/04-flow-detail.png" alt="Flow Detail" style="width: 100%; max-width: 600px; height: auto;">
-  </picture>
-</p>
-<p align="center">
-  <picture>
-    <img src="https://raw.githubusercontent.com/wundii/flowcrafter-ui/refs/heads/main/assets/05-flow-input-modal.png" alt="Flow Input Modal" style="width: 100%; max-width: 600px; height: auto;">
-  </picture>
-</p>
-<p align="center">
-  <picture>
-    <img src="https://raw.githubusercontent.com/wundii/flowcrafter-ui/refs/heads/main/assets/08-devtool.png" alt="Flow Devtool" style="width: 100%; max-width: 600px; height: auto;">
-  </picture>
-</p>
+### 1. Messages
 
-## Claude Code Plugin
-
-Das optionale Claude Code Plugin
-[flowcrafter-claude](https://github.com/wundii/flowcrafter-claude) erweitert
-[Claude Code](https://claude.ai/code) mit Flowcrafter-Wissen — Flows,
-Steps, Messages und Schedules lassen sich per Slash-Command generieren und
-analysieren, ohne das Framework-Modell im Kopf behalten zu müssen.
-
-```
-/plugin marketplace add wundii/flowcrafter-claude
-/plugin install flowcrafter@flowcrafter-claude
-```
-
-| Command | Beschreibung |
-|---|---|
-| `/create-flow` | Flow-Klasse mit FlowBuilder-DSL generieren |
-| `/create-step` | Step-Klasse mit Message-Injection generieren |
-| `/create-message` | Message-Klasse (init / data / return) generieren |
-| `/create-schedule` | Schedule-Klasse mit Cron-Ausdruck generieren |
-| `/analyze-flow` | Flow auf Fehler und Verbesserungen prüfen |
-
-Der `flowcrafter`-Skill wird zusätzlich automatisch aktiviert, sobald
-Flowcrafter-Begriffe im Gespräch auftauchen — ohne manuellen Befehl.
-
-## Minimalbeispiel
-
-### Messages
-readonly Value-Objects. Drei Typen: `Init` startet den Flow, `Data` fließt zwischen Steps, `Return` beendet den Flow:
+`readonly` Value-Objects. Drei Typen steuern das Routing: `Init` startet den
+Flow, `Data` fließt zwischen Steps, `Return` beendet ihn.
 
 ```php
 use Wundii\Flowcrafter\AbstractMessage;
@@ -159,40 +80,21 @@ readonly class OrderCompleted extends AbstractMessage implements MessageReturnIn
 }
 ```
 
-Braucht der erste Step keinen externen Input, kann statt einer eigenen Init-Klasse die mitgelieferte
-`Wundii\Flowcrafter\EmptyInitMessage` verwendet werden. Damit Rector den Konstruktor-Parameter nicht als
-ungenutzt entfernt, wird sie als `public readonly` promoted Property deklariert:
+> Braucht der erste Step keinen externen Input, gibt es die mitgelieferte
+> `Wundii\Flowcrafter\EmptyInitMessage` statt einer eigenen Init-Klasse.
 
-```php
-use Wundii\Flowcrafter\EmptyInitMessage;
+### 2. Steps
 
-class StartStep implements StepInterface
-{
-    public function __construct(
-        public readonly EmptyInitMessage $init,
-    ) {}
-
-    /** @return class-string[] */
-    public function returnTypes(): array { return [OrderValidated::class]; }
-
-    public function process(): MessageDataInterface
-    {
-        return new OrderValidated('SKU-1', quantity: 1);
-    }
-}
-```
-
-### Steps
-reine PHP-Klassen. Der Constructor-Typ entscheidet das Routing. Ein Step kann `MessageData` (→ Flow läuft weiter), `MessageReturn`
-(→ Flow endet) oder `bool` (→ Leaf-Result) zurückgeben:
+Reine PHP-Klassen. Der Constructor-Typ entscheidet das Routing, der Rückgabetyp
+den weiteren Verlauf: `MessageData` (Flow läuft weiter), `MessageReturn` (Flow
+endet) oder `bool` (Leaf-Result, kein Weiterleiten).
 
 ```php
 use Wundii\Flowcrafter\Interface\MessageDataInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StepInterface;
 
-// Zwischenschritt: Init → Data
-class ValidateStep implements StepInterface
+class ValidateStep implements StepInterface          // Init → Data
 {
     public function __construct(private readonly OrderInit $init) {}
 
@@ -205,8 +107,7 @@ class ValidateStep implements StepInterface
     }
 }
 
-// Haupt-Branch: Data → Return (beendet den Flow)
-class CompleteOrderStep implements StepInterface
+class CompleteOrderStep implements StepInterface     // Data → Return (beendet den Flow)
 {
     public function __construct(private readonly OrderValidated $validated) {}
 
@@ -223,8 +124,7 @@ class CompleteOrderStep implements StepInterface
     }
 }
 
-// Leaf-Step: Data → bool (FlowResult, kein Weiterleiten)
-class AuditStep implements StepInterface
+class AuditStep implements StepInterface             // Data → bool (FlowResult)
 {
     public function __construct(private readonly OrderValidated $validated) {}
 
@@ -238,23 +138,18 @@ class AuditStep implements StepInterface
 }
 ```
 
-### Flow
-Schema via `FlowBuilder`, kein YAML. Zwei Steps konsumieren `OrderValidated` parallel.
+### 3. Flow
 
-Optional kann ein Flow mit `#[FlowGroup]` einer UI-Gruppe zugeordnet werden — beeinflusst den Schema-Hash nicht:
+Das Schema entsteht via `FlowBuilder`. Hier konsumieren `CompleteOrderStep` und
+`AuditStep` dieselbe `OrderValidated`-Message — also laufen sie parallel.
 
 ```php
 use Wundii\Flowcrafter\Attribute\FlowGroup;
-
-#[FlowGroup('Order Management')]
-class OrderFlow implements FlowInterface { ... }
-```
-
-```php
 use Wundii\Flowcrafter\FlowBuilder;
 use Wundii\Flowcrafter\FlowSchema;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 
+#[FlowGroup('Order Management')]   // optionale UI-Gruppierung, ohne Einfluss auf den Schema-Hash
 class OrderFlow implements FlowInterface
 {
     public static function schema(): FlowSchema
@@ -268,8 +163,7 @@ class OrderFlow implements FlowInterface
 }
 ```
 
-### Flow-Diagramm
-automatisch aus dem Schema generierbar via `vendor/bin/flowcrafter diagram:mermaid App\\OrderFlow`:
+Das passende Diagramm liefert `vendor/bin/flowcrafter diagram:mermaid App\\OrderFlow`:
 
 ```mermaid
 ---
@@ -283,27 +177,7 @@ ValidateStep-->AuditStep: OrderValidated
 CompleteOrderStep-->[*]: OrderCompleted
 ```
 
-### Step Retry
-
-Steps können bei transienten Fehlern (z. B. externe API nicht erreichbar) automatisch wiederholt werden. Die Konfiguration erfolgt pro Step über `addStep()`:
-
-```php
-$builder->addStep(ValidateStep::class);                            // kein Retry (default)
-$builder->addStep(ExternalApiStep::class, retries: 3);             // 3 zusätzliche Versuche, 200ms Delay
-$builder->addStep(SlowServiceStep::class, retries: 5, delay: 500); // 5 zusätzliche Versuche, 500ms Delay
-```
-
-| Parameter | Typ | Default | Beschreibung |
-|---|---|---|---|
-| `retries` | `int` | `0` | Anzahl **zusätzlicher** Versuche nach dem Erstversuch |
-| `delay` | `int` | `200` | Fixer Delay in Millisekunden zwischen den Versuchen |
-
-- `retries: 3` bedeutet: 1 Erstversuch + 3 Wiederholungen = max. 4 Ausführungen
-- Retry-Konfiguration beeinflusst den Schema-Hash — eine Änderung erzeugt eine neue Schema-Version
-- Bei Erschöpfung aller Versuche wird die letzte Exception wie gewohnt als `FlowException` persistiert
-
-### Flow auslösen
-Zwei Wege: **synchron** im eigenen Code via `FlowRunner` oder **asynchron** über die Queue (vom `FlowObserver` abgearbeitet).
+## Flows auslösen
 
 **Synchron** — direkter Aufruf, Ergebnis sofort verfügbar:
 
@@ -313,18 +187,17 @@ use Wundii\Flowcrafter\FlowRunner;
 $flowRunner = new FlowRunner(
     type: 'flow.order.v1',
     flowSource: OrderFlow::class,
-    flowSubject: 'sku-42',          // optional, Geschäfts-Key zur späteren Suche
-    storage: $storage,              // aus $flowcrafterConfig->getStorage()
+    flowSubject: 'sku-42',   // optionaler Geschäfts-Key zur späteren Suche
+    storage: $storage,       // aus $flowcrafterConfig->getStorage()
 );
 
-$result = $flowRunner->run(new OrderInit('sku-42'));
-// $result ist MessageReturnInterface|bool — hier: OrderCompleted
+$result = $flowRunner->run(new OrderInit('sku-42'));   // MessageReturnInterface|bool
 ```
 
-**Asynchron** — Message in die Queue legen, der `FlowObserver`-Worker führt sie aus:
+**Asynchron** — Message in die Queue legen, ein `FlowObserver`-Worker führt sie aus:
 
 ```php
-$queue = $flowcrafterConfig->getQueue();   // Queue-Backend aus der Config
+$queue = $flowcrafterConfig->getQueue();
 
 $queue->appendObserveItem(
     type: 'flow.order.v1',
@@ -336,9 +209,7 @@ $queue->appendObserveItem(
 );
 ```
 
-Alternativ über die REST-API: `POST /api/flow/flow-run` (synchron) bzw. `POST /api/queue/enqueue` (async) — siehe [docs/api.md](docs/api.md).
-
-**Zeitgesteuert** — Schedule-Klasse mit Cron-Ausdruck, wird automatisch vom `FlowScheduler` entdeckt und ausgeführt:
+**Zeitgesteuert** — Schedule-Klasse mit Cron-Ausdruck, automatisch vom `FlowScheduler` aus dem Composer-Classmap entdeckt:
 
 ```php
 use Wundii\Flowcrafter\Attribute\FlowSchedule;
@@ -350,16 +221,35 @@ class OrderCleanupSchedule extends AbstractSchedule
     public function process(): void
     {
         $this->enqueue(OrderFlow::class, new OrderInit('scheduled-cleanup'));
-        // oder synchron: $this->run(OrderFlow::class, new OrderInit('cleanup'));
+        // oder synchron: $this->run(...)
     }
 }
 ```
 
-Schedule-Klassen werden über das `#[FlowSchedule]`-Attribut automatisch aus dem Composer-Classmap entdeckt — keine manuelle Registrierung nötig. Der Scheduler läuft als eigenständiger Prozess (`vendor/bin/flowcrafter scheduler`) oder im Dev-Modus als überwachter Subprozess mit.
+Per REST-API geht es auch: `POST /api/flow/flow-run` (synchron) bzw.
+`POST /api/queue/enqueue` (async) — siehe [docs/api.md](docs/api.md).
 
-### Projektion (Read Models)
+## Weitere Funktionen
 
-Projection-Handler reagieren **asynchron** auf einzelne Messages eines Flows — ideal für Read Models, Benachrichtigungen oder Side-Effects. Jede Handler-Methode wird per `#[FlowProjectionMessage]` an genau einen Message-Source gebunden; die Klasse ordnet sich per `#[FlowProjection]` einem oder mehreren Flow-Typen zu:
+### Step Retry
+
+Steps können bei transienten Fehlern automatisch wiederholt werden — konfiguriert
+pro Step über `addStep(retries:, delay:)`. `retries: 3` bedeutet ein Erstversuch
+plus drei Wiederholungen; die Retry-Konfiguration fließt in den Schema-Hash ein.
+
+```php
+$builder->addStep(ExternalApiStep::class, retries: 3);             // 3 Versuche, 200 ms Delay (default)
+$builder->addStep(SlowServiceStep::class, retries: 5, delay: 500); // 5 Versuche, 500 ms Delay
+```
+
+### Read-Model-Projektionen
+
+Projection-Handler reagieren **asynchron** auf einzelne Messages eines Flows —
+ideal für Read Models, Benachrichtigungen oder Side-Effects. Jede Methode wird
+per `#[FlowProjectionMessage]` an einen Message-Source gebunden, die Klasse per
+`#[FlowProjection]` an einen oder mehrere Flow-Typen. Handler werden automatisch
+aus dem Composer-Classmap entdeckt und vom `ProjectionWorker`
+(`vendor/bin/flowcrafter projection:worker`) abgearbeitet.
 
 ```php
 use Wundii\Flowcrafter\Attribute\FlowProjection;
@@ -370,91 +260,47 @@ use Wundii\Flowcrafter\Interface\ProjectionHandlerInterface;
 #[FlowProjection(['flow.order.v1'])]
 class OrderProjection implements ProjectionHandlerInterface
 {
-    #[FlowProjectionMessage(OrderValidated::class)]
-    public function onValidated(FlowMessageReadonly $message): void
-    {
-        // Read Model aktualisieren, Benachrichtigung verschicken, ...
-    }
-
     #[FlowProjectionMessage(OrderCompleted::class)]
     public function onCompleted(FlowMessageReadonly $message): void
     {
-        // ...
+        // Read Model aktualisieren, Benachrichtigung verschicken, ...
     }
 }
 ```
 
-- `FlowRunner` schreibt **jede finalisierte `FlowMessage` inkrementell** in eine gemeinsame Projection-Queue (nur wenn ein Handler den Flow-Typ abonniert) — auch ein Run, der später wirft, projiziert das bereits Abgeschlossene.
-- Der `ProjectionWorker` arbeitet die Queue **message-zentriert** ab: pro Message wird der (eindeutige) Handler des Flow-Typs ermittelt und die zum Message-Source registrierte Methode mit einer `FlowMessageReadonly` aufgerufen.
-- **At-least-once:** Handler-Methoden müssen idempotent sein. Wirft eine Methode, wird die Exception als `ProjectionException` protokolliert und mit der nächsten Message weitergemacht — die gemeinsame Queue blockiert nicht.
-- Handler werden — wie Schedules — automatisch aus dem Composer-Classmap entdeckt (keine manuelle Registrierung). Pro Flow-Typ ist genau ein Handler zulässig, und jede annotierte Methode muss einen `FlowMessageReadonly`-Parameter deklarieren.
-
-Der Worker läuft als eigenständiger Prozess (`vendor/bin/flowcrafter projection:worker`) oder im Dev-Modus als überwachter Subprozess mit.
+Die Zustellung ist **at-least-once** — Handler-Methoden müssen idempotent sein.
+Wirft eine Methode, wird die Exception als `ProjectionException` protokolliert
+und mit der nächsten Message weitergemacht; die Queue blockiert nicht.
 
 ### Dependency Injection
 
-Steps können neben Messages auch externe Services per Constructor-Injection erhalten. Die Abhängigkeiten werden über `dependenciesInjection` in `FlowRunner`, `FlowScheduler` und `FlowAssertTrait` registriert — drei Modi stehen zur Verfügung:
+Steps erhalten neben Messages auch externe Services per Constructor-Injection.
+Registriert werden sie über `dependenciesInjection` in `FlowRunner`,
+`FlowScheduler` und `FlowAssertTrait` — in drei Modi:
 
-| Schlüssel | Wert | Verhalten |
-|---|---|---|
-| ohne Schlüssel | `class-string` | Klasse wird automatisch per Autowiring registriert |
-| ohne Schlüssel | `object` | Konkrete Instanz, gebunden an die eigene Klasse |
-| Interface-Klassenname | `object` | Instanz wird an Interface **und** Konkreten Klasse gebunden (Alias) |
-
-```php
-// Step mit Interface-Abhängigkeit
-class FetchStep implements StepInterface
-{
-    public function __construct(
-        private readonly OrderInit $init,
-        private readonly HttpClientInterface $http,  // Interface, kein Concrete!
-    ) {}
-
-    public function returnTypes(): array { return [OrderValidated::class]; }
-
-    public function process(): MessageDataInterface
-    {
-        $data = $this->http->get('/api/order/' . $this->init->getSku());
-        return new OrderValidated($this->init->getSku(), $data['quantity']);
-    }
-}
-```
+| Schlüssel             | Wert           | Verhalten                                                     |
+|-----------------------|----------------|--------------------------------------------------------------|
+| ohne Schlüssel        | `class-string` | Klasse wird per Autowiring registriert                       |
+| ohne Schlüssel        | `object`       | Konkrete Instanz, gebunden an die eigene Klasse              |
+| Interface-Klassenname | `object`       | Instanz an Interface **und** konkrete Klasse gebunden (Alias) |
 
 ```php
-// FlowRunner mit Interface-Binding
 $flowRunner = new FlowRunner(
     type: 'flow.order.v1',
     flowSource: OrderFlow::class,
     storage: $storage,
     dependenciesInjection: [
-        // Interface → konkrete Instanz
-        HttpClientInterface::class => new CurlHttpClient(),
-
-        // oder: direkte Instanz ohne Interface
-        new MyLogger(),
-
-        // oder: Klasse per Autowiring
-        SomeService::class,
-    ],
-);
-
-$result = $flowRunner->run(new OrderInit('sku-42'));
-```
-
-```php
-// Test mit Interface-Binding in FlowAssertTrait
-$this->runFlow(
-    flowType: 'flow.order.v1',
-    flowSource: OrderFlow::class,
-    initMessage: new OrderInit('sku-42'),
-    dependencies: [
-        HttpClientInterface::class => new CurlHttpClientMock(),
+        HttpClientInterface::class => new CurlHttpClient(),   // Interface → Instanz
+        new MyLogger(),                                       // Instanz ohne Interface
+        SomeService::class,                                   // Klasse per Autowiring
     ],
 );
 ```
 
-### Test
-storageless mit `FlowTestCase`, kein Docker nötig:
+### Testing
+
+Storageless mit `FlowTestCase` — kein Docker nötig. Vollständiger Leitfaden:
+[docs/testing.md](docs/testing.md).
 
 ```php
 use Wundii\Flowcrafter\Testing\FlowTestCase;
@@ -470,10 +316,7 @@ final class OrderFlowTest extends FlowTestCase
         );
 
         $this->assertFlowOk();
-        $this->assertStepExecuted(ValidateStep::class);
         $this->assertStepExecuted(CompleteOrderStep::class);
-        $this->assertStepExecuted(AuditStep::class);
-        $this->assertFlowHasMessage(OrderValidated::class);
         $this->assertFlowBoolResult(true);   // AuditStep lieferte true
 
         $return = $this->assertFlowReturned(OrderCompleted::class);
@@ -482,7 +325,75 @@ final class OrderFlowTest extends FlowTestCase
 }
 ```
 
-Vollständiger Testing-Leitfaden: [docs/testing.md](docs/testing.md).
+## Web-UI
+
+Das optionale Frontend
+[FlowCrafter UI](https://github.com/wundii/flowcrafter-ui) visualisiert Flows,
+Messages, Exceptions, Schedules und Queues in Echtzeit:
+
+```bash
+docker run -p 5173:5173 -v ./data:/flowcrafter/data wundii/flowcrafter-ui:latest
+```
+
+<p align="center">
+  <picture>
+    <img src="https://raw.githubusercontent.com/wundii/flowcrafter-ui/refs/heads/main/assets/01-overview.png" alt="Overview" style="width: 100%; max-width: 600px; height: auto;">
+  </picture>
+</p>
+<p align="center">
+  <picture>
+    <img src="https://raw.githubusercontent.com/wundii/flowcrafter-ui/refs/heads/main/assets/04-flow-detail.png" alt="Flow Detail" style="width: 100%; max-width: 600px; height: auto;">
+  </picture>
+</p>
+<p align="center">
+  <picture>
+    <img src="https://raw.githubusercontent.com/wundii/flowcrafter-ui/refs/heads/main/assets/05-flow-input-modal.png" alt="Flow Input Modal" style="width: 100%; max-width: 600px; height: auto;">
+  </picture>
+</p>
+<p align="center">
+  <picture>
+    <img src="https://raw.githubusercontent.com/wundii/flowcrafter-ui/refs/heads/main/assets/08-devtool.png" alt="Flow Devtool" style="width: 100%; max-width: 600px; height: auto;">
+  </picture>
+</p>
+
+## Claude Code Plugin
+
+Das optionale Plugin
+[flowcrafter-claude](https://github.com/wundii/flowcrafter-claude) erweitert
+[Claude Code](https://claude.ai/code) um Flowcrafter-Wissen — Flows, Steps,
+Messages, Projektionen und Schedules lassen sich per Slash-Command generieren
+und analysieren.
+
+```
+/plugin marketplace add wundii/flowcrafter-claude
+/plugin install flowcrafter@flowcrafter-claude
+```
+
+| Command              | Beschreibung                                             |
+|----------------------|----------------------------------------------------------|
+| `/create-flow`       | Flow-Klasse mit FlowBuilder-DSL generieren               |
+| `/create-step`       | Step-Klasse mit Message-Injection generieren             |
+| `/create-message`    | Message-Klasse (init / data / return) generieren         |
+| `/create-projection` | Projection-Handler für asynchrone Read Models generieren |
+| `/create-schedule`   | Schedule-Klasse mit Cron-Ausdruck generieren             |
+| `/analyze-flow`      | Flow auf Fehler und Verbesserungen prüfen                |
+
+Der `flowcrafter`-Skill aktiviert sich zusätzlich automatisch, sobald
+Flowcrafter-Begriffe im Gespräch auftauchen.
+
+## Dokumentation
+
+| Kapitel                                    | Inhalt                                                                        |
+|--------------------------------------------|-------------------------------------------------------------------------------|
+| [Getting Started](docs/getting-started.md) | Erste Schritte: Config, Storage, Dev-Server                                   |
+| [Konzepte](docs/concepts.md)               | Flow, Status, Schema, Messages, includeSteps, Observer, Scheduler, Projektion |
+| [Konfiguration](docs/configuration.md)     | `flowcrafter.php`, Storage-Backends, Server-Einstellungen                     |
+| [Console Commands](docs/commands.md)       | Command-Referenz                                                              |
+| [REST-API](docs/api.md)                    | Endpunkte, Pagination, Auth                                                   |
+| [Testing](docs/testing.md)                 | Flows & Steps testen mit PHPUnit 11+                                          |
+| [Deployment](docs/deployment.md)           | Produktion: FrankenPHP + Docker                                               |
+| [Monitoring](docs/monitoring.md)           | Prometheus / OpenMetrics, CheckMK                                             |
+| [Entwicklung](docs/development.md)         | QA-Scripts für Contributor                                                    |
 
 ## Lizenz
 
