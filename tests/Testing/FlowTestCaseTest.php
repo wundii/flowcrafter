@@ -6,10 +6,12 @@ namespace Tests\Testing;
 
 use PHPUnit\Framework\AssertionFailedError;
 use RuntimeException;
+use Tests\MockClass\AbstractStepMock;
 use Tests\MockClass\BoolStepMock;
 use Tests\MockClass\DependencyConstructMock;
 use Tests\MockClass\DependencyMock;
 use Tests\MockClass\FailStepMock;
+use Tests\MockClass\MessageAbstractStepMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
@@ -24,6 +26,7 @@ use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Testing\FlowTestCase;
+use Wundii\Flowcrafter\Uuid;
 
 final class FlowTestCaseTest extends FlowTestCase
 {
@@ -207,5 +210,34 @@ final class FlowTestCaseTest extends FlowTestCase
 
         $this->assertInstanceOf(MessageReturnMock::class, $result);
         $this->assertStringEndsWith(' END', $result->getData());
+    }
+
+    public function testRunStepWithAbstractStep(): void
+    {
+        $flowHash = Uuid::uuid7()->toString();
+        $flowRuntimeHash = Uuid::uuid7()->toString();
+        $flowType = 'flow.workflow.v1';
+        $flowSchemaHash = md5($flowHash);
+        $flowSubject = '/workflow/1';
+
+        $result = $this->runStep(
+            stepSource: AbstractStepMock::class,
+            messages: [
+                new MessageDataMock('first'),
+            ],
+            flowHash: $flowHash,
+            flowRuntimeHash: $flowRuntimeHash,
+            flowType: $flowType,
+            flowSchemaHash: $flowSchemaHash,
+            flowSubject: $flowSubject,
+        );
+
+        $this->assertInstanceOf(MessageAbstractStepMock::class, $result);
+        $this->assertSame('first', $result->data);
+        $this->assertSame($flowHash, $result->flowHash);
+        $this->assertSame($flowRuntimeHash, $result->flowRuntimeHash);
+        $this->assertSame($flowType, $result->flowType);
+        $this->assertSame($flowSchemaHash, $result->flowSchemaHash);
+        $this->assertSame($flowSubject, $result->flowSubject);
     }
 }

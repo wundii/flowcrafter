@@ -150,6 +150,13 @@ public function testValidateStepIsolated(): void
         stepSource: ValidateStep::class,
         messages: [new OrderInit('sku-42')],
         dependencyRegistry: (new DependencyRegistry())->instance(new FakeHttpClient()),
+
+        // optional für abstract Steps:
+        flowHash: $flowHash,
+        flowRuntimeHash: $flowRuntimeHash,
+        flowType: $flowType,
+        flowSchemaHash: $flowSchemaHash,
+        flowSubject: $flowSubject,
     );
 
     $this->assertInstanceOf(OrderValidated::class, $result);

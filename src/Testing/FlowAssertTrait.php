@@ -6,6 +6,7 @@ namespace Wundii\Flowcrafter\Testing;
 
 use PHPUnit\Framework\Assert;
 use RuntimeException;
+use Wundii\Flowcrafter\AbstractStep;
 use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
@@ -15,6 +16,7 @@ use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
 use Wundii\Flowcrafter\Interface\StepInterface;
+use Wundii\Flowcrafter\Uuid;
 
 trait FlowAssertTrait
 {
@@ -91,6 +93,11 @@ trait FlowAssertTrait
         string $stepSource,
         array $messages,
         DependencyRegistry $dependencyRegistry = new DependencyRegistry(),
+        ?string $flowHash = null,
+        ?string $flowRuntimeHash = null,
+        ?string $flowType = null,
+        ?string $flowSchemaHash = null,
+        ?string $flowSubject = null,
     ): bool|MessageInterface {
         $containerBuilder = FlowContainerFactory::build(
             autowireClasses: [$stepSource],
@@ -104,6 +111,16 @@ trait FlowAssertTrait
                 'Resolved service "%s" does not implement StepInterface.',
                 $stepSource,
             ));
+        }
+
+        if ($stepInstance instanceof AbstractStep) {
+            $stepInstance->setAbstractData(
+                flowHash: $flowHash ?? Uuid::uuid7()->toString(),
+                flowRuntimeHash: $flowRuntimeHash ?? Uuid::uuid7()->toString(),
+                flowType: $flowType ?? 'flow.null.v1',
+                flowSchemaHash: $flowSchemaHash ?? md5(Uuid::uuid7()->toString()),
+                flowSubject: $flowSubject,
+            );
         }
 
         return $stepInstance->process();
