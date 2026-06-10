@@ -78,4 +78,4 @@ $flowcrafterConfig->setStorageConfig(
 | `setServerSecret()`           | Bearer-Token für die API-Authentifizierung (ohne Secret sind alle Routen öffentlich) |
 | `setServerDescription()`      | Beschreibung, die über `/api/info` und `/metrics` exponiert wird                     |
 | `setServerStorage()`          | Pfad zur SQLite-Datei für den Service-Index (Default: `data/flowcrafter-ui.sqlite`)  |
-| `setDependencyRegistry()`     | `DependencyRegistry` mit Services, die in Step-Konstruktoren injiziert werden         |
+| `setDependencyRegistry()`     | `DependencyRegistry` mit Services, die in Step-Konstruktoren injiziert werden        |
