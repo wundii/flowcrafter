@@ -128,7 +128,7 @@ final class FlowerTest extends TestCase
         $this->registerRoute('/api/open', MethodEnum::GET, static fn (): Response => new Response('open'));
 
         $request = Request::create('/api/open');
-        $response = Flower::handle(secret: null, request: $request);
+        $response = Flower::handle(request: $request);
 
         $this->assertSame(200, $response->getStatusCode());
     }

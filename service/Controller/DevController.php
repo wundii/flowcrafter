@@ -292,7 +292,6 @@ final class DevController
             $flowRunner = new FlowRunner(
                 type: $className::schema()->type(),
                 flowSource: $className,
-                storage: null,
                 queue: $inMemoryQueue,
                 dependencyRegistry: $this->flowcrafterConfig->getDependencyRegistry(),
                 projectionHandlerMetas: $projectionHandlerMetas,

@@ -433,6 +433,10 @@ class FlowRunner
                                 $flow->getType(),
                                 $flow->getSchemaHash(),
                                 $flow->getSubject(),
+                                $this->storage,
+                                $this->queue,
+                                $this->dependencyRegistry,
+                                $this->projectionHandlerMetas,
                             );
                         }
 

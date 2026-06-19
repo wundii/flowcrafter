@@ -9,7 +9,7 @@ use Wundii\Flowcrafter\Env;
 
 final class EnvTest extends TestCase
 {
-    private const string KEY = 'FLOWCRAFTER_ENV_TEST';
+    private const KEY = 'FLOWCRAFTER_ENV_TEST';
 
     protected function tearDown(): void
     {

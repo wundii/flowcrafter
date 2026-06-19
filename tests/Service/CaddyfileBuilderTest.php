@@ -11,7 +11,7 @@ final class CaddyfileBuilderTest extends TestCase
 {
     public function testDefaultNumThreadsDerivedFromWorkers(): void
     {
-        $caddyfile = $this->builder(workers: 4, numThreads: null)->build();
+        $caddyfile = $this->builder(workers: 4)->build();
 
         $this->assertStringContainsString('num_threads 8', $caddyfile);
     }
