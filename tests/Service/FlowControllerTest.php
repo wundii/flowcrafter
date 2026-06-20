@@ -9,11 +9,13 @@ use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Tests\MockClass\MessageInitMock;
+use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Flowcrafter\EmptyInitMessage;
 use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Queue\InMemoryQueue;
 use Wundii\Flowcrafter\Storage\Entity\FlowListEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowStatsEntity;
 use Wundii\Flowcrafter\Storage\Entity\FlowTypeStatsEntity;
@@ -160,7 +162,50 @@ final class FlowControllerTest extends TestCase
 
         $data = json_decode((string) $jsonResponse->getContent(), true);
         $this->assertIsArray($data);
-        $this->assertSame('flowHash, messageSource and message required', $data['error']);
+        $this->assertSame('messageSource and message required', $data['error']);
+    }
+
+    public function testRunRejects400WhenNeitherFlowHashNorFlowSource(): void
+    {
+        $storage = $this->createStub(StorageInterface::class);
+
+        $request = Request::create('/api/flow/flow-run', 'POST', [], [], [], [], json_encode([
+            'messageSource' => MessageInitMock::class,
+            'message' => [
+                'data' => 'x',
+            ],
+        ], JSON_THROW_ON_ERROR));
+
+        $jsonResponse = $this->makeController($storage)->run($request);
+
+        $this->assertSame(400, $jsonResponse->getStatusCode());
+
+        $data = json_decode((string) $jsonResponse->getContent(), true);
+        $this->assertIsArray($data);
+        $this->assertSame('flowHash or flowSource required', $data['error']);
+    }
+
+    public function testRunStartsNewFlowWithoutFlowHash(): void
+    {
+        $storage = $this->createStub(StorageInterface::class);
+
+        $request = Request::create('/api/flow/flow-run', 'POST', [], [], [], [], json_encode([
+            'flowSource' => WorkflowMock::class,
+            'messageSource' => MessageInitMock::class,
+            'message' => [
+                'data' => 'fresh run',
+            ],
+        ], JSON_THROW_ON_ERROR));
+
+        $jsonResponse = $this->makeController($storage)->run($request);
+
+        $this->assertSame(200, $jsonResponse->getStatusCode());
+
+        $data = json_decode((string) $jsonResponse->getContent(), true);
+        $this->assertIsArray($data);
+        $this->assertTrue($data['success']);
+        $this->assertNotNull($data['runtimeHash']);
+        $this->assertNotNull($data['messageReturn']);
     }
 
     public function testRunAcceptsEmptyMessageForEmptyInitMessage(): void
@@ -175,10 +220,10 @@ final class FlowControllerTest extends TestCase
 
         $jsonResponse = $this->makeController($storage)->run($request);
 
-        // 400 "flowHash, messageSource and message required" must NOT be returned
+        // 400 "messageSource and message required" must NOT be returned
         $data = json_decode((string) $jsonResponse->getContent(), true);
         $this->assertIsArray($data);
-        $this->assertNotSame('flowHash, messageSource and message required', $data['error'] ?? null);
+        $this->assertNotSame('messageSource and message required', $data['error'] ?? null);
     }
 
     public function testStatsReturnsArray(): void
@@ -240,6 +285,6 @@ final class FlowControllerTest extends TestCase
 
     private function makeController(StorageInterface $storage): FlowController
     {
-        return new FlowController(new FlowcrafterConfig(), $storage, new FlowPreflight());
+        return new FlowController(new FlowcrafterConfig(), $storage, new InMemoryQueue(), new FlowPreflight());
     }
 }

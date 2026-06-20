@@ -19,6 +19,7 @@ use Wundii\Flowcrafter\FlowDiscovery;
 use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StorageInterface;
 use Wundii\Flowcrafter\Projection\ProjectionDiscovery;
 
@@ -27,6 +28,7 @@ final class FlowController
     public function __construct(
         private readonly FlowcrafterConfig $flowcrafterConfig,
         private readonly StorageInterface $storage,
+        private readonly QueueInterface $queue,
         private readonly FlowPreflight $flowPreflight,
     ) {
     }
@@ -203,6 +205,8 @@ final class FlowController
         }
 
         $flowHash = Assert::string($body['flowHash'] ?? '');
+        $flowSource = Assert::string($body['flowSource'] ?? '');
+        $flowSubject = Assert::nullOrString($body['flowSubject'] ?? null);
         $messageSource = Assert::string($body['messageSource'] ?? '');
         $message = Assert::array($body['message'] ?? []);
         /** @var class-string[] $includeSteps */
@@ -210,21 +214,33 @@ final class FlowController
         $messageReturn = null;
 
         $isEmptyInitMessage = is_a($messageSource, EmptyInitMessage::class, true);
-        if ($flowHash === '' || $messageSource === '' || ($message === [] && !$isEmptyInitMessage)) {
+        if ($messageSource === '' || ($message === [] && !$isEmptyInitMessage)) {
             return new JsonResponse([
-                'error' => 'flowHash, messageSource and message required',
+                'error' => 'messageSource and message required',
             ], 400);
         }
 
-        $existingFlow = $this->storage->findFlowByHash($flowHash);
-        if (!$existingFlow instanceof Flow) {
+        if ($flowHash === '' && $flowSource === '') {
             return new JsonResponse([
-                'error' => 'Flow not found',
-            ], 404);
+                'error' => 'flowHash or flowSource required',
+            ], 400);
+        }
+
+        // Re-run an existing flow (flowHash) or start a fresh one (flowSource).
+        $existingFlow = null;
+        if ($flowHash !== '') {
+            $existingFlow = $this->storage->findFlowByHash($flowHash);
+            if (!$existingFlow instanceof Flow) {
+                return new JsonResponse([
+                    'error' => 'Flow not found',
+                ], 404);
+            }
         }
 
         try {
-            $flowSource = $this->flowPreflight->ensureFlowSource($existingFlow->getSource());
+            $flowSource = $this->flowPreflight->ensureFlowSource(
+                $existingFlow instanceof Flow ? $existingFlow->getSource() : $flowSource,
+            );
             $messageSource = $this->flowPreflight->ensureMessageSource($flowSource, $messageSource);
             $messageInstance = $this->flowPreflight->hydrateMessage($messageSource, $message);
         } catch (InvalidArgumentException $invalidArgumentException) {
@@ -233,18 +249,26 @@ final class FlowController
             ], 400);
         }
 
-        if (!$existingFlow->isExecutable()) {
+        if ($existingFlow instanceof Flow && !$existingFlow->isExecutable()) {
             return new JsonResponse([
                 'error' => 'Flow is not executable',
             ], 400);
         }
 
+        $flowType = $existingFlow instanceof Flow
+            ? $existingFlow->getType()
+            : $flowSource::schema()->type();
+        $flowSubject = $existingFlow instanceof Flow
+            ? $existingFlow->getSubject()
+            : $flowSubject;
+
         try {
             $flowRunner = new FlowRunner(
-                type: $existingFlow->getType(),
-                flowSource: $existingFlow->getSource(),
-                flowSubject: $existingFlow->getSubject(),
+                type: $flowType,
+                flowSource: $flowSource,
+                flowSubject: $flowSubject,
                 storage: $this->storage,
+                queue: $this->queue,
                 dependencyRegistry: $this->flowcrafterConfig->getDependencyRegistry(),
                 projectionHandlerMetas: ProjectionDiscovery::discover(),
             );
@@ -258,7 +282,7 @@ final class FlowController
             ob_start();
             $messageReturn = $flowRunner->run(
                 message: $messageInstance,
-                flowHash: $flowHash,
+                flowHash: $flowHash ?: null,
                 includeSteps: $includeSteps,
             );
         } catch (InvalidArgumentException $invalidArgumentException) {

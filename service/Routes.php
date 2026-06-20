@@ -27,7 +27,7 @@ final class Routes
 
         $exceptionController = new ExceptionController($storage);
         $flowPreflight = new FlowPreflight();
-        $flowController = new FlowController($flowcrafterConfig, $storage, $flowPreflight);
+        $flowController = new FlowController($flowcrafterConfig, $storage, $queue, $flowPreflight);
         $healthController = new HealthController();
         $infoController = new InfoController($flowcrafterConfig, $storage, $queue);
         $queueController = new QueueController($storage, $queue, $flowPreflight);
