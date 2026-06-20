@@ -185,7 +185,7 @@ final class ApiRouteTest extends TestCase
         $this->assertSame(400, $response->getStatusCode());
 
         $data = $this->jsonDecode($response);
-        $this->assertSame('flowHash, messageSource and message required', $data['error']);
+        $this->assertSame('messageSource and message required', $data['error']);
     }
 
     public function testFlowsRunEndpointRejectsInvalidJson(): void

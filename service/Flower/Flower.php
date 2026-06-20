@@ -63,7 +63,6 @@ class Flower
         $flower = self::getInstance();
         $request = $request ?? $flower->request;
         $router = $flower->router();
-        $response = null;
 
         $publicPaths = ['/', '/metrics'];
         if ($secret !== null && $secret !== '' && !in_array($request->getPathInfo(), $publicPaths, true)) {

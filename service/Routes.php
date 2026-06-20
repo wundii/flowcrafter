@@ -48,14 +48,15 @@ final class Routes
         $router->add('/api/flow/flow-type-stats', MethodEnum::GET, $flowController->types(...));
         $router->add('/api/flow/flow-projection-list', MethodEnum::GET, $flowController->projections(...));
 
+        $router->add('/api/flow/schema-import-hashes', MethodEnum::GET, $schemaController->schemaImportHashes(...));
         $router->add('/api/flow/schema-list', MethodEnum::GET, $schemaController->list(...));
         $router->add('/api/flow/step-source', MethodEnum::GET, $schemaController->stepSource(...));
         $router->add('/api/flow/step-source-list', MethodEnum::GET, $schemaController->stepSources(...));
         $router->add('/api/flow/message-source-list', MethodEnum::GET, $schemaController->messageSources(...));
         $router->add('/api/flow/projection-handler-source', MethodEnum::GET, $schemaController->projectionHandlerSource(...));
 
-        $router->add('/api/schedule/schedule-list', MethodEnum::GET, $scheduleController->list(...));
         $router->add('/api/schedule/flow-run', MethodEnum::POST, $scheduleController->run(...));
+        $router->add('/api/schedule/schedule-list', MethodEnum::GET, $scheduleController->list(...));
         $router->add('/api/schedule/schedule-source', MethodEnum::GET, $scheduleController->source(...));
 
         $router->add('/api/flow/exceptions-stats', MethodEnum::GET, $exceptionController->stats(...));

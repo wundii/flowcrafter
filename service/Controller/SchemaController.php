@@ -175,4 +175,18 @@ final class SchemaController
 
         return new JsonResponse($result);
     }
+
+    public function schemaImportHashes(): JsonResponse
+    {
+        $schemaList = $this->storage->findAllSchemas();
+        $messageList = $this->storage->findAllMessageSources();
+
+        $schemaHash = md5(json_encode(iterator_to_array($schemaList)) ?: '');
+        $messageSourceHash = md5(json_encode(iterator_to_array($messageList)) ?: '');
+
+        return new JsonResponse([
+            'schemaHash' => $schemaHash,
+            'messageSourceHash' => $messageSourceHash,
+        ]);
+    }
 }

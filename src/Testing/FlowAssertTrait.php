@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Wundii\Flowcrafter\Testing;
 
 use PHPUnit\Framework\Assert;
+use ReflectionException;
 use RuntimeException;
+use Throwable;
 use Wundii\Flowcrafter\AbstractStep;
 use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
 use Wundii\Flowcrafter\Enum\StatusEnum;
@@ -15,7 +17,10 @@ use Wundii\Flowcrafter\FlowRunner;
 use Wundii\Flowcrafter\Interface\FlowInterface;
 use Wundii\Flowcrafter\Interface\MessageInterface;
 use Wundii\Flowcrafter\Interface\MessageReturnInterface;
+use Wundii\Flowcrafter\Interface\QueueInterface;
 use Wundii\Flowcrafter\Interface\StepInterface;
+use Wundii\Flowcrafter\Interface\StorageInterface;
+use Wundii\Flowcrafter\Projection\ProjectionHandlerMeta;
 use Wundii\Flowcrafter\Uuid;
 
 trait FlowAssertTrait
@@ -29,12 +34,16 @@ trait FlowAssertTrait
      *
      * @param class-string<FlowInterface> $flowSource
      * @param class-string[] $includeSteps
+     * @throws ReflectionException
+     * @throws Throwable
      */
     protected function runFlow(
         string $flowType,
         string $flowSource,
         MessageInterface $initMessage,
         ?string $flowSubject = null,
+        ?StorageInterface $storage = null,
+        ?QueueInterface $queue = null,
         DependencyRegistry $dependencyRegistry = new DependencyRegistry(),
         array $includeSteps = [],
     ): bool|MessageReturnInterface {
@@ -42,6 +51,8 @@ trait FlowAssertTrait
             type: $flowType,
             flowSource: $flowSource,
             flowSubject: $flowSubject,
+            storage: $storage,
+            queue: $queue,
             dependencyRegistry: $dependencyRegistry,
         );
 
@@ -88,6 +99,7 @@ trait FlowAssertTrait
      *
      * @param class-string<StepInterface> $stepSource
      * @param MessageInterface[] $messages
+     * @param ProjectionHandlerMeta[] $projectionHandlerMetas
      */
     protected function runStep(
         string $stepSource,
@@ -98,6 +110,9 @@ trait FlowAssertTrait
         ?string $flowType = null,
         ?string $flowSchemaHash = null,
         ?string $flowSubject = null,
+        ?StorageInterface $storage = null,
+        ?QueueInterface $queue = null,
+        array $projectionHandlerMetas = [],
     ): bool|MessageInterface {
         $containerBuilder = FlowContainerFactory::build(
             autowireClasses: [$stepSource],
@@ -120,6 +135,9 @@ trait FlowAssertTrait
                 flowType: $flowType ?? 'flow.null.v1',
                 flowSchemaHash: $flowSchemaHash ?? md5(Uuid::uuid7()->toString()),
                 flowSubject: $flowSubject,
+                storage: $storage,
+                queue: $queue,
+                projectionHandlerMetas: $projectionHandlerMetas,
             );
         }
 
