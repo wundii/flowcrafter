@@ -22,7 +22,7 @@ return static function (RectorConfig $rectorConfig): void
     );
 
     $rectorConfig->sets([
-        PHPUnitSetList::PHPUNIT_100,
+        PHPUnitSetList::COMPOSER_BASED,
         PHPUnitSetList::PHPUNIT_CODE_QUALITY,
         SetList::DEAD_CODE,
         SetList::CODE_QUALITY,

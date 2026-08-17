@@ -132,7 +132,6 @@ final class Assert
             }
         }
 
-        /** @phpstan-ignore-next-line */
         return $array;
     }
 
@@ -151,7 +150,6 @@ final class Assert
             }
         }
 
-        /** @phpstan-ignore-next-line */
         return $array;
     }
 
@@ -170,7 +168,6 @@ final class Assert
             }
         }
 
-        /** @phpstan-ignore-next-line */
         return $array;
     }
 

@@ -82,8 +82,8 @@ class RedisStorage extends ServiceStorage
 
     public static function escapeValue(string $value): string
     {
-        //tag = @key:{' . $value . '} replace('-', '\-')
-        //text = @key:(' . $value . ') replace('-', ' ')
+        // tag = @key:{' . $value . '} replace('-', '\-')
+        // text = @key:(' . $value . ') replace('-', ' ')
         return strtr($value, [
             '\\' => '\\\\',
             '-' => '\-',

@@ -42,10 +42,10 @@ final class ConverterTest extends TestCase
     public function testFlowToJsonWithoutMessages(): void
     {
         Uuid::appendUuidStock([
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$json::flowSchema::steps::step::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff001', #$json::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff002', #$json::runtimeHash
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$expectedJson::flowSchema::steps::step::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', # $json::flowSchema::steps::step::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff001', # $json::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff002', # $json::runtimeHash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', # $expectedJson::flowSchema::steps::step::hash
         ]);
 
         $flow = Flow::create(
@@ -88,15 +88,15 @@ final class ConverterTest extends TestCase
     public function testFlowToJsonWithMessages(): void
     {
         Uuid::appendUuidStock([
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$json::flowSchema::steps::step::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff001', #$json::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff002', #$json::runtimeHash
-            '0198ce36-3a94-7125-9ac7-88902e8ff003', #$json::flowException::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff004', #$json::flowResult::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff002', #$expectedJson::flowMessage::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff003', #$expectedJson::flowException::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff004', #$expectedJson::flowResult::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$expectedJson::flowSchema::steps::step::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', # $json::flowSchema::steps::step::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff001', # $json::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff002', # $json::runtimeHash
+            '0198ce36-3a94-7125-9ac7-88902e8ff003', # $json::flowException::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff004', # $json::flowResult::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff002', # $expectedJson::flowMessage::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff003', # $expectedJson::flowException::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff004', # $expectedJson::flowResult::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', # $expectedJson::flowSchema::steps::step::hash
         ]);
 
         $file = __FILE__;
@@ -242,12 +242,12 @@ final class ConverterTest extends TestCase
     public function testJsonToFlowWithoutMessages(): void
     {
         Uuid::appendUuidStock([
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$flow::hash + $expectedFlow::step::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff001', #$flow::runtimeHash
-            '0198ce36-3a94-7125-9ac7-88902e8ff002', #$flow::flowMessage::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff003', #$expectedFlow::flowSchema::steps::step::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff001', #$expectedFlow::flowMessage::flowRuntimeHash
-            '0198ce36-3a94-7125-9ac7-88902e8ff002', #$expectedFlow::flowMessage::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', # $flow::hash + $expectedFlow::step::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff001', # $flow::runtimeHash
+            '0198ce36-3a94-7125-9ac7-88902e8ff002', # $flow::flowMessage::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff003', # $expectedFlow::flowSchema::steps::step::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff001', # $expectedFlow::flowMessage::flowRuntimeHash
+            '0198ce36-3a94-7125-9ac7-88902e8ff002', # $expectedFlow::flowMessage::hash
         ]);
 
         $datetime = new DateTimeImmutable();
@@ -335,12 +335,12 @@ final class ConverterTest extends TestCase
     public function testJsonToFlowWithMessages(): void
     {
         Uuid::appendUuidStock([
-            '0198ce36-3a94-7125-9ac7-88902e8ff000', #$flow::hash + $expectedFlow::step::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff001', #$flow::runtimeHash
-            '0198ce36-3a94-7125-9ac7-88902e8ff002', #$flow::flowMessage::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff003', #$expectedFlow::flowSchema::steps::step::hash
-            '0198ce36-3a94-7125-9ac7-88902e8ff001', #$expectedFlow::flowMessage::flowRuntimeHash
-            '0198ce36-3a94-7125-9ac7-88902e8ff002', #$expectedFlow::flowMessage::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff000', # $flow::hash + $expectedFlow::step::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff001', # $flow::runtimeHash
+            '0198ce36-3a94-7125-9ac7-88902e8ff002', # $flow::flowMessage::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff003', # $expectedFlow::flowSchema::steps::step::hash
+            '0198ce36-3a94-7125-9ac7-88902e8ff001', # $expectedFlow::flowMessage::flowRuntimeHash
+            '0198ce36-3a94-7125-9ac7-88902e8ff002', # $expectedFlow::flowMessage::hash
         ]);
 
         $datetime = new DateTimeImmutable();
