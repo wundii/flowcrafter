@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use PhpCsFixer\Fixer\ClassNotation\ClassAttributesSeparationFixer;
+use PhpCsFixer\Fixer\Operator\AssignNullCoalescingToCoalesceEqualFixer;
 use PhpCsFixer\Fixer\Operator\NotOperatorWithSuccessorSpaceFixer;
 use PhpCsFixer\Fixer\PhpUnit\PhpUnitSetUpTearDownVisibilityFixer;
 use PhpCsFixer\Fixer\PhpUnit\PhpUnitTestAnnotationFixer;
@@ -46,6 +47,5 @@ return ECSConfig::configure()
     ->withSkip([
         ClassAttributesSeparationFixer::class,
         NotOperatorWithSuccessorSpaceFixer::class,
-        /** keep short method chains on one line */
-        MethodChainingNewlineFixer::class,
+        AssignNullCoalescingToCoalesceEqualFixer::class,
     ]);
