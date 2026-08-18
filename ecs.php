@@ -48,4 +48,5 @@ return ECSConfig::configure()
         ClassAttributesSeparationFixer::class,
         NotOperatorWithSuccessorSpaceFixer::class,
         AssignNullCoalescingToCoalesceEqualFixer::class,
+        MethodChainingNewlineFixer::class,
     ]);
