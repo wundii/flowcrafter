@@ -29,6 +29,32 @@ final class FlowObserverRedisTest extends TestCase
         $this->assertCount(0, $events);
     }
 
+    public function testQueueIdIsStableBetweenListingAndObserving(): void
+    {
+        $queue = $this->queue();
+        $queue->appendObserveItem(
+            type: 'flow.workflow.v1',
+            flowSource: WorkflowMock::class,
+            flowHash: null,
+            messageSource: MessageInitMock::class,
+            message: [
+                'data' => 'test data',
+            ]
+        );
+
+        $listedItems = iterator_to_array($queue->findAllQueues(), false);
+        $this->assertCount(1, $listedItems);
+        $listedQueueId = $listedItems[0]->getQueueId();
+        $this->assertNotSame('', $listedQueueId);
+
+        $observedQueueId = null;
+        foreach ($queue->observeQueue(0.5) as $observeItem) {
+            $observedQueueId = $observeItem->getQueueId();
+        }
+
+        $this->assertSame($listedQueueId, $observedQueueId);
+    }
+
     public function testRunObserverWithMessages(): void
     {
         $storage = $this->storage();

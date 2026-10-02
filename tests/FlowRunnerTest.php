@@ -10,6 +10,7 @@ use RuntimeException;
 use Tests\MockClass\DependencyConstructMock;
 use Tests\MockClass\DependencyMock;
 use Tests\MockClass\FailStepMock;
+use Tests\MockClass\FalseStepMock;
 use Tests\MockClass\MessageDataMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageReturnMock;
@@ -23,8 +24,10 @@ use Tests\MockClass\WorkflowBoolMock;
 use Tests\MockClass\WorkflowFailMock;
 use Tests\MockClass\WorkflowMock;
 use Tests\MockClass\WorkflowRetryMock;
+use Tests\MockClass\WorkflowReturnBeforeBoolMock;
 use Tests\MockClass\WorkflowRunOnceMock;
 use Wundii\Flowcrafter\DependencyInjection\DependencyRegistry;
+use Wundii\Flowcrafter\Enum\StatusEnum;
 use Wundii\Flowcrafter\Flow;
 use Wundii\Flowcrafter\FlowException;
 use Wundii\Flowcrafter\FlowRunner;
@@ -54,6 +57,25 @@ final class FlowRunnerTest extends TestCase
         $this->assertCount(1, $flow->getFlowResults());
         $this->assertInstanceOf(MessageReturnInterface::class, $result);
         $this->assertStringStartsWith('[', $result->getData());
+    }
+
+    public function testBoolResultAfterMessageReturnIsStillRecorded(): void
+    {
+        $flowRunner = new FlowRunner(
+            type: 'flow.workflow.return-before-bool.v1',
+            flowSource: WorkflowReturnBeforeBoolMock::class,
+        );
+        $result = $flowRunner->run(new MessageInitMock('test data'));
+
+        $flow = $flowRunner->getFlow();
+        $this->assertInstanceOf(Flow::class, $flow);
+        $this->assertInstanceOf(MessageReturnMock::class, $result);
+
+        $flowResults = $flow->getFlowResults();
+        $this->assertCount(1, $flowResults);
+        $this->assertSame(FalseStepMock::class, $flowResults[0]->getStepSource());
+        $this->assertFalse($flowResults[0]->getResult());
+        $this->assertSame(StatusEnum::WARNING, $flow->status());
     }
 
     public function testRestartingAnWorkflow(): void

@@ -10,7 +10,7 @@ Absicherung erfolgt auf Netzwerkebene (Firewall, Reverse Proxy).
 
 | Metrik                                 | Typ   | Beschreibung                                                      |
 |----------------------------------------|-------|-------------------------------------------------------------------|
-| `flowcrafter_info`                     | gauge | Immer `1`, Labels `description` und `storage` enthalten Metadaten |
+| `flowcrafter_info`                     | gauge | Immer `1`, Labels `description` und `storage` (Klassenname des Storage in Kleinbuchstaben, z. B. `redisstorage`) |
 | `flowcrafter_observer_up`              | gauge | `1` = Observer läuft, `0` = Observer gestoppt                     |
 | `flowcrafter_observer_workers`         | gauge | Anzahl der aktiven Observer-Worker-Prozesse                       |
 | `flowcrafter_scheduler_up`             | gauge | `1` = Scheduler läuft, `0` = Scheduler gestoppt                   |
@@ -23,15 +23,24 @@ Absicherung erfolgt auf Netzwerkebene (Firewall, Reverse Proxy).
 | `flowcrafter_schedule_exceptions_7d`   | gauge | Anzahl der Schedule-Exceptions in den letzten 7 Tagen             |
 | `flowcrafter_projection_exceptions_7d` | gauge | Anzahl der Projection-Exceptions in den letzten 7 Tagen           |
 
-Die `*_up`-/`*_workers`-Metriken leiten sich aus den Heartbeats der
-jeweiligen Prozesse ab (Observer, Scheduler, Projection-Worker).
+Die `*_up`-/`*_workers`-Metriken leiten sich aus den Heartbeat-Dateien
+der Prozesse ab (`<sys_temp_dir>/flowcrafter/*.heartbeat`, höchstens 60 s
+alt). Der Service muss dafür dasselbe Verzeichnis sehen wie die Worker
+(in Docker: gemeinsames Volume). Im `dev`-Modus schreibt zusätzlich der
+Supervisor-Prozess einen Observer-Heartbeat, `flowcrafter_observer_workers`
+liegt dort also um eins zu hoch.
+
+Die Zähler (`flows_total`, `*_exceptions_7d`) stammen aus dem
+SQLite-Service-Index. Observer-Exceptions haben keine eigene Metrik —
+sie sind über `/api/flow/exception-list` (`type: "observer"`) und
+`/api/flow/exceptions-stats` abrufbar.
 
 ## Beispielausgabe
 
 ```
 # HELP flowcrafter_info FlowCrafter service information
 # TYPE flowcrafter_info gauge
-flowcrafter_info{description="Production",storage="Redis"} 1
+flowcrafter_info{description="Production",storage="redisstorage"} 1
 # HELP flowcrafter_observer_up Whether the FlowCrafter observer process is running (1 = up, 0 = down)
 # TYPE flowcrafter_observer_up gauge
 flowcrafter_observer_up 1

@@ -26,8 +26,8 @@ if ($autoloadFile === null) {
 
 require $autoloadFile;
 
-$flowcrafterConfigFile = $_ENV['FLOWCRAFTER_CONFIG'] ?? null;
-$bootstrapConfig = new BootstrapConfig(is_string($flowcrafterConfigFile) ? $flowcrafterConfigFile : null);
+$flowcrafterConfigFile = $_ENV['FLOWCRAFTER_CONFIG'] ?? getenv('FLOWCRAFTER_CONFIG');
+$bootstrapConfig = new BootstrapConfig(is_string($flowcrafterConfigFile) && $flowcrafterConfigFile !== '' ? $flowcrafterConfigFile : null);
 $bootstrapConfigRequirer = new BootstrapConfigRequirer($bootstrapConfig);
 $flowcrafterConfig = $bootstrapConfigRequirer->loadConfigFile(new FlowcrafterConfig());
 $storage = $flowcrafterConfig->getStorage();

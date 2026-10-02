@@ -17,6 +17,8 @@ testest.
 - [Dependency Injection im Test](#dependency-injection-im-test)
 - [Fehlerpfade und Exceptions testen](#fehlerpfade-und-exceptions-testen)
 - [Teilweise Ausführung mit includeSteps](#teilweise-ausführung-mit-includesteps)
+- [Steps mit enqueue() / run() testen](#steps-mit-enqueue--run-testen)
+- [Projektionen testen](#projektionen-testen)
 - [Mehrere Flows in einem Test](#mehrere-flows-in-einem-test)
 - [FlowAssertTrait in eigene Basisklassen einbinden](#flowasserttrait-in-eigene-basisklassen-einbinden)
 - [Storage-Integrationstests](#storage-integrationstests)
@@ -51,6 +53,10 @@ sind nur nötig, wenn du einen eigenen `StorageInterface`-Adapter schreibst.
 ---
 
 ## Schnellstart: FlowTestCase
+
+> PHPUnit ist keine Laufzeit-Abhängigkeit von Flowcrafter — für
+> `FlowTestCase` muss `phpunit/phpunit` (≥ 11) in den `require-dev` deines
+> Projekts.
 
 Flowcrafter liefert mit `Wundii\Flowcrafter\Testing\FlowTestCase` eine
 Abstract-Klasse aus, die auf PHPUnits `TestCase` aufsetzt und den Trait
@@ -102,19 +108,26 @@ protected function runFlow(
     string $flowSource,
     MessageInterface $initMessage,
     ?string $flowSubject = null,
-    array $dependencies = [],
+    ?StorageInterface $storage = null,
+    ?QueueInterface $queue = null,
+    DependencyRegistry $dependencyRegistry = new DependencyRegistry(),
     array $includeSteps = [],
 ): bool|MessageReturnInterface;
 ```
 
-| Parameter      | Zweck                                                                                                         |
-|----------------|---------------------------------------------------------------------------------------------------------------|
-| `flowType`     | Der Typ wie in `schema()` verwendet, z. B. `'flow.order.v1'`                                                  |
-| `flowSource`   | Die `FlowInterface`-Klasse                                                                                    |
-| `initMessage`  | Die Start-Message (`MessageInitInterface`)                                                                    |
-| `flowSubject`  | Optionaler Geschäfts-Key (z. B. Order-ID), zur späteren Suche                                                 |
-| `dependencies` | Services, die in Steps autowired werden (siehe [Dependency Injection im Test](#dependency-injection-im-test)) |
-| `includeSteps` | Nur diese Steps ausführen (siehe [Teilweise Ausführung](#teilweise-ausführung-mit-includesteps))              |
+| Parameter            | Zweck                                                                                                         |
+|----------------------|---------------------------------------------------------------------------------------------------------------|
+| `flowType`           | Der Typ wie in `schema()` verwendet, z. B. `'flow.order.v1'`                                                  |
+| `flowSource`         | Die `FlowInterface`-Klasse                                                                                    |
+| `initMessage`        | Die Start-Message (`MessageInitInterface`)                                                                    |
+| `flowSubject`        | Optionaler Geschäfts-Key (z. B. Order-ID), zur späteren Suche                                                 |
+| `storage`            | Optionaler Storage — Default `null` (rein in-memory)                                                          |
+| `queue`              | Optionale Queue, z. B. `new InMemoryQueue()` für Steps mit `enqueue()` (siehe [Flow-Trigger](#steps-mit-enqueue--run-testen)) |
+| `dependencyRegistry` | Services, die in Steps autowired werden (siehe [Dependency Injection im Test](#dependency-injection-im-test)) |
+| `includeSteps`       | Nur diese Steps ausführen (siehe [Teilweise Ausführung](#teilweise-ausführung-mit-includesteps))              |
+
+> Nutze benannte Argumente — die Parameterreihenfolge hat sich gegenüber
+> früheren Versionen geändert (`storage`/`queue` vor `dependencyRegistry`).
 
 Nach dem Aufruf stehen dir zwei Hilfsmethoden zur Verfügung:
 
@@ -134,7 +147,15 @@ Wenn du einen **einzelnen** Step ohne den ganzen Flow-Graph testen willst
 protected function runStep(
     string $stepSource,
     array $messages,
-    array $dependencies = [],
+    DependencyRegistry $dependencyRegistry = new DependencyRegistry(),
+    ?string $flowHash = null,          // nur für AbstractStep relevant,
+    ?string $flowRuntimeHash = null,   // sonst werden Zufallswerte gesetzt
+    ?string $flowType = null,
+    ?string $flowSchemaHash = null,
+    ?string $flowSubject = null,
+    ?StorageInterface $storage = null,
+    ?QueueInterface $queue = null,
+    array $projectionHandlerMetas = [],
 ): bool|MessageInterface;
 ```
 
@@ -350,9 +371,64 @@ $this->assertStepExecuted(ValidateStep::class);
 $this->assertStepNotExecuted(ChargeStep::class);
 ```
 
-Nicht gelistete Steps werden vom Runner übersprungen — auch wenn sie
-laut Schema eigentlich dran wären. `includeSteps: []` (Default) führt alle
-Steps aus.
+Die Liste wird automatisch um alle **nachgelagerten** Steps der
+genannten Steps erweitert; alles andere wird übersprungen.
+`includeSteps: []` (Default) führt alle Steps aus. Ohne Storage gibt es
+keine historischen Messages — Steps mit mehreren Inputs (Fan-in), deren
+zweiter Input außerhalb der Auswahl entsteht, laufen im Test daher nicht.
+
+---
+
+## Steps mit enqueue() / run() testen
+
+Steps, die von `AbstractStep` erben und andere Flows per `enqueue()`
+anstoßen, brauchen eine Queue. Mit der mitgelieferten `InMemoryQueue`
+lässt sich prüfen, was eingereiht wurde:
+
+```php
+use Wundii\Flowcrafter\Queue\InMemoryQueue;
+
+$queue = new InMemoryQueue();
+
+$this->runFlow(
+    flowType: 'flow.order.v1',
+    flowSource: OrderFlow::class,
+    initMessage: new OrderInit('sku-42'),
+    queue: $queue,
+);
+
+$items = iterator_to_array($queue->findAllQueues(), false);
+$this->assertCount(1, $items);
+$this->assertSame(InvoiceFlow::class, $items[0]->getFlowSource());
+```
+
+> Ohne Queue wirft `enqueue()` eine `RuntimeException`. `run()`
+> (synchroner Sub-Flow) funktioniert auch ohne Storage und Queue — der
+> Sub-Flow läuft dann ebenfalls rein in-memory.
+
+## Projektionen testen
+
+Projection-Handler sind normale Klassen — am einfachsten direkt mit
+einer `FlowMessageReadonly` aufrufen:
+
+```php
+use Wundii\Flowcrafter\FlowMessageReadonly;
+
+$message = FlowMessageReadonly::createFromArray([
+    'flowHash' => '0190…', 'flowRuntimeHash' => '0190…', 'flowType' => 'flow.order.v1',
+    'stepSource' => ValidateStep::class, 'stepHash' => 'abc',
+    'messageType' => 'finish', 'messageSource' => OrderValidated::class,
+    'messageHash' => 'def', 'message' => ['sku' => 'sku-42', 'quantity' => 1],
+    'time' => '2026-10-01T12:00:00.000+00:00', 'hash' => '0190…', 'predecessorHash' => null,
+]);
+
+(new OrderProjection($repository))->onValidated($message);
+```
+
+Für einen End-to-End-Test Flow mit `InMemoryQueue` und
+`ProjectionHandlerMeta`s ausführen und anschließend einen
+`ProjectionWorker` über dieselbe Queue laufen lassen
+(`$worker->tick(maxExecutionTime: 0.1)`).
 
 ---
 
@@ -402,7 +478,8 @@ Anwender-Flows. Wenn du aber einen **eigenen** `StorageInterface`-Adapter
 schreibst, musst du dessen Persistenz gegen ein echtes Backend testen:
 
 - Flowcrafter verwendet intern **Testcontainers** (`testcontainers/testcontainers`)
-  zum Hochfahren echter MySQL-, Redis- und EventSourcingDB-Container pro Test.
+  zum Hochfahren echter MariaDB-, Redis- und EventSourcingDB-Container
+  (MariaDB und Redis einmal pro Testklasse, EventSourcingDB pro Test).
 - Die Trait-Helfer `tests/Trait/MySqlClientTestTrait.php`,
   `RedisClientTestTrait.php` und `EsdbClientTestTrait.php` zeigen das Muster.
 - Docker muss laufen; die Tests sind dadurch deutlich langsamer (Sekunden

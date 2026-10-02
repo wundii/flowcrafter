@@ -59,6 +59,7 @@ final class RedisQueue implements QueueInterface
         Assert::classString($messageSource, MessageInterface::class);
 
         $data = [
+            'queueId' => Uuid::uuid7(new DateTimeImmutable())->toString(),
             'type' => $type,
             'flowSource' => $flowSource,
             'flowHash' => $flowHash,
@@ -97,9 +98,9 @@ final class RedisQueue implements QueueInterface
                 throw new RuntimeException('The flow message payload must be a valid JSON object.');
             }
 
-            /** @var array{type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeSteps?: class-string[], flowSubject?: ?string} $payload */
+            /** @var array{queueId?: string, type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: array<mixed>, includeSteps?: class-string[], flowSubject?: ?string} $payload */
             yield new ObserveItem(
-                queueId: Uuid::uuid7(new DateTimeImmutable())->toString(),
+                queueId: $payload['queueId'] ?? Uuid::uuid7(new DateTimeImmutable())->toString(),
                 type: $payload['type'],
                 flowSubject: $payload['flowSubject'] ?? null,
                 flowSource: $payload['flowSource'],
@@ -141,9 +142,9 @@ final class RedisQueue implements QueueInterface
                 continue;
             }
 
-            /** @var array{queueId: string, type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: null|array<mixed>, includeSteps?: class-string[], flowSubject?: ?string} $payload */
+            /** @var array{queueId?: string, type: string, flowSource: class-string<FlowInterface>, flowHash: ?string, messageSource: string, message: null|array<mixed>, includeSteps?: class-string[], flowSubject?: ?string} $payload */
             yield new ObserveItem(
-                queueId: $payload['queueId'],
+                queueId: $payload['queueId'] ?? '',
                 type: $payload['type'],
                 flowSubject: $payload['flowSubject'] ?? null,
                 flowSource: $payload['flowSource'],

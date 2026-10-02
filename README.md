@@ -20,12 +20,14 @@ und in Echtzeit überwachen lässt. Kein YAML, kein XML, keine Annotations.
 
 ## Features
 
-  - **Schema-as-Code** — Workflows als PHP-Klassen, Routing direkt aus den Step-Constructors abgeleitet
+- **Schema-as-Code** — Workflows als PHP-Klassen, Routing direkt aus den Step-Constructors abgeleitet
 - **Drei Ausführungsmodi** — synchron (`FlowRunner`), asynchron über Queue (`FlowObserver`) und zeitgesteuert per Cron (`FlowScheduler`)
 - **Read-Model-Projektionen** — Handler reagieren asynchron auf einzelne Messages (`ProjectionWorker`)
-- **Pluggable Storage** — MySQL, Redis, EventSourcingDB; eigene Backends via `StorageInterface`
+- **Pluggable Storage & Queue** — MySQL, Redis, EventSourcingDB; Storage und Queue getrennt konfigurierbar, eigene Backends via `StorageInterface`/`QueueInterface`
 - **Lückenloses Audit-Log** — jede Message, Exception und Statusänderung wird erfasst, Schemas via Hash versioniert
-- **Automatischer Retry** — pro Step konfigurierbare Wiederholungen bei transienten Fehlern
+- **Automatischer Retry & runOnce** — pro Step konfigurierbare Wiederholungen; `runOnce` verhindert doppelte Seiteneffekte bei Re-Runs
+- **Partielle Re-Runs** — einzelne Steps einer bestehenden Instanz erneut ausführen (`includeSteps`)
+- **Ephemere Flows** — `#[FlowEphemeral]` für kurzlebige Flows ohne dauerhafte Ablage
 - **Observability** — REST-API, Prometheus/OpenMetrics-Endpunkt und optionales [Web-UI](#web-ui)
 - **Developer Experience** — Console Commands, storageless Testing, Mermaid-Diagramme und [Claude-Code-Plugin](#claude-code-plugin)
 
@@ -399,12 +401,12 @@ Flowcrafter-Begriffe im Gespräch auftauchen.
 | Kapitel                                    | Inhalt                                                                        |
 |--------------------------------------------|-------------------------------------------------------------------------------|
 | [Getting Started](docs/getting-started.md) | Erste Schritte: Config, Storage, Dev-Server                                   |
-| [Konzepte](docs/concepts.md)               | Flow, Status, Schema, Messages, includeSteps, Observer, Scheduler, Projektion |
-| [Konfiguration](docs/configuration.md)     | `flowcrafter.php`, Storage-Backends, Server-Einstellungen                     |
+| [Konzepte](docs/concepts.md)               | Ausführung, Status, Retry, runOnce, includeSteps, Ephemeral, Versionierung, Observer, Scheduler, Projektion |
+| [Konfiguration](docs/configuration.md)     | `flowcrafter.php`, Storage- & Queue-Backends, Service-Index, Server, DI       |
 | [Console Commands](docs/commands.md)       | Command-Referenz                                                              |
 | [REST-API](docs/api.md)                    | Endpunkte, Pagination, Auth                                                   |
 | [Testing](docs/testing.md)                 | Flows & Steps testen mit PHPUnit 11+                                          |
-| [Deployment](docs/deployment.md)           | Produktion: FrankenPHP + Docker                                               |
+| [Deployment](docs/deployment.md)           | Produktion: FrankenPHP + Docker, Zustellgarantien, Sicherheits-Checkliste     |
 | [Monitoring](docs/monitoring.md)           | Prometheus / OpenMetrics, CheckMK                                             |
 | [Entwicklung](docs/development.md)         | QA-Scripts für Contributor                                                    |
 

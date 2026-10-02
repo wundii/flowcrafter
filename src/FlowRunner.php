@@ -521,11 +521,9 @@ class FlowRunner
                 continue;
             }
 
-            if ($this->messageReturn instanceof MessageReturnInterface) {
-                continue;
+            if (!$this->messageReturn instanceof MessageReturnInterface) {
+                $this->messageReturn = $processResult;
             }
-
-            $this->messageReturn = $processResult;
 
             if (is_bool($processResult)) {
                 $flowResult = FlowResult::create(
