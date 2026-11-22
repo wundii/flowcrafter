@@ -74,8 +74,9 @@ final readonly class FlowPreflight
         $shortName = (new ReflectionClass($messageSource))->getShortName();
         $rawKeys = $messageSourceEntity->propertyNames[$shortName] ?? [];
         $expectedKeys = array_map(static fn (string $k): string => explode(':', $k)[0], $rawKeys);
+        $requiredKeys = array_diff($expectedKeys, $this->optionalParameterNames($messageSource));
 
-        $missingKeys = array_diff($expectedKeys, array_keys($message));
+        $missingKeys = array_diff($requiredKeys, array_keys($message));
         $unknownKeys = array_diff(array_keys($message), $expectedKeys);
         if ($missingKeys !== []) {
             throw new InvalidArgumentException(sprintf(
@@ -103,5 +104,31 @@ final readonly class FlowPreflight
         }
 
         return $hydrated;
+    }
+
+    /**
+     * Constructor parameters with a default value. A payload may leave them out,
+     * the DataMapper then uses the default.
+     *
+     * @param class-string<AbstractMessage> $messageSource
+     * @return string[]
+     */
+    private function optionalParameterNames(string $messageSource): array
+    {
+        $constructor = (new ReflectionClass($messageSource))->getConstructor();
+        if ($constructor === null) {
+            return [];
+        }
+
+        $names = [];
+        foreach ($constructor->getParameters() as $reflectionParameter) {
+            // isOptional() is false for a default before a required parameter, which PHP
+            // treats as required as well.
+            if ($reflectionParameter->isOptional()) {
+                $names[] = $reflectionParameter->getName();
+            }
+        }
+
+        return $names;
     }
 }

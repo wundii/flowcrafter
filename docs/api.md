@@ -66,7 +66,7 @@ immer `isExecutable: false`.
 | `flowHash`      | ja, wenn kein `flowSource`      | Re-Run einer bestehenden Instanz (Typ, Source und Subject kommen aus dem Storage)   |
 | `flowSubject`   | nein                            | Subject für neue Flows                                                             |
 | `messageSource` | ja                              | Message-Klasse; muss von einem Step des Flows konsumiert werden                    |
-| `message`       | ja (außer `EmptyInitMessage`)   | Message-Daten; Keys müssen den Constructor-Properties entsprechen                  |
+| `message`       | ja (außer `EmptyInitMessage`)   | Message-Daten; Keys entsprechen den Constructor-Properties. Parameter mit Default-Wert dürfen fehlen und bekommen dann den Default; nullable Parameter **ohne** Default bleiben Pflicht |
 | `includeSteps`  | nein                            | Siehe [concepts.md](concepts.md#selektive-step-ausführung-includesteps)            |
 
 Antwort: `{ success: true, runtimeHash, messageReturn }`. Wirft ein Step,
@@ -132,7 +132,8 @@ gespeichert und `500` geliefert.
 Mit `flowHash` (Re-Run) werden `type` und `flowSource` aus dem Storage
 übernommen, sonst sind beide Pflicht. Die Message wird vor dem Einreihen
 probeweise hydriert, damit fehlerhafte Payloads sofort mit `400`
-abgelehnt werden. Antwort: `{ queued: true, subject }`.
+abgelehnt werden. Wie bei `flow-run` dürfen Keys von Parametern mit
+Default-Wert fehlen. Antwort: `{ queued: true, subject }`.
 
 ## Dev-Endpunkte
 

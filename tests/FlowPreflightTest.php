@@ -11,6 +11,7 @@ use Tests\MockClass\BareMessageInterfaceMock;
 use Tests\MockClass\MessageDataSecondMock;
 use Tests\MockClass\MessageInitMock;
 use Tests\MockClass\MessageSubDataMock;
+use Tests\MockClass\MessageWithOptionalMock;
 use Tests\MockClass\WorkflowMock;
 use Wundii\Flowcrafter\FlowPreflight;
 use Wundii\Flowcrafter\Interface\MessageInterface;
@@ -110,5 +111,54 @@ final class FlowPreflightTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('missing required keys');
         $flowPreflight->hydrateMessage(MessageDataSecondMock::class, []);
+    }
+
+    public function testHydrateMessageUsesDefaultsForMissingOptionalKeys(): void
+    {
+        $flowPreflight = new FlowPreflight();
+        $message = $flowPreflight->hydrateMessage(MessageWithOptionalMock::class, [
+            'command' => 'off',
+            'nullableRequired' => null,
+        ]);
+
+        $this->assertInstanceOf(MessageWithOptionalMock::class, $message);
+        $this->assertSame('off', $message->getCommand());
+        $this->assertNull($message->getNullableRequired());
+        $this->assertNull($message->getLevel());
+        $this->assertSame(60, $message->getSeconds());
+    }
+
+    public function testHydrateMessageTakesGivenOptionalKeys(): void
+    {
+        $flowPreflight = new FlowPreflight();
+        $message = $flowPreflight->hydrateMessage(MessageWithOptionalMock::class, [
+            'command' => 'on',
+            'nullableRequired' => 'x',
+            'level' => 'low',
+            'seconds' => 5,
+        ]);
+
+        $this->assertInstanceOf(MessageWithOptionalMock::class, $message);
+        $this->assertSame('x', $message->getNullableRequired());
+        $this->assertSame('low', $message->getLevel());
+        $this->assertSame(5, $message->getSeconds());
+    }
+
+    public function testHydrateMessageStillRequiresNullableKeysWithoutDefault(): void
+    {
+        $flowPreflight = new FlowPreflight();
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is missing required keys: nullableRequired. Unknown keys: .');
+        $flowPreflight->hydrateMessage(MessageWithOptionalMock::class, [
+            'command' => 'off',
+        ]);
+    }
+
+    public function testHydrateMessageReportsOnlyRequiredKeysAsMissing(): void
+    {
+        $flowPreflight = new FlowPreflight();
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('is missing required keys: command, nullableRequired. Unknown keys: .');
+        $flowPreflight->hydrateMessage(MessageWithOptionalMock::class, []);
     }
 }
