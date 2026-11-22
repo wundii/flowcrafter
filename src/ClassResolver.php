@@ -172,14 +172,17 @@ final class ClassResolver
     private static function resolveVendorComposerPath(string $filename): ?string
     {
         $candidates = [
-            dirname(__DIR__) . '/vendor/composer/' . $filename,
+            __DIR__ . '/../vendor/composer/' . $filename,
             dirname(__DIR__, 3) . '/composer/' . $filename,
             getcwd() . '/vendor/composer/' . $filename,
         ];
 
         foreach ($candidates as $candidate) {
-            if (is_file($candidate)) {
-                return $candidate;
+            // Normalised, because callers compare the vendor dir derived from this
+            // path with the absolute paths in Composer's autoload files.
+            $realPath = realpath($candidate);
+            if ($realPath !== false && is_file($realPath)) {
+                return $realPath;
             }
         }
 

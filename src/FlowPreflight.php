@@ -8,6 +8,7 @@ use DateTime;
 use DateTimeInterface;
 use InvalidArgumentException;
 use ReflectionClass;
+use ReflectionMethod;
 use Throwable;
 use Wundii\DataMapper\DataConfig;
 use Wundii\DataMapper\DataMapper;
@@ -116,7 +117,7 @@ final readonly class FlowPreflight
     private function optionalParameterNames(string $messageSource): array
     {
         $constructor = (new ReflectionClass($messageSource))->getConstructor();
-        if ($constructor === null) {
+        if (!$constructor instanceof ReflectionMethod) {
             return [];
         }
 

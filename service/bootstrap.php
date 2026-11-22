@@ -8,7 +8,7 @@ use Wundii\Flowcrafter\Config\FlowcrafterConfig;
 use Wundii\Service\Routes;
 
 $autoloadCandidates = [
-    dirname(__DIR__) . '/vendor/autoload.php', // flowcrafter repo / FrankenPHP root
+    __DIR__ . '/../vendor/autoload.php', // flowcrafter repo / FrankenPHP root
     dirname(__DIR__, 4) . '/vendor/autoload.php', // installed as composer package
     getcwd() . '/vendor/autoload.php', // PHP built-in server (dev)
 ];

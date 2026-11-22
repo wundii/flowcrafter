@@ -7,6 +7,7 @@ namespace Wundii\Flowcrafter;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use ReflectionClass;
+use ReflectionMethod;
 use ReflectionNamedType;
 use Wundii\Flowcrafter\Interface\StepInterface;
 use Wundii\Flowcrafter\Storage\Entity\MessageSourceEntity;
@@ -86,7 +87,7 @@ class Source
         $constructor = $reflectionClass->getConstructor();
 
         $names = [];
-        if ($constructor !== null) {
+        if ($constructor instanceof ReflectionMethod) {
             foreach ($constructor->getParameters() as $reflectionParameter) {
                 if (!$reflectionParameter->isPromoted()) {
                     continue;
